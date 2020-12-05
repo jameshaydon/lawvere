@@ -6,37 +6,37 @@ import Lawvere.Disp
 import Lawvere.Parse
 import Lawvere.Scalar
 import Prettyprinter
-import Protolude hiding (many)
+import Protolude hiding (many, try)
 import Text.Megaparsec
 
 data Expr
-  = Cone [(LcIdent, Expr)]
+  = Cone [(Proj, Expr)]
   | Tuple [Expr]
   | CoCone [(LcIdent, Expr)]
   | Lit Sca
-  | Proj LcIdent
+  | Proj Proj
   | Inj LcIdent
   | Comp [Expr]
   | Top LcIdent
-  | Distr LcIdent
+  | Distr Proj
   | EConst Expr
 
 pAtom :: Parser Expr
 pAtom =
   choice
-    [ Top <$> parsed,
+    [ Proj <$> ("." *> parsed),
+      try (Inj <$> (parsed <* ".")), -- we need to look ahead for the dot
+      Top <$> parsed,
       Lit <$> parsed,
       Tuple <$> pTuple parsed,
-      Proj <$> ("." *> parsed),
-      Inj <$> (parsed <* "."),
       Cone <$> pBracedFields '=',
       CoCone <$> pBracketedFields '=',
       Distr <$> (single '@' *> parsed),
-      EConst <$> wrapped '(' ')' parsed
+      EConst <$> (chunk "const" *> wrapped '(' ')' parsed)
     ]
 
 instance Parsed Expr where
-  parsed = Comp <$> many pAtom
+  parsed = Comp <$> many (lexeme pAtom)
 
 instance Disp Expr where
   disp = \case

@@ -5,8 +5,7 @@ ar absurd : Int =
   []
 
 ar isEven : Int =
-  ( , .2 )
-  divRem
+  ( , .2 ) divRem
   { div = .div, zeroRemainder = .rem ( , .0, eq ) }
   @zeroRemainder
   [ true = .div, false = "Was not even" error absurd ]
@@ -21,8 +20,29 @@ ar map : Int =
 ar length : Int =
   [ empty = 0, cons = ( 1, .tail length ) plus ]
 
-ar mapLen : Int =
+ar mapLength : Int =
+  (const(length), ) map
+
+ar mapPrint : Int =
+  { head = 1, tail = } cons.
+
+ar cons1 : Int =
+  { head = 1, tail = } cons.
+
+ar cons2 : Int =
+  { head = 2, tail = } cons.
+
+ar list3 : Int =
+  empty. cons1 cons2 cons1
+
+ar list2 : Int =
+  empty. cons2 cons1
+
+ar listOfLists : Int =
+  empty. {head = list3, tail = } cons. {head = list2, tail = } cons.
+
+ar mapLength : Int =
   ( const(length),  ) map
 
-ar main : Int -> Int =
-  mapLen
+ar main : Int =
+  listOfLists mapLength

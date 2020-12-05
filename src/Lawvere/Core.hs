@@ -3,18 +3,18 @@ module Lawvere.Core where
 import Data.Aeson hiding ((<?>))
 import qualified Data.Char as Char
 import qualified Data.Set as Set
-import Data.String (IsString (..))
 import Lawvere.Disp
 import Lawvere.Parse
 import Prettyprinter
 import Protolude hiding (many, try)
 import Text.Megaparsec
+import qualified Text.Megaparsec.Char.Lexer as Lex
 
 identSpecials :: [Char]
 identSpecials = ['_', '\'']
 
 keywords :: Set Text
-keywords = Set.fromList ["ob", "ar", "main", "id", "const"]
+keywords = Set.fromList ["ob", "ar", "id", "const"]
 
 pKeyword :: Parser ()
 pKeyword = void $ choice $ reserved <$> Set.toList keywords
@@ -49,14 +49,6 @@ newtype UcIdent = UcIdent {getUcIdent :: Text}
   deriving stock (Show)
   deriving newtype (Eq, ToJSON, FromJSON)
 
--- FIXME: not safe
-instance IsString LcIdent where
-  fromString = LcIdent . toS
-
--- FIXME: not safe
-instance IsString UcIdent where
-  fromString = UcIdent . toS
-
 instance Parsed LcIdent where
   parsed = try $ do
     i <- identParser Char.isLower
@@ -73,6 +65,21 @@ instance Disp UcIdent where
 instance Parsed UcIdent where
   parsed = UcIdent <$> identParser Char.isUpper
 
+-- TODO: rename to something that doesn't rule out the dual.
+data Proj
+  = PPos Int
+  | PLab LcIdent
+  deriving stock (Eq, Ord, Show)
+
+instance Parsed Proj where
+  parsed = (PLab <$> parsed) <|> (PPos <$> Lex.decimal)
+
+instance Disp Proj where
+  disp =
+    \case
+      PPos i -> pretty (show i :: Text)
+      PLab l -> disp l
+
 pApp :: (a -> [a] -> a) -> Parser a -> Parser a
 pApp app pAtom = do
   x <- lexeme pAtom
@@ -85,12 +92,12 @@ wrapped :: Char -> Char -> Parser a -> Parser a
 wrapped l r = between (lexChar l) (single r)
 
 pWrapSep :: Char -> Char -> Char -> Parser a -> Parser [a]
-pWrapSep s l r pItem = wrapped l r (sepBy pItem (lexChar s) <* optional (single s))
+pWrapSep s l r pItem = wrapped l r (sepBy (lexeme pItem) (lexChar s) <* optional (single s))
 
 pCommaSep :: Char -> Char -> Parser a -> Parser [a]
 pCommaSep = pWrapSep ','
 
-pFields :: (Parsed a) => Char -> Char -> Char -> Parser [(LcIdent, a)]
+pFields :: (Parsed a, Parsed k) => Char -> Char -> Char -> Parser [(k, a)]
 pFields l r fieldSym = pCommaSep l r pField
   where
     pField = (,) <$> lexeme parsed <*> (lexChar fieldSym *> parsed)
@@ -98,7 +105,7 @@ pFields l r fieldSym = pCommaSep l r pField
 pTuple :: Parser a -> Parser [a]
 pTuple = pCommaSep '(' ')'
 
-pBracedFields :: (Parsed a) => Char -> Parser [(LcIdent, a)]
+pBracedFields :: (Parsed a, Parsed k) => Char -> Parser [(k, a)]
 pBracedFields = pFields '{' '}'
 
 pBracketedFields :: (Parsed a) => Char -> Parser [(LcIdent, a)]

@@ -1,18 +1,13 @@
 module Main where
 
-import qualified Data.Map.Strict as Map
-import Lawvere.Core
 import Lawvere.Decl
 import Lawvere.Disp
 import Lawvere.Eval
-import Lawvere.Expr
---import Lawvere.Parse
-import Lawvere.Scalar
-import Lawvere.Typ
+import Lawvere.Parse
 import Protolude hiding (empty)
+import qualified Text.Megaparsec as Mega
 
---import qualified Text.Megaparsec as Mega
-
+{-
 example :: Decls
 example =
   [ "uniq" === Cone [],
@@ -137,39 +132,41 @@ example =
   ]
   where
     name === e = DAr name (TNamed "Int") e
+-}
 
-empty :: Val
-empty = Tag "empty" (Rec mempty)
+-- empty :: Val
+-- empty = Tag "empty" (Rec mempty)
 
-mkRec :: [(LcIdent, Val)] -> Val
-mkRec xs = Rec (Map.fromList xs)
+-- mkRec :: [(LcIdent, Val)] -> Val
+-- mkRec xs = Rec (Map.fromList [(PLab i, x) | (i, x) <- xs])
 
-cons :: Val -> Val -> Val
-cons x xs = Tag "cons" (mkRec ["head" =: x, "tail" =: xs])
+-- cons :: Val -> Val -> Val
+-- cons x xs = Tag "cons" (mkRec ["head" =: x, "tail" =: xs])
 
-int :: Integer -> Val
-int = Sca . Int
+-- int :: Integer -> Val
+-- int = Sca . Int
 
-lis :: [Val] -> Val
-lis = foldr cons empty
+-- lis :: [Val] -> Val
+-- lis = foldr cons empty
+
+-- listOfLists :: Val
+-- listOfLists = lis [lis [int 1, int 2], lis [int 2], lis [int 6, int 77]]
 
 say :: Text -> IO ()
 say = putStrLn
 
 main :: IO ()
 main = do
-  --basic <- readFile "examples/basic.law"
-  -- case Mega.parse (parsed <* Mega.eof) "basic.law" basic of
-  --   Left err -> putStr (Mega.errorBundlePretty err)
-  --   Right (prog :: [Decl]) -> do
-  let prog = example
-  putStrLn (render prog)
-  --let inp = lis [lis [int 1, int 2], lis [int 2], lis [int 6, int 77]]
-  let inp = Rec mempty
-  v <- eval inp example
-  say "input:"
-  say (render inp)
-  say "-------"
-  say "result:"
-  putStrLn ("  " <> render v)
-  putStrLn (mkJS prog)
+  basic <- readFile "examples/basic.law"
+  case Mega.parse (parsed <* Mega.eof) "basic.law" basic of
+    Left err -> putStr (Mega.errorBundlePretty err)
+    Right (prog :: [Decl]) -> do
+      putStrLn (render prog)
+      let inp = Rec mempty
+      v <- eval inp prog
+      say "input:"
+      say (render inp)
+      say "-------"
+      say "result:"
+      putStrLn ("  " <> render v)
+      putStrLn (mkJS prog)

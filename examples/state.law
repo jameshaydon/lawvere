@@ -5,26 +5,64 @@ extension StateInt
 
 -- define some arrows in said extended category:
 
-ar in StateInt next : {} -> Int =
+ar in Base[StateInt] next : {} -> Int =
   get {current = , next inc} .current
 
-ar in StateInt label : String -> (Int, String) =
+ar in Base[StateInt] label : String -> (Int, String) =
   (! next, )
 
-ar in StateInt index List String -> List (Int, String) =
+ar in Base[StateInt] index List String -> List (Int, String) =
   ( const(label), ) map
 
--- define a functor:
+functor PureState : Base[StateInt] -> Base
 
-functor PureState : StateInt -> Pure
-
-  ob : X   |-> {state: Int, val: X}
+  ob :  X  |->  {state: Int, val: X}
   
-  ar : f   |-> {state: .state, val: .val f}
-       get |-> {state: .state, val: .state}
-       put |-> {state: .val, val: !}
+  ar : In(f)  |->  {state: .state, val: .val f}
+       get    |->  {state: .state, val: .state}
+       put    |->  {state: .val, val: !}
 
 -- use said functor:
 
 indexPure : {state: Int, val: List String} -> List (Int, String)
 indexPure = PureState(index) .val
+
+
+-- Another way of doing it, if you already know what the extended category is,
+-- is to just define it directly:
+
+category WithInt
+
+  ob = WithInt(Base)   -- this is like a haskell `data` but at
+                       -- the next level i.e. it says "I have
+                       -- an object Int_Base(X) of IntBase for
+                       -- all objects X of Base"
+
+  ar
+    WithInt(X) -> WithInt(Y) =
+      WithInt({state: Int, val: X} -> {state: Int, val: Y})
+      -- this says that I can construct a morphism of WithInt with the given one from Base
+
+  id = ...
+
+  comp = ...
+
+
+
+-- note also the functor:
+
+functor Unstateful : Base -> WithInt
+  ob  : X  |->  WithInt(X)
+  mor : f  |->  WithInt({state: .state, val: .val f})
+
+
+-- Then we can give an interpretation of StateInt in WithInt:
+
+functor StateWithInt : Base[StateInt] -> WithInt
+
+  ob : X  |->  WithInt(X)
+
+  ar : (In(f) : X -> Y)   |->  Unstateful(f)
+
+       (get : {} -> Int)  |->  WithInt({state: .state, val: .state})
+       (put : Int -> {})  |->  WithInt({state: .val, val: !})

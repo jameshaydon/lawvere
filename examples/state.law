@@ -1,0 +1,30 @@
+-- define a free category extension:
+extension StateInt
+  get : {} -> Int
+  put : Int -> {}
+
+-- define some arrows in said extended category:
+
+ar in StateInt next : {} -> Int =
+  get {current = , next inc} .current
+
+ar in StateInt label : String -> (Int, String) =
+  (! next, )
+
+ar in StateInt index List String -> List (Int, String) =
+  ( const(label), ) map
+
+-- define a functor:
+
+functor PureState : StateInt -> Pure
+
+  ob : X   |-> {state: Int, val: X}
+  
+  ar : f   |-> {state: .state, val: .val f}
+       get |-> {state: .state, val: .state}
+       put |-> {state: .val, val: !}
+
+-- use said functor:
+
+indexPure : {state: Int, val: List String} -> List (Int, String)
+indexPure = PureState(index) .val

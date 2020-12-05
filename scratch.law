@@ -1,0 +1,9 @@
+isEven Int -> Int =
+  ( , 2) divRem
+  <{div, isZeroRem = .rem ( , 0) eq}
+  @isZeroRem
+  >{ true = .div,
+     false = "was not even" error absurd }
+
+foo : {m : Int, n : Int} -> Int =
+  <{ m = isEven, n = isEven } (.m, .n) plus

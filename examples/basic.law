@@ -1,0 +1,28 @@
+ar uniq : Int =
+  {}
+
+ar absurd : Int =
+  []
+
+ar isEven : Int =
+  ( , .2 )
+  divRem
+  { div = .div, zeroRemainder = .rem ( , .0, eq ) }
+  @zeroRemainder
+  [ true = .div, false = "Was not even" error absurd ]
+
+ar map : Int =
+  { f = .1, xs = .2 }
+  @xs
+  [ empty = uniq empty.,
+    cons = { head = ( .f, .xs .head ) app, tail = ( .f, .xs .tail ) map }
+           cons. ]
+
+ar length : Int =
+  [ empty = 0, cons = ( 1, .tail length ) plus ]
+
+ar mapLen : Int =
+  ( const(length),  ) map
+
+ar main : Int -> Int =
+  mapLen

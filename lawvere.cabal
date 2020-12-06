@@ -31,6 +31,7 @@ library
       Lawvere.Disp
       Lawvere.Eval
       Lawvere.Expr
+      Lawvere.Instruction
       Lawvere.Parse
       Lawvere.Prim
       Lawvere.Scalar

@@ -14,7 +14,8 @@ ar map : Int =
   { f = .1, xs = .2 }
   @xs
   [ empty = uniq empty.,
-    cons = { head = ( .f, .xs .head ) app, tail = ( .f, .xs .tail ) map }
+    cons = { head = ( .f, .xs .head ) app,
+             tail = ( .f, .xs .tail ) map }
            cons. ]
 
 ar length : Int =
@@ -23,20 +24,17 @@ ar length : Int =
 ar mapLength : Int =
   (const(length), ) map
 
-ar mapPrint : Int =
-  { head = 1, tail = } cons.
-
 ar cons1 : Int =
-  { head = 1, tail = } cons.
+  { head = 100, tail = } cons.
 
 ar cons2 : Int =
-  { head = 2, tail = } cons.
+  { head = 200, tail = } cons.
 
 ar list3 : Int =
   empty. cons1 cons2 cons1
 
 ar list2 : Int =
-  empty. cons2 cons1
+  empty. cons2 cons1 cons1 cons1
 
 ar listOfLists : Int =
   empty. {head = list3, tail = } cons. {head = list2, tail = } cons.

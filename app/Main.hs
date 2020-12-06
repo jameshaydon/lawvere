@@ -3,6 +3,7 @@ module Main where
 import Lawvere.Decl
 import Lawvere.Disp
 import Lawvere.Eval
+import qualified Lawvere.Instruction as Machine
 import Lawvere.Parse
 import Protolude hiding (empty)
 import qualified Text.Megaparsec as Mega
@@ -169,4 +170,9 @@ main = do
       say "-------"
       say "result:"
       putStrLn ("  " <> render v)
-      putStrLn (mkJS prog)
+      -- machine:
+      say "running machine now"
+      let res = Machine.runProg (Machine.MRec mempty) prog
+      say (show res)
+
+--putStrLn (mkJS prog)

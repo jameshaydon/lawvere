@@ -113,10 +113,10 @@ eval v ds =
 
 primsJS :: [(Text, Text)]
 primsJS =
-  [ "plus" =: "x => x._1 + x._2;",
+  [ "plus" =: "x => x[\"1\"] + x[\"2\"];",
     "print" =: "x => {console.log('PRINT', x);return {};}",
     "incr" =: "x => x+1;",
-    "app" =: "x => x._1(x._2)"
+    "app" =: "x => x[\"1\"](x[\"2\"])"
   ]
 
 jsCall1 :: Text -> Text -> Text
@@ -130,7 +130,7 @@ jsCone xs = "{" <> Text.intercalate "," [jsLabel lab <> ":" <> f | (lab, f) <- x
 
 jsLabel :: Proj -> Text
 jsLabel (PPos i) = show (show i :: Text)
-jsLabel (PLab l) = show l
+jsLabel (PLab l) = show (render l)
 
 evalJS :: Expr -> Text
 evalJS = \case

@@ -19,7 +19,7 @@ ar Bool ---not--> Bool =
 //   [ empty = 0,
 //     cons = ( 1, .tail length ) plus ]
 
-ar {} ---main--> {}  = false. not // list3 length
+ar {} ---main--> {}  = false. not {} // list3 length
 
 
 // Some lists follow

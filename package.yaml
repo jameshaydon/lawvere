@@ -72,6 +72,7 @@ default-extensions:
   - DerivingStrategies
   - DerivingVia
   - DuplicateRecordFields
+  - EmptyCase
   - FlexibleContexts
   - FlexibleInstances
   - FunctionalDependencies

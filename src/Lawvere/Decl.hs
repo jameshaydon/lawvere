@@ -6,57 +6,52 @@ import Lawvere.Expr
 import Lawvere.Parse
 import Lawvere.Typ
 import Prettyprinter
-import Protolude hiding (many)
+import Protolude hiding (many, some)
 import Text.Megaparsec
 
 data Decl
-  = --DOb UcIdent Typ
-    DAr LcIdent Typ Expr
-  | DMain Expr
+  = DAr LcIdent Typ Typ Expr
+  | DOb UcIdent Typ
 
 type Decls = [Decl]
 
-pDef :: (Parsed name, Parsed body) => Parser () -> Parser a -> Parser (name, a, body)
-pDef kw pExtra = do
-  kw
+pObDecl :: Parser Decl
+pObDecl = do
+  kwOb
   name <- lexeme parsed
-  extra <- lexeme pExtra
-  _ <- symbol "="
-  body <- parsed
-  pure (name, extra, body)
-
--- pObDecl :: Parser Decl
--- pObDecl = do
---   (name, _, body) <- pDef kwOb (pure ())
---   pure (DOb name body)
+  lexChar '='
+  ob <- parsed
+  pure (DOb name ob)
 
 pArDecl :: Parser Decl
 pArDecl = do
-  (name, typ, ar) <- pDef kwAr pNameAndNiche
-  pure (DAr name typ ar)
-  where
-    pNameAndNiche = do
-      lexChar ':'
-      parsed
+  kwAr
+  a <- lexeme parsed
+  _ <- chunk "---"
+  name <- parsed
+  _ <- symbol "-->"
+  b <- lexeme parsed
+  lexChar '='
+  body <- parsed
+  pure (DAr name a b body)
 
 instance Parsed Decl where
   parsed =
     choice
-      [ -- pObDecl,
+      [ pObDecl,
         pArDecl
       ]
 
 instance Disp Decl where
   disp = \case
-    --DOb name ob -> dispDef "ob" (disp name) (disp ob)
-    DAr name typ ar -> dispDef "ar" (disp name <+> ":" <+> disp typ) (disp ar)
-    DMain ar -> dispDef "main" mempty (disp ar)
+    DOb name ob -> dispDef "ob" (disp name) (disp ob)
+    DAr name a b body -> dispDef "ar" (disp name <+> disp a <> "--" <> disp name <> "-->" <+> disp b) (disp body)
     where
       dispDef :: Text -> Doc Ann -> Doc Ann -> Doc Ann
       dispDef defname thing body = nest 2 $ vsep [pretty defname <+> thing <+> "=", body]
 
 instance Parsed Decls where
-  parsed = sc *> many (lexeme parsed) <* sc
+  parsed = sc *> some (lexeme parsed) <* sc
 
 instance Disp Decls where
   disp ds = vsep ((<> line) . disp <$> ds)

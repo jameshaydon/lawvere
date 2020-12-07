@@ -3,6 +3,7 @@ module Lawvere.Core where
 import Data.Aeson hiding ((<?>))
 import qualified Data.Char as Char
 import qualified Data.Set as Set
+import Data.String (IsString (..))
 import Lawvere.Disp
 import Lawvere.Parse
 import Prettyprinter
@@ -45,9 +46,15 @@ newtype LcIdent = LcIdent {getLcIdent :: Text}
   deriving stock (Show)
   deriving newtype (Eq, Ord, ToJSON, FromJSON, ToJSONKey, FromJSONKey)
 
+instance IsString LcIdent where
+  fromString = LcIdent . toS
+
 newtype UcIdent = UcIdent {getUcIdent :: Text}
   deriving stock (Show)
-  deriving newtype (Eq, ToJSON, FromJSON)
+  deriving newtype (Eq, Ord, ToJSON, FromJSON)
+
+instance IsString UcIdent where
+  fromString = UcIdent . toS
 
 instance Parsed LcIdent where
   parsed = try $ do
@@ -66,19 +73,23 @@ instance Parsed UcIdent where
   parsed = UcIdent <$> identParser Char.isUpper
 
 -- TODO: rename to something that doesn't rule out the dual.
-data Proj
-  = PPos Int
-  | PLab LcIdent
+data Label
+  = LPos Int
+  | LNam LcIdent
   deriving stock (Eq, Ord, Show)
 
-instance Parsed Proj where
-  parsed = (PLab <$> parsed) <|> (PPos <$> Lex.decimal)
+instance Parsed Label where
+  parsed = (LNam <$> parsed) <|> (LPos <$> Lex.decimal)
 
-instance Disp Proj where
+instance Disp Label where
   disp =
     \case
-      PPos i -> pretty (show i :: Text)
-      PLab l -> disp l
+      LPos i -> pretty (show i :: Text)
+      LNam l -> disp l
+
+-- Tuples are just shorthand for records.
+tupleToCone :: [a] -> [(Label, a)]
+tupleToCone fs = [(LPos i, f) | (i, f) <- zip [1 :: Int ..] fs]
 
 pApp :: (a -> [a] -> a) -> Parser a -> Parser a
 pApp app pAtom = do
@@ -108,5 +119,31 @@ pTuple = pCommaSep '(' ')'
 pBracedFields :: (Parsed a, Parsed k) => Char -> Parser [(k, a)]
 pBracedFields = pFields '{' '}'
 
-pBracketedFields :: (Parsed a) => Char -> Parser [(LcIdent, a)]
+pBracketedFields :: (Parsed a, Parsed k) => Char -> Parser [(k, a)]
 pBracketedFields = pFields '[' ']'
+
+-- General util
+
+infixr 0 ?:
+
+-- | Convert a 'Maybe' value into an error.
+(?:) :: (MonadError e m) => Maybe a -> e -> m a
+x_ ?: e = case x_ of
+  Nothing -> throwError e
+  Just x -> pure x
+
+lookupRest :: (Eq a) => a -> [(a, b)] -> Maybe (b, [(a, b)])
+lookupRest _ [] = Nothing
+lookupRest x ((x', y) : rest)
+  | x == x' = Just (y, rest)
+  | otherwise = lookupRest x rest
+
+-- | Checks that keys in two associative lists match up. If not, says which key
+-- is missing, from which side, and what value the other side had for that key.
+pairwise :: (Eq k) => [(k, a)] -> [(k, b)] -> Either (k, Either b a) [(k, (a, b))]
+pairwise [] [] = pure []
+pairwise ((k, a) : as') bs = do
+  (b, bs') <- lookupRest k bs ?: (k, Right a)
+  rest <- pairwise as' bs'
+  pure $ (k, (a, b)) : rest
+pairwise [] ((k, b) : _) = Left (k, Left b)

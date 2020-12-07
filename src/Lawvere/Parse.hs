@@ -14,8 +14,8 @@ sc :: Parser ()
 sc =
   L.space
     space1
-    (L.skipLineComment "--")
-    (L.skipBlockComment "{-" "-}")
+    (L.skipLineComment "//")
+    (L.skipBlockComment "/*" "*/")
 
 -- Parse a thing and then trailing whitespace after that thing.
 lexeme :: Parser a -> Parser a

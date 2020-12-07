@@ -1,0 +1,35 @@
+ar (ListInt -> Int, ListListInt) ---map--> ListInt =
+  { f = .1, xs = .2 }
+  @xs
+  [ empty = uniq empty.,
+    cons = { head = ( .f, .xs .head ) app,
+             tail = ( .f, .xs .tail ) map }
+           cons. ]
+
+ar ListInt ---length--> Int =
+  [ empty = 0,
+    cons = ( 1, .tail length ) plus ]
+
+ar {} ---mapLength--> _ =
+  ( const(length),) map
+
+ar {} ---main--> {}  =  listOfLists mapLength
+
+
+// Some lists follow
+
+
+ar List ---cons1--> List =
+  { head = 100, tail = } cons.
+
+ar List ---cons2--> List =
+  { head = 200, tail = } cons.
+
+ar {} ---list3--> List =
+  empty. cons1 cons2 cons1
+
+ar {} ---list2--> List =
+  empty. cons2 cons1 cons1 cons1
+
+ar {} ---listOfLists--> ListListInt =
+  empty. {head = list3, tail = } cons. {head = list2, tail = } cons.

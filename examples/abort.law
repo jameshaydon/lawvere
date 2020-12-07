@@ -1,0 +1,12 @@
+ar a ---uniq--> {}
+  = {}
+
+ar [] ---absurd--> a
+  = []
+
+ar Int ---isEven--> Bool
+  =
+  ( , .2 ) divRem
+  { div = .div, zeroRemainder = .rem ( , .0, eq ) }
+  @zeroRemainder
+  [ true = .div, false = "Was not even" error absurd ]

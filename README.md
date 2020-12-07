@@ -1,16 +1,23 @@
 # Lawvere
 
-> Effectfully pointless programming made easy
+> Programming in categories
 
-Lawvere is a categorical programming language with sketches and effects. It allows you to program morhisms in arbitrary cartesian closed categories.
-
----
-
-Programming in categories, or in point-free style, etc. has a reputation for being obtuse, even _pointless_. We hope to show that pointfree programming need not be _nameless_, and aim to produce a use-friendly language for this style of programming.
-
-The main contributions making Lawvere what it is a nice syntax for representing cones and cocones in an intuitive way, and also a formalism for specifying category extensions and retrations, which can accomodate a extensible programming style (e.g. for defining ASTs), or interpreting effects.
+Lawvere is a categorical programming language with sketches and effects. It allows you to program morhisms in cartesian closed categories, and allows you to define locally finitely presentable categories.
 
 ---
+
+## TODO
+
+- Implement type-checker.
+- Implement more general diagrams and limits/colimits thereof.
+- Make example showing extensible data programming, e.g. let-desugaring as a cartesian retract.
+- Make more effect examples.
+- Make a small but not just a few lines "real program".
+- Implement `yoneda` construct
+- Let bindings
+- implement `factors`
+- implement `generators`
+- defining new categories
 
 ## Some random notes:
 

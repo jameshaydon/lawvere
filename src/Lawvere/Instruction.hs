@@ -5,8 +5,10 @@ import Data.Generics.Labels ()
 import qualified Data.Map.Strict as Map
 import Lawvere.Core
 import Lawvere.Decl
+import Lawvere.Disp
 import Lawvere.Expr
 import Lawvere.Scalar
+import Prettyprinter
 import Protolude
 import Prelude (lookup)
 
@@ -15,14 +17,18 @@ data Addr
   | Addr Int
   deriving stock (Eq, Ord, Show)
 
+instance Disp Addr where
+  disp (Addr i) = "#" <> pretty i
+  disp (AddrTop label) = "#" <> disp label
+
 data Instr
-  = IConeFinish [Proj]
-  | ICoCone [(LcIdent, Addr)]
+  = IConeFinish [Label]
+  | ICoCone [(Label, Addr)]
   | IPushCurrentToValStack
   | ISca Sca
-  | IProj Proj
-  | IInj LcIdent
-  | IDistr Proj
+  | IProj Label
+  | IInj Label
+  | IDistr Label
   | ICall Addr
   | IPutFun Addr
   | IPushCurrentToConeStack
@@ -75,7 +81,7 @@ compile = \case
                IPopValStackToCurrent
              ]
   CoCone is -> pure . ICoCone <$> traverse (_2 compStore) is
-  Tuple xs -> compile (Cone [(PPos i, x) | (i, x) <- zip [1 :: Int ..] xs])
+  Tuple xs -> compile (Cone (tupleToCone xs))
   Lit x -> pure [ISca x]
   Proj p -> pure [IProj p]
   Inj i -> pure [IInj i]
@@ -89,12 +95,10 @@ compile = \case
     compStore = compile >=> storeCode
 
 compileDecl :: Decl -> Comp ()
-compileDecl (DAr name _ e) = do
+compileDecl (DAr name _ _ e) = do
   code <- compile e
   #code %= Map.insert (AddrTop name) code
-compileDecl (DMain e) = do
-  code <- compile e
-  #code %= Map.insert (AddrTop (LcIdent "main")) code
+compileDecl DOb {} = pure ()
 
 compileProg :: Decls -> Code
 compileProg ds = prims <> view #code (execState (traverse_ compileDecl ds) initCompilerState)
@@ -102,11 +106,18 @@ compileProg ds = prims <> view #code (execState (traverse_ compileDecl ds) initC
 -- * Machine
 
 data Val
-  = MRec (Map Proj Val)
-  | MTag LcIdent Val
+  = MRec (Map Label Val)
+  | MTag Label Val
   | MSca Sca
   | MFun Addr
   deriving stock (Show)
+
+instance Disp Val where
+  disp = \case
+    MSca s -> disp s
+    MRec r -> commaBrace (Map.toList r)
+    MTag t v -> disp t <> "." <> disp v
+    MFun f -> "FUN" <> disp f
 
 data MachState = MachState
   { idx :: (Addr, Int),
@@ -169,26 +180,24 @@ exec instr = case instr of
     x <- use #current
     case x of
       MRec r
-        | Just (MSca (Int a)) <- lkp (PPos 1) r,
-          Just (MSca (Int b)) <- lkp (PPos 2) r ->
+        | Just (MSca (Int a)) <- lkp (LPos 1) r,
+          Just (MSca (Int b)) <- lkp (LPos 2) r ->
           #current .= MSca (Int (a + b))
       _ -> panic "bad plus"
   IApp -> do
     x <- use #current
     case x of
       MRec r
-        | Just (MFun ff) <- lkp (PPos 1) r,
-          Just aa <- lkp (PPos 2) r -> do
+        | Just (MFun ff) <- lkp (LPos 1) r,
+          Just aa <- lkp (LPos 2) r -> do
           #current .= aa
           call ff
       v -> panic ("bad app: " <> show v)
   where
-    call :: Addr -> Mach ()
     call a = do
       pushToCallStack
       #jump .= Just (a, 0)
 
-    pushToCallStack :: Mach ()
     pushToCallStack = do
       (name, i) <- use #idx
       #callStack %= ((name, i + 1) :)
@@ -205,7 +214,6 @@ exec instr = case instr of
     popConeStack :: Mach Val
     popConeStack = popSomeStack "cone" #coneStack
 
-    lkp :: Proj -> Map Proj a -> Maybe a
     lkp = Map.lookup
 
 step :: Mach ()

@@ -12,8 +12,8 @@ import Prettyprinter
 import Protolude
 
 data Val
-  = Rec (Map Proj Val)
-  | Tag LcIdent Val
+  = Rec (Map Label Val)
+  | Tag Label Val
   | Sca Sca
   | VFun (Val -> IO Val)
 
@@ -21,7 +21,7 @@ instance Disp Val where
   disp = \case
     Sca s -> disp s
     Rec r -> commaBrace (Map.toList r)
-    Tag t v -> disp t <> parens (disp v)
+    Tag t v -> disp t <> "." <> disp v
     VFun _ -> "<unshowable>"
 
 type Tops = Map LcIdent (Val -> IO Val)
@@ -50,7 +50,7 @@ evalAr tops = \case
   Comp fs -> foldr' comp pure fs
     where
       comp e cur = evalAr tops e >=> cur
-  Tuple parts -> evalAr tops (Cone [(PPos i, p) | (i, p) <- zip [1 :: Int ..] parts])
+  Tuple parts -> evalAr tops (Cone (tupleToCone parts))
   Cone cone ->
     let ars = second (evalAr tops) <$> cone
      in \x -> do
@@ -64,12 +64,7 @@ evalAr tops = \case
             Nothing -> panic ("bad cocone: " <> show l <> " " <> render x)
           v -> panic ("bad cocone: " <> render v)
 
-evalDecl :: Tops -> Decl -> (LcIdent, Val -> IO Val)
-evalDecl tops = \case
-  DAr name _ e -> (name, evalAr tops e)
-  DMain e -> (LcIdent "main", evalAr tops e)
-
-lkp :: Proj -> Map Proj a -> Maybe a
+lkp :: Label -> Map Label a -> Maybe a
 lkp = Map.lookup
 
 primTops :: Tops
@@ -78,8 +73,8 @@ primTops =
     [ LcIdent "plus"
         =: \case
           Rec r
-            | Just (Sca (Int x)) <- lkp (PPos 1) r,
-              Just (Sca (Int y)) <- lkp (PPos 2) r ->
+            | Just (Sca (Int x)) <- lkp (LPos 1) r,
+              Just (Sca (Int y)) <- lkp (LPos 2) r ->
               pure (Sca (Int (x + y)))
           _ -> panic "bad plus",
       LcIdent "print"
@@ -95,8 +90,8 @@ primTops =
       LcIdent "app"
         =: \case
           Rec r
-            | Just (VFun ff) <- lkp (PPos 1) r,
-              Just aa <- lkp (PPos 2) r ->
+            | Just (VFun ff) <- lkp (LPos 1) r,
+              Just aa <- lkp (LPos 2) r ->
               ff aa
           v -> panic ("bad app: " <> render v)
     ]
@@ -104,9 +99,14 @@ primTops =
 (=:) :: a -> b -> (a, b)
 (=:) = (,)
 
+evalDecl :: Tops -> Decl -> [(LcIdent, Val -> IO Val)]
+evalDecl tops = \case
+  DAr name _ _ e -> [(name, evalAr tops e)]
+  DOb {} -> []
+
 eval :: Val -> Decls -> IO Val
 eval v ds =
-  let tops = primTops <> Map.fromList [evalDecl tops d | d <- ds]
+  let tops = primTops <> Map.fromList [bind | d <- ds, bind <- evalDecl tops d]
    in case Map.lookup (LcIdent "main") tops of
         Just m -> m v
         Nothing -> panic "No main!"
@@ -125,27 +125,27 @@ jsCall1 f x = f <> "(" <> x <> ")"
 jsCall2 :: Text -> Text -> Text -> Text
 jsCall2 f x y = f <> "(" <> x <> "," <> y <> ")"
 
-jsCone :: [(Proj, Text)] -> Text
+jsCone :: [(Label, Text)] -> Text
 jsCone xs = "{" <> Text.intercalate "," [jsLabel lab <> ":" <> f | (lab, f) <- xs] <> "}"
 
-jsLabel :: Proj -> Text
-jsLabel (PPos i) = show (show i :: Text)
-jsLabel (PLab l) = show (render l)
+jsLabel :: Label -> Text
+jsLabel (LPos i) = show (show i :: Text)
+jsLabel (LNam l) = show (render l)
 
 evalJS :: Expr -> Text
 evalJS = \case
   Lit x -> jsCall1 "mkConst" (render x)
-  Tuple xs -> evalJS (Cone [(PPos i, p) | (i, p) <- zip [1 :: Int ..] xs])
+  Tuple xs -> evalJS (Cone (tupleToCone xs))
   EConst x -> jsCall1 "mkConst" (evalJS x)
   Proj p -> labCombi "proj" p
-  Inj p -> labCombi "inj" (PLab p)
-  Top t -> labCombi "top" (PLab t)
+  Inj p -> labCombi "inj" p
+  Top t -> labCombi "top" (LNam t)
   Distr p -> labCombi "distr" p
   Comp xs -> foldl' go "identity" xs
     where
       go x e = jsCall2 "comp" x (evalJS e)
   Cone xs -> jsCall1 "cone" $ jsCone [(label, evalJS e) | (label, e) <- xs]
-  CoCone xs -> jsCall1 "cocone" $ jsCone [(PLab label, evalJS e) | (label, e) <- xs]
+  CoCone xs -> jsCall1 "cocone" $ jsCone [(label, evalJS e) | (label, e) <- xs]
   where
     labCombi f p = jsCall1 f (jsLabel p)
 
@@ -160,8 +160,8 @@ mkJS decls =
           ["let " <> name <> " = " <> body | (name, body) <- jsCombis]
         <> statements (uncurry addTop <$> primsJS)
         <> statements (mkDecl <$> decls)
-    mkDecl (DMain e) = "tops.main = " <> evalJS e
-    mkDecl (DAr (LcIdent name) _ e) = addTop name (evalJS e)
+    mkDecl (DAr (LcIdent name) _ _ e) = addTop name (evalJS e)
+    mkDecl DOb {} = ""
     addTop name e = "tops[\"" <> name <> "\"] = " <> e
     statements xs = Text.intercalate "\n" ((<> ";") <$> xs)
     jsPriv :: Text -> Text -> Text

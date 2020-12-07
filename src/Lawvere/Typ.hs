@@ -4,32 +4,57 @@ import Control.Monad.Combinators.Expr
 import Lawvere.Core
 import Lawvere.Disp
 import Lawvere.Parse
-import Protolude
+import Prettyprinter
+import Protolude hiding (many)
 import Text.Megaparsec
 
--- For the moment we are only working on discrete diagrams, so m ~ ().
+newtype MetaVar = MkVar Int
+  deriving stock (Eq, Ord, Show, Generic)
+
+instance Disp MetaVar where
+  disp (MkVar i) = "_" <> pretty i
+
+type DiscDiag = [(Label, Typ)]
+
+data TPrim = TInt | TFloat | TString
+  deriving stock (Eq, Show)
+
+instance Disp TPrim where
+  disp p = pretty $ drop 1 (show p :: [Char])
+
 data Typ
-  = Lim [(LcIdent, Typ)]
-  | CoLim [(LcIdent, Typ)]
+  = Lim DiscDiag
+  | CoLim DiscDiag
   | TNamed UcIdent
   | TTuple [Typ]
-  | TArr Typ Typ
+  | TVar MetaVar
+  | TPrim TPrim
+  | Typ :-> Typ
+  deriving stock (Eq, Show, Generic)
 
 instance Parsed Typ where
   parsed = makeExprParser pAtom operatorTable
 
 operatorTable :: [[Operator Parser Typ]]
-operatorTable =
-  [[InfixR (TArr <$ symbol "->")]]
+operatorTable = [[InfixR ((:->) <$ symbol "->")]]
 
 pAtom :: Parser Typ
 pAtom =
-  choice
-    [ TTuple <$> pTuple parsed,
-      Lim <$> pBracedFields ':',
-      CoLim <$> pBracketedFields ':',
-      TNamed <$> parsed
-    ]
+  lexeme $
+    choice
+      [ TTuple <$> pTuple (lexeme parsed),
+        Lim <$> pFields '{' '}' ':',
+        CoLim <$> pFields '[' ']' ':',
+        TNamed <$> parsed
+        --TVar . NamedVar <$> parsed
+      ]
 
 instance Disp Typ where
-  disp _ = "TODO"
+  disp = \case
+    Lim xs -> commaBrace xs
+    CoLim xs -> commaBracket xs
+    TNamed name -> disp name
+    TVar var -> disp var
+    TTuple xs -> dispTup xs
+    a :-> b -> disp a <+> "->" <+> disp b
+    TPrim p -> disp p

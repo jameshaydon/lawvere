@@ -10,16 +10,17 @@ import Protolude hiding (many, try)
 import Text.Megaparsec
 
 data Expr
-  = Cone [(Proj, Expr)]
+  = Cone [(Label, Expr)]
   | Tuple [Expr]
-  | CoCone [(LcIdent, Expr)]
+  | CoCone [(Label, Expr)]
   | Lit Sca
-  | Proj Proj
-  | Inj LcIdent
+  | Proj Label
+  | Inj Label
   | Comp [Expr]
   | Top LcIdent
-  | Distr Proj
+  | Distr Label
   | EConst Expr
+  deriving stock (Show)
 
 pAtom :: Parser Expr
 pAtom =

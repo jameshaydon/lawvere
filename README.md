@@ -13,10 +13,6 @@ Lawvere is a categorical programming language with sketches and effects. It allo
 - Make example showing extensible data programming, e.g. let-desugaring as a cartesian retract.
 - Make more effect examples.
 - Make a small but not just a few lines "real program".
-- Implement `yoneda` construct
-- Let bindings
-- implement `factors`
-- implement `generators`
 - defining new categories
 
 ## Some random notes:

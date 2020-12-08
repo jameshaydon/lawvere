@@ -43,15 +43,15 @@ identParser firstCond = toS <$> ((:) <$> char0 <*> charRest)
     isRest c = Char.isAlphaNum c || c `elem` identSpecials
 
 newtype LcIdent = LcIdent {getLcIdent :: Text}
-  deriving stock (Show)
-  deriving newtype (Eq, Ord, ToJSON, FromJSON, ToJSONKey, FromJSONKey)
+  deriving stock (Show, Generic)
+  deriving newtype (Eq, Ord)
 
 instance IsString LcIdent where
   fromString = LcIdent . toS
 
 newtype UcIdent = UcIdent {getUcIdent :: Text}
-  deriving stock (Show)
-  deriving newtype (Eq, Ord, ToJSON, FromJSON)
+  deriving stock (Show, Generic)
+  deriving newtype (Eq, Ord)
 
 instance IsString UcIdent where
   fromString = UcIdent . toS
@@ -76,7 +76,7 @@ instance Parsed UcIdent where
 data Label
   = LPos Int
   | LNam LcIdent
-  deriving stock (Eq, Ord, Show)
+  deriving stock (Eq, Ord, Show, Generic)
 
 instance Parsed Label where
   parsed = (LNam <$> parsed) <|> (LPos <$> Lex.decimal)
@@ -132,11 +132,20 @@ x_ ?: e = case x_ of
   Nothing -> throwError e
   Just x -> pure x
 
-lookupRest :: (Eq a) => a -> [(a, b)] -> Maybe (b, [(a, b)])
+infixr 0 ?::
+
+(?::) :: (MonadError e m) => Either err a -> (err -> e) -> m a
+x_ ?:: f = case x_ of
+  Left e -> throwError (f e)
+  Right x -> pure x
+
+lookupRest :: (Eq k) => k -> [(k, v)] -> Maybe (v, [(k, v)])
 lookupRest _ [] = Nothing
-lookupRest x ((x', y) : rest)
-  | x == x' = Just (y, rest)
-  | otherwise = lookupRest x rest
+lookupRest k ((k', x) : rest)
+  | k == k' = Just (x, rest)
+  | otherwise = do
+    (v, rest') <- lookupRest k rest
+    pure (v, (k', x) : rest')
 
 -- | Checks that keys in two associative lists match up. If not, says which key
 -- is missing, from which side, and what value the other side had for that key.

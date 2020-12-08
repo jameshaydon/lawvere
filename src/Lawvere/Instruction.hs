@@ -115,7 +115,7 @@ data Val
 instance Disp Val where
   disp = \case
     MSca s -> disp s
-    MRec r -> commaBrace (Map.toList r)
+    MRec r -> commaBrace '=' (Map.toList r)
     MTag t v -> disp t <> "." <> disp v
     MFun f -> "FUN" <> disp f
 

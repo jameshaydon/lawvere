@@ -48,6 +48,6 @@ instance Disp Expr where
     Distr l -> "@" <> disp l
     Top t -> disp t
     Comp fs -> align $ sep (disp <$> fs)
-    Cone parts -> commaBrace parts
-    CoCone parts -> commaBracket parts
+    Cone parts -> commaBrace '=' parts
+    CoCone parts -> commaBracket '=' parts
     Tuple parts -> dispTup parts

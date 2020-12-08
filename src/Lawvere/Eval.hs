@@ -20,7 +20,7 @@ data Val
 instance Disp Val where
   disp = \case
     Sca s -> disp s
-    Rec r -> commaBrace (Map.toList r)
+    Rec r -> commaBrace '=' (Map.toList r)
     Tag t v -> disp t <> "." <> disp v
     VFun _ -> "<unshowable>"
 

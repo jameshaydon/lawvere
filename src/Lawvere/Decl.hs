@@ -26,9 +26,9 @@ pObDecl = do
 pArDecl :: Parser Decl
 pArDecl = do
   kwAr
+  name <- lexeme parsed
+  lexChar ':'
   a <- lexeme parsed
-  _ <- chunk "---"
-  name <- parsed
   _ <- symbol "-->"
   b <- lexeme parsed
   lexChar '='
@@ -45,7 +45,7 @@ instance Parsed Decl where
 instance Disp Decl where
   disp = \case
     DOb name ob -> dispDef "ob" (disp name) (disp ob)
-    DAr name a b body -> dispDef "ar" (disp name <+> disp a <> "--" <> disp name <> "-->" <+> disp b) (disp body)
+    DAr name a b body -> dispDef "ar" (disp name <+> ":" <+> disp a <+> "-->" <+> disp b) (disp body)
     where
       dispDef :: Text -> Doc Ann -> Doc Ann -> Doc Ann
       dispDef defname thing body = nest 2 $ vsep [pretty defname <+> thing <+> "=", body]

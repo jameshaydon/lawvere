@@ -1,6 +1,8 @@
 module Lawvere.Typ where
 
+import Control.Lens
 import Control.Monad.Combinators.Expr
+import Data.Generics.Product.Types
 import Lawvere.Core
 import Lawvere.Disp
 import Lawvere.Parse
@@ -17,7 +19,7 @@ instance Disp MetaVar where
 type DiscDiag = [(Label, Typ)]
 
 data TPrim = TInt | TFloat | TString
-  deriving stock (Eq, Show)
+  deriving stock (Eq, Show, Generic)
 
 instance Disp TPrim where
   disp p = pretty $ drop 1 (show p :: [Char])
@@ -29,14 +31,17 @@ data Typ
   | TTuple [Typ]
   | TVar MetaVar
   | TPrim TPrim
-  | Typ :-> Typ
+  | Typ :=> Typ
   deriving stock (Eq, Show, Generic)
+
+freeVars :: Traversal' Typ MetaVar
+freeVars = types @MetaVar
 
 instance Parsed Typ where
   parsed = makeExprParser pAtom operatorTable
 
 operatorTable :: [[Operator Parser Typ]]
-operatorTable = [[InfixR ((:->) <$ symbol "->")]]
+operatorTable = [[InfixR ((:=>) <$ symbol "=>")]]
 
 pAtom :: Parser Typ
 pAtom =
@@ -51,10 +56,10 @@ pAtom =
 
 instance Disp Typ where
   disp = \case
-    Lim xs -> commaBrace xs
-    CoLim xs -> commaBracket xs
+    Lim xs -> commaBrace ':' xs
+    CoLim xs -> commaBracket ':' xs
     TNamed name -> disp name
     TVar var -> disp var
     TTuple xs -> dispTup xs
-    a :-> b -> disp a <+> "->" <+> disp b
+    a :=> b -> disp a <+> "=>" <+> disp b
     TPrim p -> disp p

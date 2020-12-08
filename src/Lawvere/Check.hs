@@ -1,14 +1,19 @@
+{-# LANGUAGE OverloadedLists #-}
+
 module Lawvere.Check where
 
 import Control.Lens
 import Data.Generics.Labels ()
 import Data.List (lookup)
 import qualified Data.Map as Map
+import qualified Data.Set as Set
 import Lawvere.Core
 import Lawvere.Decl
+import Lawvere.Disp
 import Lawvere.Expr
 import Lawvere.Scalar
 import Lawvere.Typ
+import Prettyprinter
 import Protolude hiding (check)
 
 prims :: Decls -> TcTops
@@ -23,11 +28,17 @@ prims decls =
             ++ [(name, ob) | DOb name ob <- decls],
       ars =
         Map.fromList $
-          [ ("plus", (TTuple [TPrim TInt, TPrim TInt], TNamed "Int")),
-            ("incr", (TPrim TInt, TPrim TInt))
+          [ ("plus", Scheme [] (TTuple [TPrim TInt, TPrim TInt], TNamed "Int")),
+            ("incr", Scheme [] (TPrim TInt, TPrim TInt)),
+            ("app", Scheme [va, vb] (TTuple [ta :=> tb, ta], tb))
           ]
-            ++ [(name, (a, b)) | DAr name a b _ <- decls]
+            ++ [(name, Scheme [] (a, b)) | DAr name a b _ <- decls]
     }
+  where
+    va = MkVar 0
+    vb = MkVar 1
+    ta = TVar va
+    tb = TVar vb
 
 checkProg :: Decls -> Either Err ()
 checkProg decls = runCheck (prims decls) initState (checkDecls decls)
@@ -40,7 +51,7 @@ data Err
   | CeIdOnNonEqObjects Typ Typ
   | CeUndefinedAr LcIdent
   | CeUndefinedOb UcIdent
-  | CeCantInferDistr Label
+  | CeCantInfer Expr
   | CeCantUnify Typ Typ
   | CeDistrLabelNotInSource Label DiscDiag
   | CeDistrWasNotColimInSource Label Typ
@@ -50,7 +61,20 @@ data Err
   | CeCantInferSource Typ Expr
   | CeCoConeCasesDontMatchColimSource DiscDiag [(Label, Expr)] (Label, Either Expr Typ)
   | CeCantInferTargetOfEmptyCoCone
+  | CeCantUnifyPairwise (Label, Either Typ Typ)
   deriving stock (Show)
+
+instance Disp Err where
+  disp = \case
+    CeCantInferSource target f ->
+      sep ["given target", disp target, "can't infer source of", disp f]
+    CeCantInferTarget source f ->
+      sep ["given source", disp source, "can't infer target of", disp f]
+    CeCantUnify a b ->
+      sep ["Can't unify:", disp a, "and", disp b]
+    CeCantProjLabelMissing label diag ->
+      sep ["Can't project", disp label, "as it is missing:", disp (Lim diag)]
+    err -> pretty (show err :: Text) -- TODO
 
 newtype Check a = Check
   { runTypecheckM :: ExceptT Err (StateT TcState (Reader TcTops)) a
@@ -82,7 +106,7 @@ initState =
     }
 
 data TcTops = TcTops
-  { ars :: Map LcIdent (Typ, Typ),
+  { ars :: Map LcIdent Scheme,
     obs :: Map UcIdent Typ
   }
   deriving stock (Generic)
@@ -100,6 +124,18 @@ fresh = do
 freshT :: Check Typ
 freshT = TVar <$> fresh
 
+data Scheme = Scheme (Set MetaVar) (Typ, Typ)
+
+instance Disp Scheme where
+  disp (Scheme vars (source, target)) =
+    "forall" <+> parens (hsep (punctuate comma (map (disp . TVar) (Set.toList vars)))) <+> dot <+> disp source <+> "-->" <+> disp target
+
+refresh :: Scheme -> Check (Typ, Typ)
+refresh (Scheme vars (source, target)) = do
+  subst <- Map.fromList <$> forM (Set.toList vars) (\var -> (var,) <$> fresh)
+  let repl thing = thing & over freeVars (subst Map.!)
+  pure (repl source, repl target)
+
 readMetaObVar :: MetaVar -> Check (Maybe Typ)
 readMetaObVar v = use (#ob_vars . at v)
 
@@ -110,14 +146,13 @@ writeMetaObVar v typ =
     Nothing -> do
       #ob_vars . at v ?= typ
       #ob_vars . each . filtered (== TVar v) .= typ
-    --interactWanteds v
     Just x -> panic ("Unification variable " <> show v <> " is already assigned to: " <> show x)
 
 getNamedAr :: LcIdent -> Check (Typ, Typ)
 getNamedAr top = do
-  x <- view (#ars . at top)
-  case x of
-    Just t -> pure t
+  scheme_ <- view (#ars . at top)
+  case scheme_ of
+    Just scheme -> refresh scheme
     Nothing -> throwError (CeUndefinedAr top)
 
 getNamedOb :: UcIdent -> Check Typ
@@ -134,57 +169,60 @@ checkDecl (DOb _ _) = pure () -- TODO
 checkDecls :: Decls -> Check ()
 checkDecls = traverse_ checkDecl
 
-{-
 infer :: Expr -> Check (Typ, Typ)
 infer = \case
-  Cone fs -> do
-    a <- freshT
-    let go (label, f) = do
-          (a', b) <- infer f
-          unify a a'
-          pure (label, b)
-    bs <- traverse go fs
-    pure (a, Lim bs)
-  CoCone fs -> do
-    b <- freshT
-    let go (label, f) = do
-          (a, b') <- infer f
-          unify b b'
-          pure (label, a)
-    as <- traverse go fs
-    pure (CoLim as, b)
-  Tuple fs -> infer (Cone (tupleToCone fs))
-  Lit (Int _) -> (,TNamed "Int") <$> freshT
-  Lit (Float _) -> (,TNamed "Float") <$> freshT
-  Lit (Str _) -> (,TNamed "String") <$> freshT
-  Proj label -> do
-    b <- freshT
-    pure (Lim [(label, b)], b)
-  Inj label -> do
-    a <- freshT
-    pure (a, CoLim [(label, a)])
+  -- Cone fs -> do
+  --   a <- freshT
+  --   let go (label, f) = do
+  --         (a', b) <- infer f
+  --         unify a a'
+  --         pure (label, b)
+  --   bs <- traverse go fs
+  --   pure (a, Lim bs)
+  -- CoCone fs -> do
+  --   b <- freshT
+  --   let go (label, f) = do
+  --         (a, b') <- infer f
+  --         unify b b'
+  --         pure (label, a)
+  --   as <- traverse go fs
+  --   pure (CoLim as, b)
+  -- Tuple fs -> infer (Cone (tupleToCone fs))
+  -- Lit (Int _) -> (,TNamed "Int") <$> freshT
+  -- Lit (Float _) -> (,TNamed "Float") <$> freshT
+  -- Lit (Str _) -> (,TNamed "String") <$> freshT
+  -- Proj label -> do
+  --   b <- freshT
+  --   pure (Lim [(label, b)], b)
+  -- Inj label -> do
+  --   a <- freshT
+  --   pure (a, CoLim [(label, a)])
   Comp [] -> do
     a <- freshT
     pure (a, a)
   Comp (f : fs) -> do
     (a, b) <- infer f
-    (b', c) <- infer (Comp fs)
-    unify b b'
+    c <- inferTarget b (Comp fs)
     pure (a, c)
   Top f -> getNamedAr f
   EConst f -> do
     (a, b) <- infer f
-    pure (Lim [], a :-> b)
-  -- {label: [a:A, b:B, c:C], ...x:X, y:Y} ---@label--> [a: {x:X, y:Y,label:A}, b: {x:X, y:Y,label:B}, c: {x:X, y:Y,label:C}]
-  -- {label: [ | xtraSmmnds ] | xtraFctrs } ---@label---> [{label:}]
-  Distr label -> throwError (CeCantInferDistr label)
--}
+    pure (Lim [], a :=> b)
+  f -> throwError (CeCantInfer f)
 
 resolveObName :: Typ -> Check Typ
 resolveObName (TNamed name) = getNamedOb name
 resolveObName t = pure t
 
 inferTarget :: Typ -> Expr -> Check Typ
+inferTarget _ (Lit s) = pure $
+  TPrim $ case s of
+    Int _ -> TInt
+    Str _ -> TString
+    Float _ -> TFloat
+inferTarget _ (Top name) = do
+  (_, b) <- getNamedAr name
+  pure b
 inferTarget (TNamed name) f = do
   source <- getNamedOb name
   inferTarget source f
@@ -192,19 +230,35 @@ inferTarget source (Comp []) = pure source
 inferTarget a (Comp (f : fs)) = do
   b <- inferTarget a f
   inferTarget b (Comp fs)
-inferTarget (CoLim as) (CoCone fs) = case pairwise as fs of
-  Right pairs -> do
-    bs <- forM pairs $ \(_, (a, f)) -> inferTarget a f
-    case bs of
-      [] -> throwError CeCantInferTargetOfEmptyCoCone
-      b : _ -> do
-        unifyMany bs
-        pure b
-  Left err -> throwError (CeCoConeCasesDontMatchColimSource as fs err)
-inferTarget _ (Cone []) = pure (Lim [])
-inferTarget _ (Inj _) = freshT
-inferTarget (TTuple as) f = inferTarget (Lim (tupleToCone as)) f
-inferTarget source (Distr label) = inferDistrTarget label source
+inferTarget source (Tuple fs) =
+  inferTarget source (Cone (tupleToCone fs))
+inferTarget _ (Cone []) =
+  pure (Lim [])
+inferTarget source (Cone fs) =
+  Lim <$> traverse (_2 (inferTarget source)) fs
+inferTarget (CoLim as) (CoCone fs) =
+  case pairwise as fs of
+    Right pairs -> do
+      bs <- forM pairs $ \(_, (a, f)) -> inferTarget a f
+      case bs of
+        [] -> throwError CeCantInferTargetOfEmptyCoCone
+        b : _ -> do
+          unifyMany bs
+          pure b
+    Left err -> throwError (CeCoConeCasesDontMatchColimSource as fs err)
+inferTarget _ (Inj _) =
+  freshT
+inferTarget (TTuple as) f =
+  inferTarget (Lim (tupleToCone as)) f
+inferTarget source (Distr label) =
+  inferDistrTarget label source
+inferTarget (Lim as) (Proj label) =
+  lookup label as ?: CeCantProjLabelMissing label as
+-- TODO: here we could call yet another function 'infer', since in some cases
+-- the full type of 'f' is inferrable.
+inferTarget _ (EConst f) = do
+  (a, b) <- infer f
+  pure (a :=> b)
 inferTarget source f = throwError (CeCantInferTarget source f)
 
 inferSource :: Typ -> Expr -> Check Typ
@@ -222,6 +276,7 @@ inferSource target (Comp (f : fs)) = do
 inferSource target (Cone []) = do
   unify target (Lim [])
   freshT
+--inferSource target (CoCone fs) = _
 inferSource target f = throwError (CeCantInferSource target f)
 
 inferDistrTarget :: Label -> Typ -> Check Typ
@@ -243,7 +298,7 @@ check (a, b) (Top name) = do
   (a', b') <- getNamedAr name
   unify a a'
   unify b b'
-check (_, b :-> c) (EConst f) = check (b, c) f
+check (_, b :=> c) (EConst f) = check (b, c) f
 check (_, b) (EConst f) = throwError (CeConstTargetNotArr b f)
 check (_, b) (Lit s) = unify b $ case s of
   Int _ -> TPrim TInt
@@ -261,8 +316,7 @@ check niche (Tuple fs) = check niche (Cone (tupleToCone fs))
 check (a, b) (Comp []) = unify a b
 check (a, c) (Comp (f : fs)) = do
   b <- inferTarget a f
-  b' <- inferSource c (Comp fs)
-  unify b b'
+  check (b, c) (Comp fs)
 check (a, b) (Cone fs) = do
   bs <- traverse (_2 (inferTarget a)) fs
   unify b (Lim bs)
@@ -303,6 +357,9 @@ unify typ (TVar v) =
 unify (TTuple as) b = unify (Lim (tupleToCone as)) b
 unify a (TTuple bs) = unify a (Lim (tupleToCone bs))
 unify (Lim diag) (Lim diag') = unifyLim diag diag'
+unify (CoLim as) (CoLim bs) = do
+  ys <- pairwise as bs ?:: CeCantUnifyPairwise
+  forM_ ys $ \(_, (a, b)) -> unify a b
 unify a b = throwError (CeCantUnify a b)
 
 unifyMany :: [Typ] -> Check ()

@@ -16,7 +16,11 @@ main = do
     Left err -> putStr (Mega.errorBundlePretty err)
     Right (prog :: [Decl]) -> do
       putStrLn (render prog)
-      say (show (checkProg prog))
+      case checkProg prog of
+        Right _ -> say "Check OK!"
+        Left err -> do
+          say "Check ERROR!"
+          say (render err)
       let inp = Rec mempty
       v <- eval inp prog
       say "---------------------------"

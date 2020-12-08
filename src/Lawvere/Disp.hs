@@ -29,11 +29,11 @@ commaFields l r fieldSym fields = commaSep l r (dispField <$> fields)
   where
     dispField (k, v) = disp k <+> pretty fieldSym <+> disp v
 
-commaBracket :: (Disp k, Disp v) => [(k, v)] -> Doc Ann
-commaBracket = commaFields '[' ']' '='
+commaBracket :: (Disp k, Disp v) => Char -> [(k, v)] -> Doc Ann
+commaBracket = commaFields '[' ']'
 
-commaBrace :: (Disp k, Disp v) => [(k, v)] -> Doc Ann
-commaBrace = commaFields '{' '}' '='
+commaBrace :: (Disp k, Disp v) => Char -> [(k, v)] -> Doc Ann
+commaBrace = commaFields '{' '}'
 
 dispTup :: (Disp a) => [a] -> Doc Ann
 dispTup xs = commaSep '(' ')' (disp <$> xs)

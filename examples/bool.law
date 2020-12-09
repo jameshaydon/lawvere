@@ -201,8 +201,8 @@ object Foo =
   
 
 map : (a => b, List(a) ) -> List(b) =
-{ x |->
-  let f = x .1
+{ x |->                 // x : T -> (a => b, List(a) )
+  let f = x .1          // xs : T -> List(b)
       xs = x .2
   in  xs factors {
         _    empty = ! 0,
@@ -218,7 +218,7 @@ length : List(a) -> Int =
 
 xs |-> {
   xs factors {
-    _    .empty = ! 0, 
+    _    empty. = ! 0, 
     cell cons.  = (cell .tail length, ! 1) plus
   }
 }
@@ -251,3 +251,9 @@ g : A -> C
 
 (B,C) -> B
 (B,C) -> C
+
+
+Int -> [String, Int]
+
+
+(Bool, Bool) -> Bool

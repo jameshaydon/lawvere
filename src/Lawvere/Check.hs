@@ -21,18 +21,19 @@ prims decls =
   TcTops
     { obs =
         Map.fromList $
-          [ ("Int", TPrim TInt),
+          [ ("Base", TPrim TBase),
+            ("Int", TPrim TInt),
             ("Float", TPrim TFloat),
             ("String", TPrim TString)
           ]
-            ++ [(name, ob) | DOb name ob <- decls],
+            ++ [(name, ob) | DOb _ name ob <- decls],
       ars =
         Map.fromList $
-          [ ("plus", Scheme [] (TTuple [TPrim TInt, TPrim TInt], TNamed "Int")),
-            ("incr", Scheme [] (TPrim TInt, TPrim TInt)),
-            ("app", Scheme [va, vb] (TTuple [ta :=> tb, ta], tb))
+          [ ("plus", (Scheme [] (TTuple [TPrim TInt, TPrim TInt], TNamed "Int"), EPrim PrimPlus)),
+            ("incr", (Scheme [] (TPrim TInt, TPrim TInt), EPrim PrimIncr)),
+            ("app", (Scheme [va, vb] (TTuple [ta :=> tb, ta], tb), EPrim PrimApp))
           ]
-            ++ [(name, Scheme [] (a, b)) | DAr name a b _ <- decls]
+            ++ [(name, (Scheme [] (a, b), e)) | DAr _ name a b e <- decls]
     }
   where
     va = MkVar 0
@@ -62,6 +63,8 @@ data Err
   | CeCoConeCasesDontMatchColimSource DiscDiag [(Label, Expr)] (Label, Either Expr Typ)
   | CeCantInferTargetOfEmptyCoCone
   | CeCantUnifyPairwise (Label, Either Typ Typ)
+  | CeCantCheck Typ Typ Expr
+  | CeCantApplyFunctor Expr Typ
   deriving stock (Show)
 
 instance Disp Err where
@@ -74,6 +77,12 @@ instance Disp Err where
       sep ["Can't unify:", disp a, "and", disp b]
     CeCantProjLabelMissing label diag ->
       sep ["Can't project", disp label, "as it is missing:", disp (Lim diag)]
+    CeCantCheck a b f ->
+      sep ["Can't check:", disp a, "to", disp b, "thing:", disp f]
+    CeDistrWasNotColimInSource label source ->
+      sep ["Distr was not a colim in source", disp label, disp source]
+    CeCantApplyFunctor e o ->
+      sep ["Can't apply functor", disp e, "to", disp o]
     err -> pretty (show err :: Text) -- TODO
 
 newtype Check a = Check
@@ -106,7 +115,7 @@ initState =
     }
 
 data TcTops = TcTops
-  { ars :: Map LcIdent Scheme,
+  { ars :: Map LcIdent (Scheme, Expr),
     obs :: Map UcIdent Typ
   }
   deriving stock (Generic)
@@ -148,11 +157,11 @@ writeMetaObVar v typ =
       #ob_vars . each . filtered (== TVar v) .= typ
     Just x -> panic ("Unification variable " <> show v <> " is already assigned to: " <> show x)
 
-getNamedAr :: LcIdent -> Check (Typ, Typ)
+getNamedAr :: LcIdent -> Check ((Typ, Typ), Expr)
 getNamedAr top = do
-  scheme_ <- view (#ars . at top)
-  case scheme_ of
-    Just scheme -> refresh scheme
+  item_ <- view (#ars . at top)
+  case item_ of
+    Just (scheme, e) -> (,e) <$> refresh scheme
     Nothing -> throwError (CeUndefinedAr top)
 
 getNamedOb :: UcIdent -> Check Typ
@@ -163,8 +172,8 @@ getNamedOb name = do
     Nothing -> throwError (CeUndefinedOb name)
 
 checkDecl :: Decl -> Check ()
-checkDecl (DAr _ a b body) = check (a, b) body
-checkDecl (DOb _ _) = pure () -- TODO
+checkDecl (DAr _ _ a b body) = check (a, b) body
+checkDecl DOb {} = pure () -- TODO
 
 checkDecls :: Decls -> Check ()
 checkDecls = traverse_ checkDecl
@@ -204,24 +213,45 @@ infer = \case
     (a, b) <- infer f
     c <- inferTarget b (Comp fs)
     pure (a, c)
-  Top f -> getNamedAr f
+  Top f -> fst <$> getNamedAr f
   EConst f -> do
     (a, b) <- infer f
     pure (Lim [], a :=> b)
   f -> throwError (CeCantInfer f)
 
-resolveObName :: Typ -> Check Typ
-resolveObName (TNamed name) = getNamedOb name
-resolveObName t = pure t
+resolveOb :: Typ -> Check Typ
+resolveOb (TNamed name) = getNamedOb name
+resolveOb (TFunApp f o) = do
+  (_, e) <- getNamedAr f
+  applyFunctor e o
+resolveOb t = pure t
+
+applyFunctor :: Expr -> Typ -> Check Typ
+applyFunctor (Comp []) o = pure o
+applyFunctor (Comp [ELim fs]) o = do
+  os <- (traverse . _2) (`applyFunctor` o) fs
+  pure (Lim os)
+applyFunctor (Comp [ECoLim fs]) o = do
+  os <- (traverse . _2) (`applyFunctor` o) fs
+  pure (CoLim os)
+applyFunctor (Comp [Top name]) o =
+  pure (TFunApp name o)
+applyFunctor e o = throwError (CeCantApplyFunctor e o)
+
+scalarTyp :: Sca -> Typ
+scalarTyp s = TPrim $ case s of
+  Int _ -> TInt
+  Str _ -> TString
+  Float _ -> TFloat
 
 inferTarget :: Typ -> Expr -> Check Typ
-inferTarget _ (Lit s) = pure $
-  TPrim $ case s of
-    Int _ -> TInt
-    Str _ -> TString
-    Float _ -> TFloat
+inferTarget (TFunApp name o) f = do
+  (_, e) <- getNamedAr name
+  o' <- applyFunctor e o
+  inferTarget o' f
+inferTarget _ (Lit s) = pure (scalarTyp s)
 inferTarget _ (Top name) = do
-  (_, b) <- getNamedAr name
+  ((_, b), _) <- getNamedAr name
   pure b
 inferTarget (TNamed name) f = do
   source <- getNamedOb name
@@ -263,7 +293,7 @@ inferTarget source f = throwError (CeCantInferTarget source f)
 
 inferSource :: Typ -> Expr -> Check Typ
 inferSource target (Top name) = do
-  (a, b) <- getNamedAr name
+  ((a, b), _) <- getNamedAr name
   unify b target
   pure a
 inferSource (TNamed name) f = do
@@ -282,7 +312,7 @@ inferSource target f = throwError (CeCantInferSource target f)
 inferDistrTarget :: Label -> Typ -> Check Typ
 inferDistrTarget label (Lim theLim) = do
   (labelColim, xs) <- lookupRest label theLim ?: CeDistrLabelNotInSource label theLim
-  labelColim' <- resolveObName labelColim
+  labelColim' <- resolveOb labelColim
   as <- labelColim' ^? #_CoLim ?: CeDistrWasNotColimInSource label labelColim'
   pure $ CoLim [(l, Lim ((label, a) : xs)) | (l, a) <- as]
 inferDistrTarget label source = throwError (CeDistrSourceNotLim label source)
@@ -295,15 +325,16 @@ check (a, TNamed name) f = do
   b <- getNamedOb name
   check (a, b) f
 check (a, b) (Top name) = do
-  (a', b') <- getNamedAr name
+  ((a', b'), _) <- getNamedAr name
   unify a a'
   unify b b'
+check (a, b) (Comp [ELim fs]) =
+  forM_ fs $ \(_, f) -> check (a, b) f
+check (a, b) (Comp [ECoLim fs]) =
+  forM_ fs $ \(_, f) -> check (a, b) f
 check (_, b :=> c) (EConst f) = check (b, c) f
 check (_, b) (EConst f) = throwError (CeConstTargetNotArr b f)
-check (_, b) (Lit s) = unify b $ case s of
-  Int _ -> TPrim TInt
-  Float _ -> TPrim TFloat
-  Str _ -> TPrim TString
+check (_, b) (Lit s) = unify b (scalarTyp s)
 check (Lim as, b) (Proj label) = do
   a <- lookup label as ?: CeCantProjLabelMissing label as
   unify a b
@@ -326,6 +357,7 @@ check (a, b) (CoCone fs) = do
 check (a, b) (Distr label) = do
   b' <- inferDistrTarget label a
   unify b' b
+check (a, b) f = throwError (CeCantCheck a b f)
 
 unify :: Typ -> Typ -> Check ()
 unify (TNamed name) (TNamed name') | name == name' = pure ()
@@ -360,6 +392,10 @@ unify (Lim diag) (Lim diag') = unifyLim diag diag'
 unify (CoLim as) (CoLim bs) = do
   ys <- pairwise as bs ?:: CeCantUnifyPairwise
   forM_ ys $ \(_, (a, b)) -> unify a b
+unify (TFunApp name a) (TFunApp name' b)
+  | name == name' -- TODO: we should also handle the non-equal case
+    =
+    unify a b
 unify a b = throwError (CeCantUnify a b)
 
 unifyMany :: [Typ] -> Check ()

@@ -1,35 +1,40 @@
-ar (ListInt -> Int, ListListInt) ---map--> ListInt =
+ar Cat list : Base --> Base =
+  [ empty : {:},
+    cons : { head : ,
+             tail : list } ]
+
+ar Base map : (list(Int) => Int, list(list(Int))) --> list(Int) =
   { f = .1, xs = .2 }
   @xs
-  [ empty = uniq empty.,
+  [ empty = {=} empty.,
     cons = { head = ( .f, .xs .head ) app,
              tail = ( .f, .xs .tail ) map }
            cons. ]
 
-ar ListInt ---length--> Int =
+ar Base length : list(Int) --> Int =
   [ empty = 0,
     cons = ( 1, .tail length ) plus ]
 
-ar {} ---mapLength--> _ =
+ar Base mapLength : {:} --> list(Int) =
   ( const(length),) map
 
-ar {} ---main--> {}  =  listOfLists mapLength
+ar Base main : {:} --> list(Int)  =  listOfLists mapLength
+
 
 
 // Some lists follow
 
-
-ar List ---cons1--> List =
+ar Base cons1 : list(Int) --> list(Int) =
   { head = 100, tail = } cons.
 
-ar List ---cons2--> List =
+ar Base cons2 : list(Int) --> list(Int) =
   { head = 200, tail = } cons.
 
-ar {} ---list3--> List =
+ar Base list3 : {:} --> list(Int) =
   empty. cons1 cons2 cons1
 
-ar {} ---list2--> List =
+ar Base list2 : {:} --> list(Int) =
   empty. cons2 cons1 cons1 cons1
 
-ar {} ---listOfLists--> ListListInt =
+ar Base listOfLists : {:} --> list(list(Int)) =
   empty. {head = list3, tail = } cons. {head = list2, tail = } cons.

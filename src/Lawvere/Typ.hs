@@ -18,7 +18,7 @@ instance Disp MetaVar where
 
 type DiscDiag = [(Label, Typ)]
 
-data TPrim = TInt | TFloat | TString
+data TPrim = TInt | TFloat | TString | TBase
   deriving stock (Eq, Show, Generic)
 
 instance Disp TPrim where
@@ -32,6 +32,7 @@ data Typ
   | TVar MetaVar
   | TPrim TPrim
   | Typ :=> Typ
+  | TFunApp LcIdent Typ
   deriving stock (Eq, Show, Generic)
 
 freeVars :: Traversal' Typ MetaVar
@@ -43,19 +44,26 @@ instance Parsed Typ where
 operatorTable :: [[Operator Parser Typ]]
 operatorTable = [[InfixR ((:=>) <$ symbol "=>")]]
 
+funApp :: Parser Typ
+funApp = do
+  f <- parsed
+  x <- wrapped '(' ')' parsed
+  pure (TFunApp f x)
+
 pAtom :: Parser Typ
 pAtom =
   lexeme $
     choice
       [ TTuple <$> pTuple (lexeme parsed),
-        Lim <$> pFields '{' '}' ':',
-        CoLim <$> pFields '[' ']' ':',
-        TNamed <$> parsed
-        --TVar . NamedVar <$> parsed
+        Lim <$> pBracedFields ':',
+        CoLim <$> pBracketedFields ':',
+        TNamed <$> parsed,
+        funApp
       ]
 
 instance Disp Typ where
   disp = \case
+    TFunApp f x -> disp f <> parens (disp x)
     Lim xs -> commaBrace ':' xs
     CoLim xs -> commaBracket ':' xs
     TNamed name -> disp name

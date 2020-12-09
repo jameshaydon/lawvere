@@ -28,7 +28,9 @@ type Tops = Map LcIdent (Val -> IO Val)
 
 evalAr :: Tops -> Expr -> Val -> IO Val
 evalAr tops = \case
-  -- Id -> pure
+  EPrim _ -> panic "TODO"
+  ELim _ -> panic "TODO"
+  ECoLim _ -> panic "TODO"
   EConst e -> const (pure (VFun (evalAr tops e)))
   Top i -> \v -> case Map.lookup i tops of
     Just f -> f v
@@ -101,7 +103,7 @@ primTops =
 
 evalDecl :: Tops -> Decl -> [(LcIdent, Val -> IO Val)]
 evalDecl tops = \case
-  DAr name _ _ e -> [(name, evalAr tops e)]
+  DAr _ name _ _ e -> [(name, evalAr tops e)]
   DOb {} -> []
 
 eval :: Val -> Decls -> IO Val
@@ -134,6 +136,9 @@ jsLabel (LNam l) = show (render l)
 
 evalJS :: Expr -> Text
 evalJS = \case
+  EPrim _ -> panic "TODO"
+  ELim _ -> panic "TODO"
+  ECoLim _ -> panic "TODO"
   Lit x -> jsCall1 "mkConst" (render x)
   Tuple xs -> evalJS (Cone (tupleToCone xs))
   EConst x -> jsCall1 "mkConst" (evalJS x)
@@ -160,7 +165,7 @@ mkJS decls =
           ["let " <> name <> " = " <> body | (name, body) <- jsCombis]
         <> statements (uncurry addTop <$> primsJS)
         <> statements (mkDecl <$> decls)
-    mkDecl (DAr (LcIdent name) _ _ e) = addTop name (evalJS e)
+    mkDecl (DAr _ (LcIdent name) _ _ e) = addTop name (evalJS e)
     mkDecl DOb {} = ""
     addTop name e = "tops[\"" <> name <> "\"] = " <> e
     statements xs = Text.intercalate "\n" ((<> ";") <$> xs)

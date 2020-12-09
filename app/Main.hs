@@ -9,10 +9,12 @@ import Lawvere.Parse
 import Protolude hiding (empty)
 import qualified Text.Megaparsec as Mega
 
-main :: IO ()
-main = do
-  basic <- readFile "examples/basic.law"
-  case Mega.parse (parsed <* Mega.eof) "basic.law" basic of
+testExample :: Text -> IO ()
+testExample name = do
+  let fileName = name <> ".law"
+  say $ "Testing: " <> fileName
+  example <- readFile (toS ("examples/" <> fileName))
+  case Mega.parse (parsed <* Mega.eof) (toS fileName) example of
     Left err -> putStr (Mega.errorBundlePretty err)
     Right (prog :: [Decl]) -> do
       putStrLn (render prog)
@@ -35,6 +37,11 @@ main = do
       say "virtual machine:"
       let res = Machine.runProg (Machine.MRec mempty) prog
       say ("  " <> render res)
+
+main :: IO ()
+main = do
+  testExample "basic"
+  testExample "list"
 
 say :: Text -> IO ()
 say = putStrLn

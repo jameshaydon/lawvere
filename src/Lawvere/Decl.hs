@@ -10,22 +10,24 @@ import Protolude hiding (many, some)
 import Text.Megaparsec
 
 data Decl
-  = DAr LcIdent Typ Typ Expr
-  | DOb UcIdent Typ
+  = DAr UcIdent LcIdent Typ Typ Expr
+  | DOb UcIdent UcIdent Typ
 
 type Decls = [Decl]
 
 pObDecl :: Parser Decl
 pObDecl = do
   kwOb
+  catName <- lexeme parsed
   name <- lexeme parsed
   lexChar '='
   ob <- parsed
-  pure (DOb name ob)
+  pure (DOb catName name ob)
 
 pArDecl :: Parser Decl
 pArDecl = do
   kwAr
+  catName <- lexeme parsed
   name <- lexeme parsed
   lexChar ':'
   a <- lexeme parsed
@@ -33,7 +35,7 @@ pArDecl = do
   b <- lexeme parsed
   lexChar '='
   body <- parsed
-  pure (DAr name a b body)
+  pure (DAr catName name a b body)
 
 instance Parsed Decl where
   parsed =
@@ -44,8 +46,8 @@ instance Parsed Decl where
 
 instance Disp Decl where
   disp = \case
-    DOb name ob -> dispDef "ob" (disp name) (disp ob)
-    DAr name a b body -> dispDef "ar" (disp name <+> ":" <+> disp a <+> "-->" <+> disp b) (disp body)
+    DOb catName name ob -> dispDef "ob" (disp catName <+> disp name) (disp ob)
+    DAr catName name a b body -> dispDef "ar" (disp catName <+> disp name <+> ":" <+> disp a <+> "-->" <+> disp b) (disp body)
     where
       dispDef :: Text -> Doc Ann -> Doc Ann -> Doc Ann
       dispDef defname thing body = nest 2 $ vsep [pretty defname <+> thing <+> "=", body]

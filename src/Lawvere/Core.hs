@@ -1,6 +1,5 @@
 module Lawvere.Core where
 
-import Data.Aeson hiding ((<?>))
 import qualified Data.Char as Char
 import qualified Data.Set as Set
 import Data.String (IsString (..))
@@ -103,15 +102,15 @@ wrapped :: Char -> Char -> Parser a -> Parser a
 wrapped l r = between (lexChar l) (single r)
 
 pWrapSep :: Char -> Char -> Char -> Parser a -> Parser [a]
-pWrapSep s l r pItem = wrapped l r (sepBy (lexeme pItem) (lexChar s) <* optional (single s))
+pWrapSep s l r pItem = wrapped l r (sepBy1 (lexeme pItem) (lexChar s))
 
 pCommaSep :: Char -> Char -> Parser a -> Parser [a]
 pCommaSep = pWrapSep ','
 
 pFields :: (Parsed a, Parsed k) => Char -> Char -> Char -> Parser [(k, a)]
-pFields l r fieldSym = pCommaSep l r pField
+pFields l r s = ([] <$ symbol (toS [l, s, r])) <|> pCommaSep l r pField
   where
-    pField = (,) <$> lexeme parsed <*> (lexChar fieldSym *> parsed)
+    pField = (,) <$> lexeme parsed <*> (lexChar s *> parsed)
 
 pTuple :: Parser a -> Parser [a]
 pTuple = pCommaSep '(' ')'

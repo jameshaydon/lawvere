@@ -70,6 +70,9 @@ storeCode code = do
 
 compile :: Expr -> Comp [Instr]
 compile = \case
+  EPrim _ -> panic "TODO"
+  ELim _ -> panic "TODO"
+  ECoLim _ -> panic "TODO"
   Cone ps -> do
     codes <- traverse (_2 compile) ps
     pure $ [i | (_, code) <- codes, i <- eachProj code] ++ [IConeFinish (fst <$> codes)]
@@ -95,7 +98,7 @@ compile = \case
     compStore = compile >=> storeCode
 
 compileDecl :: Decl -> Comp ()
-compileDecl (DAr name _ _ e) = do
+compileDecl (DAr _ name _ _ e) = do
   code <- compile e
   #code %= Map.insert (AddrTop name) code
 compileDecl DOb {} = pure ()

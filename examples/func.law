@@ -1,0 +1,39 @@
+A way of definining functions, has notations
+
+-- This just treats Cat like any other cartesian closed category:
+
+ar in Cat f : Base* -> {a: Base, b: Base} =
+  {a = Id, b = Int}
+
+-- This however (note the colons) uses the fact that the category Base has limits:
+
+ar in Cat f : Base -> Base =
+  {a : Id, b : Id }
+  
+
+-- Let's look at that in Base:
+
+-- This makes sense:
+ar in Base f : Int -> {a : Int, b : Int} =
+  {a = Id, b = Id}
+
+-- This doesn't make sense because Int isn't a category, and hence doesn't have limits.
+ar in Base f : Int* -> Int* =
+  {a : Id, b : Id }
+
+In other words:
+
+ [...]  using colons means: make a colimit out of objects
+ {...}  using colons means: make a limit out of objects
+ [...]  using equal-signs means: make a cocone projecting morph out of a colimit
+ {...}  using equal-signs means: make a cone morph to a limit
+ #{...} using colons 
+
+ar Base : * -> Cat
+
+ar Base* and : {x: Bool, y: Bool}* -> Bool* =
+  ...
+
+ar Base and : {x:Bool, y:Bool} -> Bool =
+  ...
+  

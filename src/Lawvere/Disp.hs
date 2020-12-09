@@ -15,7 +15,6 @@ render x =
     layoutSmart (LayoutOptions {layoutPageWidth = AvailablePerLine 80 1.0}) (disp x)
 
 wrapSep :: Char -> Char -> Char -> [Doc Ann] -> Doc Ann
-wrapSep _ l r [] = pretty [l, r]
 wrapSep s l r items = pretty l <+> align (sep (go items)) <+> pretty r
   where
     go (x : rest@(_ : _)) = (x <> pretty s) : go rest
@@ -25,9 +24,10 @@ commaSep :: Char -> Char -> [Doc Ann] -> Doc Ann
 commaSep = wrapSep ','
 
 commaFields :: (Disp k, Disp v) => Char -> Char -> Char -> [(k, v)] -> Doc Ann
-commaFields l r fieldSym fields = commaSep l r (dispField <$> fields)
+commaFields l r s [] = pretty [l, s, r]
+commaFields l r s fields = commaSep l r (dispField <$> fields)
   where
-    dispField (k, v) = disp k <+> pretty fieldSym <+> disp v
+    dispField (k, v) = disp k <+> pretty s <+> disp v
 
 commaBracket :: (Disp k, Disp v) => Char -> [(k, v)] -> Doc Ann
 commaBracket = commaFields '[' ']'

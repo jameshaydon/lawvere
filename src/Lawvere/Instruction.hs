@@ -70,6 +70,7 @@ storeCode code = do
 
 compile :: Expr -> Comp [Instr]
 compile = \case
+  EFunApp _ _ -> panic "TODO"
   EPrim _ -> panic "TODO"
   ELim _ -> panic "TODO"
   ECoLim _ -> panic "TODO"

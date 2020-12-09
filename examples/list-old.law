@@ -3,9 +3,20 @@ ar Cat list : Base --> Base =
     cons : { head : ,
              tail : list } ]
 
+ar Base map : (list(Int) => Int, list(list(Int))) --> list(Int) =
+  { f = .1, xs = .2 }
+  @xs
+  [ empty = {=} empty.,
+    cons = { head = ( .f, .xs .head ) app,
+             tail = ( .f, .xs .tail ) map }
+           cons. ]
+
 ar Base length : list(Int) --> Int =
   [ empty = 0,
     cons = ( 1, .tail length ) plus ]
+
+ar Base mapLength : {:} --> list(Int) =
+  ( const(length),) map
 
 ar Base main : {:} --> list(Int)  =  listOfLists list(length)
 

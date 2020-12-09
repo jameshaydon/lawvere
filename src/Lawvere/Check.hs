@@ -245,17 +245,21 @@ scalarTyp s = TPrim $ case s of
   Float _ -> TFloat
 
 inferTarget :: Typ -> Expr -> Check Typ
+inferTarget (TFunApp name a) (EFunApp name' f)
+  | name == name' = do
+    b <- inferTarget a f
+    pure (TFunApp name b)
 inferTarget (TFunApp name o) f = do
   (_, e) <- getNamedAr name
   o' <- applyFunctor e o
   inferTarget o' f
-inferTarget _ (Lit s) = pure (scalarTyp s)
 inferTarget _ (Top name) = do
   ((_, b), _) <- getNamedAr name
   pure b
 inferTarget (TNamed name) f = do
   source <- getNamedOb name
   inferTarget source f
+inferTarget _ (Lit s) = pure (scalarTyp s)
 inferTarget source (Comp []) = pure source
 inferTarget a (Comp (f : fs)) = do
   b <- inferTarget a f

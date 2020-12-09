@@ -33,12 +33,20 @@ data Expr
   | Distr Label
   | EConst Expr
   | EPrim Prim
+  | EFunApp LcIdent Expr
   deriving stock (Show)
+
+pApp :: Parser Expr
+pApp = do
+  f <- parsed
+  e <- wrapped '(' ')' parsed
+  pure (EFunApp f e)
 
 pAtom :: Parser Expr
 pAtom =
   choice
-    [ Proj <$> ("." *> parsed),
+    [ try pApp,
+      Proj <$> ("." *> parsed),
       try (Inj <$> (parsed <* ".")), -- we need to look ahead for the dot
       Top <$> parsed,
       Lit <$> parsed,
@@ -58,6 +66,7 @@ instance Parsed Expr where
 
 instance Disp Expr where
   disp = \case
+    EFunApp f e -> disp f <> parens (disp e)
     EPrim p -> disp p
     EConst e -> "const" <> parens (disp e)
     Lit s -> disp s

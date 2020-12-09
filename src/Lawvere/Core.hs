@@ -90,13 +90,13 @@ instance Disp Label where
 tupleToCone :: [a] -> [(Label, a)]
 tupleToCone fs = [(LPos i, f) | (i, f) <- zip [1 :: Int ..] fs]
 
-pApp :: (a -> [a] -> a) -> Parser a -> Parser a
-pApp app pAtom = do
-  x <- lexeme pAtom
-  fs <- many (lexeme pAtom)
-  pure $ case fs of
-    [] -> x
-    _ -> app x fs
+-- pApp :: (a -> [a] -> a) -> Parser a -> Parser a
+-- pApp app pAtom = do
+--   x <- lexeme pAtom
+--   fs <- many (lexeme pAtom)
+--   pure $ case fs of
+--     [] -> x
+--     _ -> app x fs
 
 wrapped :: Char -> Char -> Parser a -> Parser a
 wrapped l r = between (lexChar l) (single r)

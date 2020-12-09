@@ -12,7 +12,9 @@ import qualified Text.Megaparsec as Mega
 testExample :: Text -> IO ()
 testExample name = do
   let fileName = name <> ".law"
+  say "--------------------"
   say $ "Testing: " <> fileName
+  say "--------------------"
   example <- readFile (toS ("examples/" <> fileName))
   case Mega.parse (parsed <* Mega.eof) (toS fileName) example of
     Left err -> putStr (Mega.errorBundlePretty err)

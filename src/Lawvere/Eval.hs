@@ -1,6 +1,7 @@
 module Lawvere.Eval where
 
 import Data.Bifunctor
+import Data.List (lookup)
 import qualified Data.Map.Strict as Map
 import qualified Data.Text as Text
 import Lawvere.Core
@@ -29,8 +30,48 @@ type Tops = Map LcIdent (Val -> IO Val)
 evalAr :: Tops -> Expr -> Val -> IO Val
 evalAr tops = \case
   EPrim _ -> panic "TODO"
-  ELim _ -> panic "TODO"
-  ECoLim _ -> panic "TODO"
+  ELim limOfFunctors -> functor
+    where
+      functor :: Val -> IO Val
+      functor f = pure (VFun g)
+        where
+          g :: Val -> IO Val
+          g (Rec r) = Rec <$> Map.traverseWithKey go r
+            where
+              go :: Label -> Val -> IO Val
+              go label x = case lookup label limOfFunctors of
+                Just func -> do
+                  res <- evalAr tops func f
+                  case res of
+                    VFun resF -> resF x
+                    _ -> panic "bad ELim"
+                Nothing -> panic "bad ELim"
+          g _ = panic "bad ELim"
+  ECoLim colimOfFunctors -> functor
+    where
+      functor :: Val -> IO Val
+      functor f = pure (VFun g)
+        where
+          g :: Val -> IO Val
+          g (Tag tag x) = case lookup tag colimOfFunctors of
+            Just func -> do
+              res <- evalAr tops func f
+              case res of
+                VFun resF -> Tag tag <$> resF x
+                _ -> panic "bad EColim"
+            Nothing -> panic "bad EColim"
+          g _ = panic "bad EColim"
+  -- ECoLim colim ->
+  --   let g = mkCoCone colim
+  --    in \f ->
+  --         pure $
+  --           VFun $ \case
+  --             Tag tag x -> do
+  --               h <- g (Tag tag f)
+  --               case h of
+  --                 VFun h' -> h' x
+  --                 _ -> panic "bad ecolim"
+  --             _ -> panic "bad ecolim"
   EConst e -> const (pure (VFun (evalAr tops e)))
   Top i -> \v -> case Map.lookup i tops of
     Just f -> f v
@@ -53,18 +94,32 @@ evalAr tops = \case
     where
       comp e cur = evalAr tops e >=> cur
   Tuple parts -> evalAr tops (Cone (tupleToCone parts))
-  Cone cone ->
-    let ars = second (evalAr tops) <$> cone
-     in \x -> do
-          ys <- traverse (\(l, f) -> (l,) <$> f x) ars
-          pure (Rec (Map.fromList ys))
-  CoCone cocone ->
-    let ars = Map.fromList $ second (evalAr tops) <$> cocone
-     in \case
-          Tag l x -> case Map.lookup l ars of
-            Just f -> f x
-            Nothing -> panic ("bad cocone: " <> show l <> " " <> render x)
-          v -> panic ("bad cocone: " <> render v)
+  Cone fs -> mkCone fs
+  CoCone fs -> mkCoCone fs
+  EFunApp name e ->
+    let f = VFun (evalAr tops e)
+     in \x ->
+          case Map.lookup name tops of
+            Just ff -> do
+              g <- ff f
+              case g of
+                VFun g' -> g' x
+                _ -> panic "bad efunapp"
+            Nothing -> panic "bad efunapp"
+  where
+    mkCone fs =
+      let ars = second (evalAr tops) <$> fs
+       in \x -> do
+            ys <- traverse (\(l, f) -> (l,) <$> f x) ars
+            pure (Rec (Map.fromList ys))
+
+    mkCoCone fs =
+      let ars = Map.fromList (second (evalAr tops) <$> fs)
+       in \case
+            Tag l x -> case Map.lookup l ars of
+              Just f -> f x
+              Nothing -> panic ("bad cocone: " <> show l <> " " <> render x)
+            v -> panic ("bad cocone: " <> render v)
 
 lkp :: Label -> Map Label a -> Maybe a
 lkp = Map.lookup
@@ -136,6 +191,7 @@ jsLabel (LNam l) = show (render l)
 
 evalJS :: Expr -> Text
 evalJS = \case
+  EFunApp _ _ -> panic "TODO"
   EPrim _ -> panic "TODO"
   ELim _ -> panic "TODO"
   ECoLim _ -> panic "TODO"

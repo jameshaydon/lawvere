@@ -13,9 +13,6 @@ import qualified Text.Megaparsec.Char.Lexer as Lex
 identSpecials :: [Char]
 identSpecials = ['_', '\'']
 
-keywords :: Set Text
-keywords = Set.fromList ["ob", "ar", "id", "const"]
-
 pKeyword :: Parser ()
 pKeyword = void $ choice $ reserved <$> Set.toList keywords
 
@@ -26,12 +23,17 @@ reserved name = lexeme $
     _ <- chunk name
     notFollowedBy (satisfy isAlphaNum <|> oneOf identSpecials) <?> "end of " ++ toS name
 
-kwOb, kwAr, kwMain, kwId, kwConst :: Parser ()
+keywords :: Set Text
+keywords = Set.fromList ["ob", "ar", "id", "const", "sketch", "over"]
+
+kwOb, kwAr, kwMain, kwId, kwConst, kwSketch, kwOver :: Parser ()
 kwOb = reserved "ob"
 kwAr = reserved "ar"
 kwMain = reserved "main"
 kwConst = reserved "const"
 kwId = reserved "id"
+kwSketch = reserved "sketch"
+kwOver = reserved "over"
 
 identParser :: (Char -> Bool) -> Parser Text
 identParser firstCond = toS <$> ((:) <$> char0 <*> charRest)
@@ -89,14 +91,6 @@ instance Disp Label where
 -- Tuples are just shorthand for records.
 tupleToCone :: [a] -> [(Label, a)]
 tupleToCone fs = [(LPos i, f) | (i, f) <- zip [1 :: Int ..] fs]
-
--- pApp :: (a -> [a] -> a) -> Parser a -> Parser a
--- pApp app pAtom = do
---   x <- lexeme pAtom
---   fs <- many (lexeme pAtom)
---   pure $ case fs of
---     [] -> x
---     _ -> app x fs
 
 wrapped :: Char -> Char -> Parser a -> Parser a
 wrapped l r = between (lexChar l) (single r)

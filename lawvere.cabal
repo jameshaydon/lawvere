@@ -33,11 +33,11 @@ library
       Lawvere.Eval
       Lawvere.Expr
       Lawvere.Instruction
+      Lawvere.Ob
       Lawvere.Parse
       Lawvere.Prim
       Lawvere.Scalar
       Lawvere.Sketch
-      Lawvere.Typ
   other-modules:
       Paths_lawvere
   hs-source-dirs:

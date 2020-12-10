@@ -103,6 +103,7 @@ compileDecl (DAr _ name _ _ e) = do
   code <- compile e
   #code %= Map.insert (AddrTop name) code
 compileDecl DOb {} = pure ()
+compileDecl DSketch {} = pure ()
 
 compileProg :: Decls -> Code
 compileProg ds = prims <> view #code (execState (traverse_ compileDecl ds) initCompilerState)

@@ -11,8 +11,8 @@ import Lawvere.Core
 import Lawvere.Decl
 import Lawvere.Disp
 import Lawvere.Expr
+import Lawvere.Ob
 import Lawvere.Scalar
-import Lawvere.Typ
 import Prettyprinter
 import Protolude hiding (check)
 
@@ -21,25 +21,25 @@ prims decls =
   TcTops
     { obs =
         Map.fromList $
-          [ ("Base", TPrim TBase),
-            ("Int", TPrim TInt),
-            ("Float", TPrim TFloat),
-            ("String", TPrim TString)
+          [ ("Base", OPrim TBase),
+            ("Int", OPrim TInt),
+            ("Float", OPrim TFloat),
+            ("String", OPrim TString)
           ]
             ++ [(name, ob) | DOb _ name ob <- decls],
       ars =
         Map.fromList $
-          [ ("plus", (Scheme [] (TTuple [TPrim TInt, TPrim TInt], TNamed "Int"), EPrim PrimPlus)),
-            ("incr", (Scheme [] (TPrim TInt, TPrim TInt), EPrim PrimIncr)),
-            ("app", (Scheme [va, vb] (TTuple [ta :=> tb, ta], tb), EPrim PrimApp))
+          [ ("plus", (Scheme [] (OTuple [OPrim TInt, OPrim TInt], ONamed "Int"), EPrim PrimPlus)),
+            ("incr", (Scheme [] (OPrim TInt, OPrim TInt), EPrim PrimIncr)),
+            ("app", (Scheme [va, vb] (OTuple [ta :=> tb, ta], tb), EPrim PrimApp))
           ]
             ++ [(name, (Scheme [] (a, b), e)) | DAr _ name a b e <- decls]
     }
   where
     va = MkVar 0
     vb = MkVar 1
-    ta = TVar va
-    tb = TVar vb
+    ta = OVar va
+    tb = OVar vb
 
 checkProg :: Decls -> Either Err ()
 checkProg decls = runCheck (prims decls) initState (checkDecls decls)
@@ -47,24 +47,24 @@ checkProg decls = runCheck (prims decls) initState (checkDecls decls)
 data Err
   = CeCantProjLabelMissing Label DiscDiag
   | CeCantInjLabelMissing Label DiscDiag
-  | CeCantProjOutOfNonLim Label (Typ, Typ)
-  | CeCantInjIntoNonCoLim Label (Typ, Typ)
-  | CeIdOnNonEqObjects Typ Typ
+  | CeCantProjOutOfNonLim Label (Ob, Ob)
+  | CeCantInjIntoNonCoLim Label (Ob, Ob)
+  | CeIdOnNonEqObjects Ob Ob
   | CeUndefinedAr LcIdent
   | CeUndefinedOb UcIdent
   | CeCantInfer Expr
-  | CeCantUnify Typ Typ
+  | CeCantUnify Ob Ob
   | CeDistrLabelNotInSource Label DiscDiag
-  | CeDistrWasNotColimInSource Label Typ
-  | CeDistrSourceNotLim Label Typ
-  | CeConstTargetNotArr Typ Expr
-  | CeCantInferTarget Typ Expr
-  | CeCantInferSource Typ Expr
-  | CeCoConeCasesDontMatchColimSource DiscDiag [(Label, Expr)] (Label, Either Expr Typ)
+  | CeDistrWasNotColimInSource Label Ob
+  | CeDistrSourceNotLim Label Ob
+  | CeConstTargetNotArr Ob Expr
+  | CeCantInferTarget Ob Expr
+  | CeCantInferSource Ob Expr
+  | CeCoConeCasesDontMatchColimSource DiscDiag [(Label, Expr)] (Label, Either Expr Ob)
   | CeCantInferTargetOfEmptyCoCone
-  | CeCantUnifyPairwise (Label, Either Typ Typ)
-  | CeCantCheck Typ Typ Expr
-  | CeCantApplyFunctor Expr Typ
+  | CeCantUnifyPairwise (Label, Either Ob Ob)
+  | CeCantCheck Ob Ob Expr
+  | CeCantApplyFunctor Expr Ob
   deriving stock (Show)
 
 instance Disp Err where
@@ -102,7 +102,7 @@ runCheck init_env init_state =
   flip runReader init_env . flip evalStateT init_state . runExceptT . runTypecheckM
 
 data TcState = TcState
-  { ob_vars :: Map MetaVar Typ,
+  { ob_vars :: Map MetaVar Ob,
     nextFresh :: Int
   }
   deriving stock (Generic)
@@ -116,7 +116,7 @@ initState =
 
 data TcTops = TcTops
   { ars :: Map LcIdent (Scheme, Expr),
-    obs :: Map UcIdent Typ
+    obs :: Map UcIdent Ob
   }
   deriving stock (Generic)
 
@@ -130,41 +130,41 @@ fresh = do
   #nextFresh += 1
   pure (MkVar i)
 
-freshT :: Check Typ
-freshT = TVar <$> fresh
+freshT :: Check Ob
+freshT = OVar <$> fresh
 
-data Scheme = Scheme (Set MetaVar) (Typ, Typ)
+data Scheme = Scheme (Set MetaVar) (Ob, Ob)
 
 instance Disp Scheme where
   disp (Scheme vars (source, target)) =
-    "forall" <+> parens (hsep (punctuate comma (map (disp . TVar) (Set.toList vars)))) <+> dot <+> disp source <+> "-->" <+> disp target
+    "forall" <+> parens (hsep (punctuate comma (map (disp . OVar) (Set.toList vars)))) <+> dot <+> disp source <+> "-->" <+> disp target
 
-refresh :: Scheme -> Check (Typ, Typ)
+refresh :: Scheme -> Check (Ob, Ob)
 refresh (Scheme vars (source, target)) = do
   subst <- Map.fromList <$> forM (Set.toList vars) (\var -> (var,) <$> fresh)
   let repl thing = thing & over freeVars (subst Map.!)
   pure (repl source, repl target)
 
-readMetaObVar :: MetaVar -> Check (Maybe Typ)
+readMetaObVar :: MetaVar -> Check (Maybe Ob)
 readMetaObVar v = use (#ob_vars . at v)
 
-writeMetaObVar :: MetaVar -> Typ -> Check ()
-writeMetaObVar v typ | TVar v == typ = pure ()
+writeMetaObVar :: MetaVar -> Ob -> Check ()
+writeMetaObVar v typ | OVar v == typ = pure ()
 writeMetaObVar v typ =
   readMetaObVar v >>= \case
     Nothing -> do
       #ob_vars . at v ?= typ
-      #ob_vars . each . filtered (== TVar v) .= typ
+      #ob_vars . each . filtered (== OVar v) .= typ
     Just x -> panic ("Unification variable " <> show v <> " is already assigned to: " <> show x)
 
-getNamedAr :: LcIdent -> Check ((Typ, Typ), Expr)
+getNamedAr :: LcIdent -> Check ((Ob, Ob), Expr)
 getNamedAr top = do
   item_ <- view (#ars . at top)
   case item_ of
     Just (scheme, e) -> (,e) <$> refresh scheme
     Nothing -> throwError (CeUndefinedAr top)
 
-getNamedOb :: UcIdent -> Check Typ
+getNamedOb :: UcIdent -> Check Ob
 getNamedOb name = do
   x <- view (#obs . at name)
   case x of
@@ -174,11 +174,12 @@ getNamedOb name = do
 checkDecl :: Decl -> Check ()
 checkDecl (DAr _ _ a b body) = check (a, b) body
 checkDecl DOb {} = pure () -- TODO
+checkDecl DSketch {} = pure ()
 
 checkDecls :: Decls -> Check ()
 checkDecls = traverse_ checkDecl
 
-infer :: Expr -> Check (Typ, Typ)
+infer :: Expr -> Check (Ob, Ob)
 infer = \case
   -- Cone fs -> do
   --   a <- freshT
@@ -197,9 +198,9 @@ infer = \case
   --   as <- traverse go fs
   --   pure (CoLim as, b)
   -- Tuple fs -> infer (Cone (tupleToCone fs))
-  -- Lit (Int _) -> (,TNamed "Int") <$> freshT
-  -- Lit (Float _) -> (,TNamed "Float") <$> freshT
-  -- Lit (Str _) -> (,TNamed "String") <$> freshT
+  -- Lit (Int _) -> (,ONamed "Int") <$> freshT
+  -- Lit (Float _) -> (,ONamed "Float") <$> freshT
+  -- Lit (Str _) -> (,ONamed "String") <$> freshT
   -- Proj label -> do
   --   b <- freshT
   --   pure (Lim [(label, b)], b)
@@ -219,14 +220,14 @@ infer = \case
     pure (Lim [], a :=> b)
   f -> throwError (CeCantInfer f)
 
-resolveOb :: Typ -> Check Typ
-resolveOb (TNamed name) = getNamedOb name
+resolveOb :: Ob -> Check Ob
+resolveOb (ONamed name) = getNamedOb name
 resolveOb (TFunApp f o) = do
   (_, e) <- getNamedAr f
   applyFunctor e o
 resolveOb t = pure t
 
-applyFunctor :: Expr -> Typ -> Check Typ
+applyFunctor :: Expr -> Ob -> Check Ob
 applyFunctor (Comp []) o = pure o
 applyFunctor (Comp [ELim fs]) o = do
   os <- (traverse . _2) (`applyFunctor` o) fs
@@ -238,13 +239,13 @@ applyFunctor (Comp [Top name]) o =
   pure (TFunApp name o)
 applyFunctor e o = throwError (CeCantApplyFunctor e o)
 
-scalarTyp :: Sca -> Typ
-scalarTyp s = TPrim $ case s of
+scalarTyp :: Sca -> Ob
+scalarTyp s = OPrim $ case s of
   Int _ -> TInt
   Str _ -> TString
   Float _ -> TFloat
 
-inferTarget :: Typ -> Expr -> Check Typ
+inferTarget :: Ob -> Expr -> Check Ob
 inferTarget (TFunApp name a) (EFunApp name' f)
   | name == name' = do
     b <- inferTarget a f
@@ -256,7 +257,7 @@ inferTarget (TFunApp name o) f = do
 inferTarget _ (Top name) = do
   ((_, b), _) <- getNamedAr name
   pure b
-inferTarget (TNamed name) f = do
+inferTarget (ONamed name) f = do
   source <- getNamedOb name
   inferTarget source f
 inferTarget _ (Lit s) = pure (scalarTyp s)
@@ -282,7 +283,7 @@ inferTarget (CoLim as) (CoCone fs) =
     Left err -> throwError (CeCoConeCasesDontMatchColimSource as fs err)
 inferTarget _ (Inj _) =
   freshT
-inferTarget (TTuple as) f =
+inferTarget (OTuple as) f =
   inferTarget (Lim (tupleToCone as)) f
 inferTarget source (Distr label) =
   inferDistrTarget label source
@@ -295,12 +296,12 @@ inferTarget _ (EConst f) = do
   pure (a :=> b)
 inferTarget source f = throwError (CeCantInferTarget source f)
 
-inferSource :: Typ -> Expr -> Check Typ
+inferSource :: Ob -> Expr -> Check Ob
 inferSource target (Top name) = do
   ((a, b), _) <- getNamedAr name
   unify b target
   pure a
-inferSource (TNamed name) f = do
+inferSource (ONamed name) f = do
   target <- getNamedOb name
   inferSource target f
 inferSource target (Comp []) = pure target
@@ -313,7 +314,7 @@ inferSource target (Cone []) = do
 --inferSource target (CoCone fs) = _
 inferSource target f = throwError (CeCantInferSource target f)
 
-inferDistrTarget :: Label -> Typ -> Check Typ
+inferDistrTarget :: Label -> Ob -> Check Ob
 inferDistrTarget label (Lim theLim) = do
   (labelColim, xs) <- lookupRest label theLim ?: CeDistrLabelNotInSource label theLim
   labelColim' <- resolveOb labelColim
@@ -321,11 +322,11 @@ inferDistrTarget label (Lim theLim) = do
   pure $ CoLim [(l, Lim ((label, a) : xs)) | (l, a) <- as]
 inferDistrTarget label source = throwError (CeDistrSourceNotLim label source)
 
-check :: (Typ, Typ) -> Expr -> Check ()
-check (TNamed name, b) f = do
+check :: (Ob, Ob) -> Expr -> Check ()
+check (ONamed name, b) f = do
   a <- getNamedOb name
   check (a, b) f
-check (a, TNamed name) f = do
+check (a, ONamed name) f = do
   b <- getNamedOb name
   check (a, b) f
 check (a, b) (Top name) = do
@@ -363,35 +364,35 @@ check (a, b) (Distr label) = do
   unify b' b
 check (a, b) f = throwError (CeCantCheck a b f)
 
-unify :: Typ -> Typ -> Check ()
-unify (TNamed name) (TNamed name') | name == name' = pure ()
-unify (TNamed name) a = do
+unify :: Ob -> Ob -> Check ()
+unify (ONamed name) (ONamed name') | name == name' = pure ()
+unify (ONamed name) a = do
   t <- getNamedOb name
   unify t a
-unify a (TNamed name) = do
+unify a (ONamed name) = do
   t <- getNamedOb name
   unify t a
-unify a@(TPrim p) b@(TPrim p')
+unify a@(OPrim p) b@(OPrim p')
   | p == p' = pure ()
   | otherwise = throwError (CeCantUnify a b)
-unify (TVar u) (TVar v) = do
+unify (OVar u) (OVar v) = do
   u' <- readMetaObVar u
   v' <- readMetaObVar v
   case (u', v') of
-    (Nothing, Nothing) -> writeMetaObVar u (TVar v)
-    (Just u'', Nothing) -> unify u'' (TVar v)
+    (Nothing, Nothing) -> writeMetaObVar u (OVar v)
+    (Just u'', Nothing) -> unify u'' (OVar v)
     (Just u'', Just v'') -> unify u'' v''
-    (Nothing, Just v'') -> unify (TVar u) v''
-unify (TVar v) typ =
+    (Nothing, Just v'') -> unify (OVar u) v''
+unify (OVar v) typ =
   readMetaObVar v >>= \case
     Nothing -> writeMetaObVar v typ
     Just r -> unify r typ
-unify typ (TVar v) =
+unify typ (OVar v) =
   readMetaObVar v >>= \case
     Nothing -> writeMetaObVar v typ
     Just r -> unify typ r
-unify (TTuple as) b = unify (Lim (tupleToCone as)) b
-unify a (TTuple bs) = unify a (Lim (tupleToCone bs))
+unify (OTuple as) b = unify (Lim (tupleToCone as)) b
+unify a (OTuple bs) = unify a (Lim (tupleToCone bs))
 unify (Lim diag) (Lim diag') = unifyLim diag diag'
 unify (CoLim as) (CoLim bs) = do
   ys <- pairwise as bs ?:: CeCantUnifyPairwise
@@ -402,7 +403,7 @@ unify (TFunApp name a) (TFunApp name' b)
     unify a b
 unify a b = throwError (CeCantUnify a b)
 
-unifyMany :: [Typ] -> Check ()
+unifyMany :: [Ob] -> Check ()
 unifyMany (a : b : rest) = unify a b >> unifyMany (b : rest)
 unifyMany _ = pure ()
 

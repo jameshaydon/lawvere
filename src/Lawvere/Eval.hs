@@ -160,6 +160,7 @@ evalDecl :: Tops -> Decl -> [(LcIdent, Val -> IO Val)]
 evalDecl tops = \case
   DAr _ name _ _ e -> [(name, evalAr tops e)]
   DOb {} -> []
+  DSketch {} -> []
 
 eval :: Val -> Decls -> IO Val
 eval v ds =
@@ -223,6 +224,7 @@ mkJS decls =
         <> statements (mkDecl <$> decls)
     mkDecl (DAr _ (LcIdent name) _ _ e) = addTop name (evalJS e)
     mkDecl DOb {} = ""
+    mkDecl DSketch {} = ""
     addTop name e = "tops[\"" <> name <> "\"] = " <> e
     statements xs = Text.intercalate "\n" ((<> ";") <$> xs)
     jsPriv :: Text -> Text -> Text

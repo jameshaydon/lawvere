@@ -1,9 +1,16 @@
+// (just defining this for the example:)
+
+ar Cat list : Base --> Base =
+  [ empty : {:},
+    cons  : { head : ,
+              tail : list } ]
+
 // define a free category extension:
 
-sketch State =
+sketch State over Base =
   { ob S,
-    ar get : {} -> S,
-    ar put : S -> {}
+    ar get : {:} --> S,
+    ar put : S --> {:}
   }
 
 
@@ -13,7 +20,7 @@ sketch State =
 // In other words, when functoring from Base[State, S = Int], one will have to send S and Int to
 // the same object of the target category.
 
-ar Base[State, S = Int]  next : {} -> S =
+ar Base[State | S = Int]  next : {:} --> S =
   get
   { current = ,
     next = inc put }
@@ -21,27 +28,73 @@ ar Base[State, S = Int]  next : {} -> S =
 
 // Using `next` we can define a labelling function:
 
-ar Base[State, S = Int]  label : String -> (Int, String) =
-  ({} next, )
+ar Base[State | S = Int]  label : String --> (Int, String) =
+  ({=} next, )
 
 // Which we can use to label strings in a list:
 
-ar Base[State, S = Int] index : list(String) -> list((Int, String)) =
-  ( const(label), ) map
+ar Base[State | S = Int] index : list(String) --> list((Int, String)) =
+  list(label)
 
 
 // We can define a functor from `Base[State, S = Int]` to `Base`:
 
 
-ar Cat pureIntState : Base[State, S = Int] --> Base =
-  { state : const(Int), val : }
+Base --> (Base ==> Base)
+T    |-> (S    |-> (T,S))
+
+{1: Base, 2:Base} --> Base
+
+{ state .2 : , val : .1 }
+
+
+
+
+ar Cat pureState : Base[State] --> (Base => Base) =
+  interpret State
+  over { state : const(Int), val : }          Base -> (Base => Base)
+  {
+    S   |-> { state : Int,    val : Int    },
+    get |-> { state = .state, val = .state }
+    put |-> { state = .val,   val = {=}    }
+  }
+
+ar Cat pureState : Base --> (Base[State] => Base) =
+  _
+
+ar Cat pureIntState : Base[ State | S = Int] --> Base =
+  interpret State
+  over { state : const(Int), val : }
+  {
+    S   |-> { state : Int,    val : Int    },
+    get |-> { state = .state, val = .state }
+    put |-> { state = .val,   val = {=}    }
+  }
+
+
+
+
+
+  
+  
 
 
 // use said functor:
 
-indexPure : list(String) -> list((Int, String))
+indexPure : list(String) --> list((Int, String))
 indexPure =
   {state: 0, val: }    // initialise the state to 0
   pureIntState(index)  // invoke a stateful computation
   .val                 // discard the state
 
+main Base : {:} --> list((Int, String)) =
+  exampleList indexPure
+
+// (just building the input list from here)
+
+exampleList : {:} -> list(String) =
+  empty.
+  { head = "hello", tail = } cons.
+  { head = "silly", tail = } cons.
+  { head = "world", tail = } cons.
+  

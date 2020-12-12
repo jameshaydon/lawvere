@@ -14,6 +14,7 @@ Lawvere is a categorical programming language with sketches and effects. It allo
 - Make more effect examples.
 - Make a small but not just a few lines "real program".
 - defining new categories
+- allow one to define morphisms via curry/uncurry.
 
 ## Some random notes:
 

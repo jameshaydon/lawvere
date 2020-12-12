@@ -39,45 +39,14 @@ ar Base[State | S = Int] index : list(String) --> list((Int, String)) =
 
 // We can define a functor from `Base[State, S = Int]` to `Base`:
 
-
-Base --> (Base ==> Base)
-T    |-> (S    |-> (T,S))
-
-{1: Base, 2:Base} --> Base
-
-{ state .2 : , val : .1 }
-
-
-
-
 ar Cat pureState : Base[State] --> (Base => Base) =
   interpret State
-  over { state : const(Int), val : }          Base -> (Base => Base)
+  over  {val: } curry(state)({ state: .state, val: .val})
   {
-    S   |-> { state : Int,    val : Int    },
+    S   |-> { state : , val : },
     get |-> { state = .state, val = .state }
     put |-> { state = .val,   val = {=}    }
   }
-
-ar Cat pureState : Base --> (Base[State] => Base) =
-  _
-
-ar Cat pureIntState : Base[ State | S = Int] --> Base =
-  interpret State
-  over { state : const(Int), val : }
-  {
-    S   |-> { state : Int,    val : Int    },
-    get |-> { state = .state, val = .state }
-    put |-> { state = .val,   val = {=}    }
-  }
-
-
-
-
-
-  
-  
-
 
 // use said functor:
 

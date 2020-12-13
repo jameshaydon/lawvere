@@ -42,26 +42,25 @@ ar Base[State | S = Int] index : list(String) --> list((Int, String)) =
 ar Cat pureState : Base[State] --> (Base => Base) =
   interpret State
   over  {val: } curry(state)({ state: .state, val: .val})
-  {
-    S   |-> { state : , val : },
-    get |-> { state = .state, val = .state }
-    put |-> { state = .val,   val = {=}    }
+  with
+  { ob S   |-> { state : , val : },
+    ar get |-> { state = .state, val = .state },
+    ar put |-> { state = .val,   val = {=}    }
   }
 
 // use said functor:
 
-indexPure : list(String) --> list((Int, String))
-indexPure =
+ar Base indexPure : list(String) --> list((Int, String)) =
   {state: 0, val: }    // initialise the state to 0
   pureIntState(index)  // invoke a stateful computation
   .val                 // discard the state
 
-main Base : {:} --> list((Int, String)) =
+ar Base main : {:} --> list((Int, String)) =
   exampleList indexPure
 
 // (just building the input list from here)
 
-exampleList : {:} -> list(String) =
+ar Base exampleList : {:} --> list(String) =
   empty.
   { head = "hello", tail = } cons.
   { head = "silly", tail = } cons.

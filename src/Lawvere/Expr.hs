@@ -14,10 +14,34 @@ data Prim = PrimPlus | PrimApp | PrimIncr
 
 instance Disp Prim where
   disp =
-    ("#" <>) . \case
+    ("#prim_" <>) . \case
       PrimPlus -> "plus"
       PrimApp -> "app"
       PrimIncr -> "incr"
+
+data SketchInterp = SketchInterp
+  { obs :: [(UcIdent, Expr)],
+    ars :: [(LcIdent, Expr)]
+  }
+  deriving stock (Show)
+
+instance Disp SketchInterp where
+  disp SketchInterp {..} =
+    braces . vsep . punctuate comma $
+      (("ob" <+>) . dispMapping <$> obs)
+        ++ (("ar" <+>) . dispMapping <$> ars)
+    where
+      dispMapping (x, e) = disp x <+> "|->" <+> disp e
+
+instance Parsed SketchInterp where
+  parsed = do
+    mappings <- pCommaSep '{' '}' pMapping
+    let (obs, ars) = partitionEithers mappings
+    pure SketchInterp {..}
+    where
+      pMapping = (Left <$> (kwOb *> pMapsto)) <|> (Right <$> (kwAr *> pMapsto))
+      pMapsto :: (Parsed a, Parsed b) => Parser (a, b)
+      pMapsto = (,) <$> lexeme parsed <*> (symbol "|->" *> parsed)
 
 data Expr
   = Cone [(Label, Expr)]
@@ -34,6 +58,7 @@ data Expr
   | EConst Expr
   | EPrim Prim
   | EFunApp LcIdent Expr
+  | FromFree UcIdent Expr SketchInterp
   deriving stock (Show)
 
 pApp :: Parser Expr
@@ -42,10 +67,21 @@ pApp = do
   e <- wrapped '(' ')' parsed
   pure (EFunApp f e)
 
+pInterp :: Parser Expr
+pInterp = do
+  kwInterpret
+  sketchName <- lexeme parsed
+  kwOver
+  overThis <- lexeme parsed
+  kwWith
+  theInterp <- parsed
+  pure (FromFree sketchName overThis theInterp)
+
 pAtom :: Parser Expr
 pAtom =
   choice
-    [ try pApp,
+    [ pInterp,
+      try pApp,
       Proj <$> ("." *> parsed),
       try (Inj <$> (parsed <* ".")), -- we need to look ahead for the dot
       Top <$> parsed,
@@ -80,3 +116,12 @@ instance Disp Expr where
     CoCone parts -> commaBracket '=' parts
     ECoLim parts -> commaBracket ':' parts
     Tuple parts -> dispTup parts
+    FromFree sketchName overThis interp ->
+      vsep
+        [ "interpret",
+          disp sketchName,
+          "over",
+          disp overThis,
+          "with",
+          disp interp
+        ]

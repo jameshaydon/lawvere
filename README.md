@@ -2,21 +2,20 @@
 
 > Programming in categories
 
-Lawvere is a categorical programming language with sketches and effects. It allows you to program morhisms in cartesian closed categories, and allows you to define locally finitely presentable categories.
+Lawvere is a categorical programming language with sketches and effects. It allows you to program morphisms in arbitrary cartesian closed categories, allows you to define locally finitely presentable categories, and allows you to define functors between these categories.
 
 ---
 
 ## TODO
 
-- Implement type-checker.
 - Implement more general diagrams and limits/colimits thereof.
 - Make example showing extensible data programming, e.g. let-desugaring as a cartesian retract.
-- Make more effect examples.
 - Make a small but not just a few lines "real program".
-- defining new categories
 - allow one to define morphisms via curry/uncurry.
 - Think about if diagrams (which are used for e.g. (co)limits) can be
   represented as functors directly (from discrete categories).
+
+---
 
 ## Some random notes:
 

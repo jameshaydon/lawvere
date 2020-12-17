@@ -66,7 +66,7 @@ compile = \case
   ELim limOfFunctors -> functor
     where
       functor :: Dom -> Comp
-      functor f = Done (Fun _)
+      functor f = Done (Fun undefined)
 
 {-
 ELim limOfFunctors -> functor

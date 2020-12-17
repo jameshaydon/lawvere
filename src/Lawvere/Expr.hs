@@ -61,13 +61,14 @@ data Expr
   | FromFree UcIdent Expr SketchInterp
   | Curry LcIdent Expr
   | Object UcIdent
+  | CanonicalInj Expr
   deriving stock (Show)
 
-pApp :: Parser Expr
+pApp :: Parser (LcIdent, Expr)
 pApp = do
   f <- parsed
   e <- wrapped '(' ')' parsed
-  pure (EFunApp f e)
+  pure (f, e)
 
 pInterp :: Parser Expr
 pInterp = do
@@ -91,7 +92,11 @@ pAtom =
   choice
     [ pInterp,
       pCurry,
-      try pApp,
+      try $ do
+        (f, e) <- pApp
+        pure $ case f of
+          LcIdent "i" -> CanonicalInj e
+          _ -> EFunApp f e,
       Proj <$> ("." *> parsed),
       try (Inj <$> (parsed <* ".")), -- we need to look ahead for the dot
       Top <$> parsed,
@@ -113,6 +118,7 @@ instance Parsed Expr where
 
 instance Disp Expr where
   disp = \case
+    CanonicalInj e -> "i" <> parens (disp e)
     EFunApp f e -> disp f <> parens (disp e)
     EPrim p -> disp p
     EConst e -> "const" <> parens (disp e)

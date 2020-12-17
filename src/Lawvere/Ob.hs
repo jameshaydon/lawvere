@@ -9,7 +9,6 @@ import Lawvere.Parse
 import Prettyprinter
 import Protolude hiding (many, some, try)
 import Text.Megaparsec
-import Text.Megaparsec.Debug
 
 newtype MetaVar = MkVar Int
   deriving stock (Eq, Ord, Show, Generic)

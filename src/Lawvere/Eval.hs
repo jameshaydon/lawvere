@@ -61,17 +61,6 @@ evalAr tops = \case
                 _ -> panic "bad EColim"
             Nothing -> panic "bad EColim"
           g _ = panic "bad EColim"
-  -- ECoLim colim ->
-  --   let g = mkCoCone colim
-  --    in \f ->
-  --         pure $
-  --           VFun $ \case
-  --             Tag tag x -> do
-  --               h <- g (Tag tag f)
-  --               case h of
-  --                 VFun h' -> h' x
-  --                 _ -> panic "bad ecolim"
-  --             _ -> panic "bad ecolim"
   EConst e -> const (pure (VFun (evalAr tops e)))
   Top i -> \v -> case Map.lookup i tops of
     Just f -> f v
@@ -104,8 +93,11 @@ evalAr tops = \case
               g <- ff f
               case g of
                 VFun g' -> g' x
-                _ -> panic "bad efunapp"
-            Nothing -> panic "bad efunapp"
+                v -> panic $ "bad efunapp: " <> render v
+            Nothing -> panic $ "bad efunapp: " <> render name
+  FromFree {} -> panic "fromfree"
+  Curry _ _ -> panic "curry"
+  Object _ -> panic "object"
   where
     mkCone fs =
       let ars = second (evalAr tops) <$> fs
@@ -192,6 +184,9 @@ jsLabel (LNam l) = show (render l)
 
 evalJS :: Expr -> Text
 evalJS = \case
+  FromFree {} -> panic "TODO"
+  Curry {} -> panic "TODO"
+  Object {} -> panic "TODO"
   EFunApp _ _ -> panic "TODO"
   EPrim _ -> panic "TODO"
   ELim _ -> panic "TODO"

@@ -5,8 +5,7 @@ import Lawvere.Decl
 import Lawvere.Disp
 import Lawvere.Eval
 --import qualified Lawvere.Instruction as Machine
-
-import Lawvere.Ob
+--import Lawvere.Ob
 import Lawvere.Parse
 import Protolude hiding (empty)
 import qualified Text.Megaparsec as Mega
@@ -15,7 +14,7 @@ parseTest :: Parser a -> Text -> IO ()
 parseTest p inp =
   case Mega.parse (p <* Mega.eof) "parse test" inp of
     Left err -> putStr (Mega.errorBundlePretty err)
-    Right x -> pure ()
+    Right _ -> pure ()
 
 testExample :: Text -> IO ()
 testExample name = do
@@ -53,8 +52,9 @@ testExample name = do
 
 main :: IO ()
 main = do
-  --testExample "basic"
-  --testExample "list"
+  testExample "basic"
+  testExample "list"
+  testExample "error"
   testExample "state"
 
 --parseTest @Ob parsed "Base[State]"

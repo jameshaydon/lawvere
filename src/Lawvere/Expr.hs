@@ -59,6 +59,8 @@ data Expr
   | EPrim Prim
   | EFunApp LcIdent Expr
   | FromFree UcIdent Expr SketchInterp
+  | Curry LcIdent Expr
+  | Object UcIdent
   deriving stock (Show)
 
 pApp :: Parser Expr
@@ -77,10 +79,18 @@ pInterp = do
   theInterp <- parsed
   pure (FromFree sketchName overThis theInterp)
 
+pCurry :: Parser Expr
+pCurry = do
+  kwCurry
+  lab <- lexeme parsed
+  body <- parsed
+  pure (Curry lab body)
+
 pAtom :: Parser Expr
 pAtom =
   choice
     [ pInterp,
+      pCurry,
       try pApp,
       Proj <$> ("." *> parsed),
       try (Inj <$> (parsed <* ".")), -- we need to look ahead for the dot
@@ -94,7 +104,8 @@ pAtom =
       CoCone <$> try (pBracketedFields '='),
       ECoLim <$> pBracketedFields ':',
       Distr <$> (single '@' *> parsed),
-      EConst <$> (chunk "const" *> wrapped '(' ')' parsed)
+      EConst <$> (chunk "const" *> wrapped '(' ')' parsed),
+      Object <$> parsed
     ]
 
 instance Parsed Expr where
@@ -125,3 +136,4 @@ instance Disp Expr where
           "with",
           disp interp
         ]
+    Curry lab f -> "curry" <+> disp lab <+> disp f

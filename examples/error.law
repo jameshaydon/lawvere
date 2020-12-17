@@ -1,0 +1,45 @@
+// Just for the examples:
+
+ar Cat list : Base --> Base =
+  [ empty : {:},
+    cons  : { head : ,
+              tail : list } ]
+
+// Define a sketch for computations that can fail with a message:
+
+sketch Error over Base =
+  { ar fail : String --> [:] }
+
+
+// We can define the `first` function on `list(Int)`, which fails on empty
+// lists:
+
+ar Base[Error] first : list(Int) --> Int =
+  [ empty = "Can't take first of empty list!" fail [=],
+    cons = .head
+  ]
+
+// We define a functor on `Base[Error]`:
+
+ar Cat canFail : Base[Error] --> Base =
+  interpret Error
+  over [failure : const(String), success : ]
+  with
+  { ar error |-> [ failure = failure., success = failure. ] }
+
+// using the functor:
+
+ar Base firstCanFail : list(Int) --> [ failure : String, success : Int ] =
+  success. canFail(first)
+
+ar Base main : {:} --> list((Int, String)) =
+  exampleList firstCanFail
+
+// (just building the input list from here)
+
+ar Base exampleList : {:} --> list(Ont) =
+  empty.
+  { head = 1, tail = } cons.
+
+
+

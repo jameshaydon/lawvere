@@ -41,7 +41,8 @@ ar Base[State | S = Int] index : list(String) --> list((Int, String)) =
 
 ar Cat pureState : Base[State] --> (Base => Base) =
   interpret State
-  over  {val: } curry(state)({ state: .state, val: .val})
+  over  {val: }
+        curry state { state: .state, val: .val}
   with
   { ob S   |-> { state : , val : },
     ar get |-> { state = .state, val = .state },
@@ -52,7 +53,7 @@ ar Cat pureState : Base[State] --> (Base => Base) =
 
 ar Base indexPure : list(String) --> list((Int, String)) =
   {state: 0, val: }    // initialise the state to 0
-  pureIntState(index)  // invoke a stateful computation
+  pureState(index)     // invoke a stateful computation
   .val                 // discard the state
 
 ar Base main : {:} --> list((Int, String)) =

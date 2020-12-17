@@ -27,6 +27,7 @@ library
   exposed-modules:
       Lawvere
       Lawvere.Check
+      Lawvere.Comp
       Lawvere.Core
       Lawvere.Decl
       Lawvere.Disp

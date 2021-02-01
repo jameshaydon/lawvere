@@ -68,6 +68,9 @@ storeCode code = do
   #code %= Map.insert (Addr a) code
   pure (Addr a)
 
+noEffects :: [(ConeComponent, Expr)] -> Comp [(Label, Expr)]
+noEffects = panic "TODO"
+
 compile :: Expr -> Comp [Instr]
 compile = \case
   EFunApp _ _ -> panic "TODO"
@@ -75,7 +78,8 @@ compile = \case
   ELim _ -> panic "TODO"
   ECoLim _ -> panic "TODO"
   Cone ps -> do
-    codes <- traverse (_2 compile) ps
+    ps' <- noEffects ps
+    codes <- traverse (_2 compile) ps'
     pure $ [i | (_, code) <- codes, i <- eachProj code] ++ [IConeFinish (fst <$> codes)]
     where
       eachProj code =
@@ -85,7 +89,7 @@ compile = \case
                IPopValStackToCurrent
              ]
   CoCone is -> pure . ICoCone <$> traverse (_2 compStore) is
-  Tuple xs -> compile (Cone (tupleToCone xs))
+  Tuple xs -> compile (tupleToCone xs)
   Lit x -> pure [ISca x]
   Proj p -> pure [IProj p]
   Inj i -> pure [IInj i]

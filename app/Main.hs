@@ -35,12 +35,12 @@ testExample name = do
           say "Check ERROR!"
           say (render err)
       let inp = Rec mempty
-      v <- eval inp prog
       say "---------------------------"
       say "input:"
       say ("  " <> render inp)
       -- Haskell:
       say "haskell interpreter:"
+      v <- eval inp prog
       putStrLn ("  " <> render v)
       -- Javascript:
       --putStrLn (mkJS prog)
@@ -54,8 +54,9 @@ main :: IO ()
 main = do
   testExample "basic"
   testExample "list"
-  testExample "error"
-  testExample "state"
+  --testExample "error"
+  --testExample "state"
+  testExample "freyd"
 
 --parseTest @Ob parsed "Base[State]"
 

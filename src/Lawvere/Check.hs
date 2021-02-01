@@ -65,6 +65,7 @@ data Err
   | CeCantUnifyPairwise (Label, Either Ob Ob)
   | CeCantCheck Ob Ob Expr
   | CeCantApplyFunctor Expr Ob
+  | CeEff
   deriving stock (Show)
 
 instance Disp Err where
@@ -245,6 +246,13 @@ scalarTyp s = OPrim $ case s of
   Str _ -> TString
   Float _ -> TFloat
 
+noEffects :: [(ConeComponent, Expr)] -> Check [(Label, Expr)]
+noEffects = traverse go
+  where
+    go :: (ConeComponent, Expr) -> Check (Label, Expr)
+    go (ConeComponent Pure lab, e) = pure (lab, e)
+    go _ = throwError CeEff
+
 inferTarget :: Ob -> Expr -> Check Ob
 inferTarget (TFunApp name a) (EFunApp name' f)
   | name == name' = do
@@ -266,11 +274,12 @@ inferTarget a (Comp (f : fs)) = do
   b <- inferTarget a f
   inferTarget b (Comp fs)
 inferTarget source (Tuple fs) =
-  inferTarget source (Cone (tupleToCone fs))
+  inferTarget source (tupleToCone fs)
 inferTarget _ (Cone []) =
   pure (Lim [])
-inferTarget source (Cone fs) =
-  Lim <$> traverse (_2 (inferTarget source)) fs
+inferTarget source (Cone fs) = do
+  fs' <- noEffects fs
+  Lim <$> traverse (_2 (inferTarget source)) fs'
 inferTarget (CoLim as) (CoCone fs) =
   case pairwise as fs of
     Right pairs -> do
@@ -284,7 +293,7 @@ inferTarget (CoLim as) (CoCone fs) =
 inferTarget _ (Inj _) =
   freshT
 inferTarget (OTuple as) f =
-  inferTarget (Lim (tupleToCone as)) f
+  inferTarget (prodToLim as) f
 inferTarget source (Distr label) =
   inferDistrTarget label source
 inferTarget (Lim as) (Proj label) =
@@ -348,13 +357,14 @@ check (a, CoLim bs) (Inj label) = do
   b <- lookup label bs ?: CeCantInjLabelMissing label bs
   unify b a
 check niche (Inj label) = throwError (CeCantInjIntoNonCoLim label niche)
-check niche (Tuple fs) = check niche (Cone (tupleToCone fs))
+check niche (Tuple fs) = check niche (tupleToCone fs)
 check (a, b) (Comp []) = unify a b
 check (a, c) (Comp (f : fs)) = do
   b <- inferTarget a f
   check (b, c) (Comp fs)
 check (a, b) (Cone fs) = do
-  bs <- traverse (_2 (inferTarget a)) fs
+  fs' <- noEffects fs
+  bs <- traverse (_2 (inferTarget a)) fs'
   unify b (Lim bs)
 check (a, b) (CoCone fs) = do
   as <- traverse (_2 (inferSource b)) fs
@@ -391,8 +401,8 @@ unify typ (OVar v) =
   readMetaObVar v >>= \case
     Nothing -> writeMetaObVar v typ
     Just r -> unify typ r
-unify (OTuple as) b = unify (Lim (tupleToCone as)) b
-unify a (OTuple bs) = unify a (Lim (tupleToCone bs))
+unify (OTuple as) b = unify (prodToLim as) b
+unify a (OTuple bs) = unify a (prodToLim bs)
 unify (Lim diag) (Lim diag') = unifyLim diag diag'
 unify (CoLim as) (CoLim bs) = do
   ys <- pairwise as bs ?:: CeCantUnifyPairwise

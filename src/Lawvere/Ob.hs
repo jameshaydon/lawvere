@@ -55,6 +55,9 @@ data Ob
   | OFree Ob Extension
   deriving stock (Eq, Show, Generic)
 
+prodToLim :: [Ob] -> Ob
+prodToLim as = Lim [(LPos i, f) | (i, f) <- zip [1 :: Int ..] as]
+
 freeVars :: Traversal' Ob MetaVar
 freeVars = types @MetaVar
 

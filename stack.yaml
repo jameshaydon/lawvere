@@ -1,8 +1,5 @@
 resolver:
-  url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/nightly/2020/12/14.yaml
+  url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/nightly/2021/1/28.yaml
 
 packages:
 - .
-
-extra-deps:
-  - prettyprinter-1.7.0

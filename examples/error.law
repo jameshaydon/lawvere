@@ -1,4 +1,4 @@
-// Just for the examples:
+// Just for the example:
 
 ar Cat list : Base --> Base =
   [ empty : {:},
@@ -14,26 +14,39 @@ sketch Error over Base =
 // We can define the `first` function on `list(Int)`, which fails on empty
 // lists:
 
-ar Base[Error] first : list(Int) --> Int =
-  [ empty = "Can't take first of empty list!" fail [=],
-    cons = .head
-  ]
+ar Base[Error] first : i(list(Int)) --> i(Int) =
+  abstract(
+    [ empty = "Can't take first of empty list!" fail [=],
+      cons = i(head.)
+    ]
+  )
 
-// We define a functor on `Base[Error]`:
+// We define a functor from `Base[Error]` to `Base`:
 
 ar Cat canFail : Base[Error] --> Base =
   interpret Error
   over [failure : const(String), success : ]
   with
-  { ar error |-> [ failure = failure., success = failure. ] }
+  { ar fail |-> [ failure = failure., success = failure. ] }
 
 // using the functor:
 
-ar Base firstCanFail : list(Int) --> [ failure : String, success : Int ] =
+ar Base firstCanFail : [ failure : String, success : list(Int) ] --> [ failure : String, success : Int ] =
+
+  canFail(first)
+
+  [ failure = failure.,
+    success = [ empty = "Can't take first of empty list!" failure.,
+                cons = .head success.
+              ]
+  ]
+  
+
+ar Base callFirstCanFail : list(Int) --> [ failure : String, success : Int ] =
   success. canFail(first)
 
 ar Base main : {:} --> list((Int, String)) =
-  exampleList firstCanFail
+  exampleList callFirstCanFail
 
 // (just building the input list from here)
 

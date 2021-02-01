@@ -43,8 +43,26 @@ instance Parsed SketchInterp where
       pMapsto :: (Parsed a, Parsed b) => Parser (a, b)
       pMapsto = (,) <$> lexeme parsed <*> (symbol "|->" *> parsed)
 
+data ComponentDecorator = Eff | Pure
+  deriving stock (Show)
+
+data ConeComponent = ConeComponent ComponentDecorator Label
+  deriving stock (Show)
+
+instance Parsed ConeComponent where
+  parsed = do
+    eff_ <- optional (single '!')
+    ConeComponent (if isJust eff_ then Eff else Pure) <$> parsed
+
+instance Disp ConeComponent where
+  disp (ConeComponent Pure lab) = disp lab
+  disp (ConeComponent Eff lab) = "!" <> disp lab
+
+componentLabel :: ConeComponent -> Label
+componentLabel (ConeComponent _ lab) = lab
+
 data Expr
-  = Cone [(Label, Expr)]
+  = Cone [(ConeComponent, Expr)]
   | ELim [(Label, Expr)]
   | Tuple [Expr]
   | CoCone [(Label, Expr)]
@@ -62,13 +80,21 @@ data Expr
   | Curry LcIdent Expr
   | Object UcIdent
   | CanonicalInj Expr
+  | Abstract Expr
   deriving stock (Show)
 
-pApp :: Parser (LcIdent, Expr)
+-- Tuples are just shorthand for records.
+tupleToCone :: [Expr] -> Expr
+tupleToCone fs = Cone [(ConeComponent Pure (LPos i), f) | (i, f) <- zip [1 :: Int ..] fs]
+
+kwCall :: Parsed a => Parser () -> Parser a
+kwCall kw = kw *> wrapped '(' ')' parsed
+
+pApp :: Parser Expr
 pApp = do
   f <- parsed
   e <- wrapped '(' ')' parsed
-  pure (f, e)
+  pure (EFunApp f e)
 
 pInterp :: Parser Expr
 pInterp = do
@@ -92,11 +118,7 @@ pAtom =
   choice
     [ pInterp,
       pCurry,
-      try $ do
-        (f, e) <- pApp
-        pure $ case f of
-          LcIdent "i" -> CanonicalInj e
-          _ -> EFunApp f e,
+      try pApp,
       Proj <$> ("." *> parsed),
       try (Inj <$> (parsed <* ".")), -- we need to look ahead for the dot
       Top <$> parsed,
@@ -106,10 +128,14 @@ pAtom =
       -- label/seperator pair encountered.
       Cone <$> try (pBracedFields '='),
       ELim <$> pBracedFields ':',
+      -- TODO: try to get rid of the 'try' by committing on the first
+      -- label/seperator pair encountered.
       CoCone <$> try (pBracketedFields '='),
       ECoLim <$> pBracketedFields ':',
       Distr <$> (single '@' *> parsed),
-      EConst <$> (chunk "const" *> wrapped '(' ')' parsed),
+      EConst <$> kwCall kwConst,
+      CanonicalInj <$> kwCall kwI,
+      Abstract <$> kwCall kwAbstract,
       Object <$> parsed
     ]
 
@@ -118,6 +144,8 @@ instance Parsed Expr where
 
 instance Disp Expr where
   disp = \case
+    Object o -> disp o
+    Abstract e -> "abstract" <> parens (disp e)
     CanonicalInj e -> "i" <> parens (disp e)
     EFunApp f e -> disp f <> parens (disp e)
     EPrim p -> disp p

@@ -26,6 +26,9 @@ ar Base[State | S = Int]  next : {:} --> S =
     next = inc put }
   .current
 
+get i( , inc) carry( , put) .1
+
+
 // Using `next` we can define a labelling function:
 
 ar Base[State | S = Int]  label : String --> (Int, String) =

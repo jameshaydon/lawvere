@@ -19,9 +19,13 @@ data Dom
   | Tag Label Dom
   | Fun Hask
 
+data Req
+  = GetTop LcIdent
+  | IErr
+
 data Comp
   = Done Dom
-  | Req LcIdent Dom Hask
+  | Req Req Dom Hask
 
 instance {-# OVERLAPPING #-} Semigroup Hask where
   f <> g = \x -> bind (f x) g
@@ -41,10 +45,19 @@ sequ :: [Comp] -> ([Dom] -> Comp) -> Comp
 sequ [] k = k []
 sequ (c : cs) k = bind c $ \x -> sequ cs (k . (x :))
 
+sequ' :: (Foldable f) => f Comp -> (f Dom -> Comp) -> Comp
+sequ' xs k = foldr go _ xs
+  where
+    go :: Comp -> Comp -> Comp
+    go c c' = bind c $ \x -> _
+
+-- sequ' [] k = k []
+-- sequ' (c : cs) k = bind c $ \x -> sequ cs (k . (x :))
+
 compile :: Expr -> Hask
 compile = \case
   Lit s -> const (Done (Sca s))
-  Top name -> \x -> Req name x Done
+  Top name -> \x -> Req (GetTop name) x Done
   Inj lab -> Done . Tag lab
   Proj lab -> \case
     Rec (Map.lookup lab -> Just x) -> Done x
@@ -53,8 +66,8 @@ compile = \case
   Cone fs -> \x ->
     sequ
       (($ x) . compile . snd <$> fs)
-      (Done . Rec . Map.fromList . zip (fst <$> fs))
-  Tuple fs -> compile (Cone (tupleToCone fs))
+      (Done . Rec . Map.fromList . zip (componentLabel . fst <$> fs))
+  Tuple fs -> compile (tupleToCone fs)
   CoCone fs -> \case
     Tag (flip lookup fs' -> Just f) x -> f x
     _ -> ierr "bad cocone"
@@ -66,7 +79,13 @@ compile = \case
   ELim limOfFunctors -> functor
     where
       functor :: Dom -> Comp
-      functor f = Done (Fun undefined)
+      functor f = Done (Fun g)
+        where
+          g :: Hask
+          g (Rec r) = let foo = Map.mapWithKey go r in _
+            where
+              go :: Label -> Dom -> Comp
+              go = _
 
 {-
 ELim limOfFunctors -> functor
@@ -89,4 +108,4 @@ ELim limOfFunctors -> functor
 -}
 
 ierr :: Text -> Comp
-ierr m = Req "internal_error" (Sca (Str m)) Done
+ierr m = Req IErr (Sca (Str m)) Done

@@ -29,7 +29,7 @@ type Tops = Map LcIdent (Val -> IO Val)
 
 evalAr :: Tops -> Expr -> Val -> IO Val
 evalAr tops = \case
-  EPrim _ -> panic "TODO"
+  EPrim _ -> panic "TODO prim"
   ELim limOfFunctors -> functor
     where
       functor :: Val -> IO Val
@@ -82,7 +82,7 @@ evalAr tops = \case
   Comp fs -> foldr' comp pure fs
     where
       comp e cur = evalAr tops e >=> cur
-  Tuple parts -> evalAr tops (Cone (tupleToCone parts))
+  Tuple parts -> evalAr tops (tupleToCone parts)
   Cone fs -> mkCone fs
   CoCone fs -> mkCoCone fs
   EFunApp name e ->
@@ -95,14 +95,14 @@ evalAr tops = \case
                 VFun g' -> g' x
                 v -> panic $ "bad efunapp: " <> render v
             Nothing -> panic $ "bad efunapp: " <> render name
-  FromFree {} -> panic "fromfree"
+  FromFree sketchName overThis withThis -> \x -> panic "TODO from free"
   Curry _ _ -> panic "curry"
   Object _ -> panic "object"
   where
     mkCone fs =
       let ars = second (evalAr tops) <$> fs
        in \x -> do
-            ys <- traverse (\(l, f) -> (l,) <$> f x) ars
+            ys <- traverse (\(l, f) -> (componentLabel l,) <$> f x) ars
             pure (Rec (Map.fromList ys))
 
     mkCoCone fs =
@@ -192,7 +192,7 @@ evalJS = \case
   ELim _ -> panic "TODO"
   ECoLim _ -> panic "TODO"
   Lit x -> jsCall1 "mkConst" (render x)
-  Tuple xs -> evalJS (Cone (tupleToCone xs))
+  Tuple xs -> evalJS (tupleToCone xs)
   EConst x -> jsCall1 "mkConst" (evalJS x)
   Proj p -> labCombi "proj" p
   Inj p -> labCombi "inj" p
@@ -201,7 +201,7 @@ evalJS = \case
   Comp xs -> foldl' go "identity" xs
     where
       go x e = jsCall2 "comp" x (evalJS e)
-  Cone xs -> jsCall1 "cone" $ jsCone [(label, evalJS e) | (label, e) <- xs]
+  Cone xs -> jsCall1 "cone" $ jsCone [(componentLabel label, evalJS e) | (label, e) <- xs]
   CoCone xs -> jsCall1 "cocone" $ jsCone [(label, evalJS e) | (label, e) <- xs]
   where
     labCombi f p = jsCall1 f (jsLabel p)

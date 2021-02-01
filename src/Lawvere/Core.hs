@@ -24,12 +24,11 @@ reserved name = lexeme $
     notFollowedBy (satisfy isAlphaNum <|> oneOf identSpecials) <?> "end of " ++ toS name
 
 keywords :: Set Text
-keywords = Set.fromList ["ob", "ar", "id", "const", "sketch", "interpret", "over", "with", "curry"]
+keywords = Set.fromList ["ob", "ar", "const", "id", "sketch", "interpret", "over", "with", "curry", "i", "abstract"]
 
-kwOb, kwAr, kwMain, kwId, kwConst, kwSketch, kwInterpret, kwOver, kwWith, kwCurry :: Parser ()
+kwOb, kwAr, kwId, kwConst, kwSketch, kwInterpret, kwOver, kwWith, kwCurry, kwI, kwAbstract :: Parser ()
 kwOb = reserved "ob"
 kwAr = reserved "ar"
-kwMain = reserved "main"
 kwConst = reserved "const"
 kwId = reserved "id"
 kwSketch = reserved "sketch"
@@ -37,6 +36,8 @@ kwInterpret = reserved "interpret"
 kwOver = reserved "over"
 kwWith = reserved "with"
 kwCurry = reserved "curry"
+kwI = reserved "i"
+kwAbstract = reserved "abstract"
 
 identParser :: (Char -> Bool) -> Parser Text
 identParser firstCond = toS <$> ((:) <$> char0 <*> charRest)
@@ -91,12 +92,11 @@ instance Disp Label where
       LPos i -> pretty (show i :: Text)
       LNam l -> disp l
 
--- Tuples are just shorthand for records.
-tupleToCone :: [a] -> [(Label, a)]
-tupleToCone fs = [(LPos i, f) | (i, f) <- zip [1 :: Int ..] fs]
-
 wrapped :: Char -> Char -> Parser a -> Parser a
 wrapped l r = between (lexChar l) (single r)
+
+braced :: Parser a -> Parser a
+braced = wrapped '{' '}'
 
 pWrapSep :: Char -> Char -> Char -> Parser a -> Parser [a]
 pWrapSep s l r pItem = wrapped l r (sepBy1 (lexeme pItem) (lexChar s))

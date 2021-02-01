@@ -1,0 +1,53 @@
+sketch IntState over Base = {
+  ar get : {:} --> Int,
+  ar put : Int --> {:}
+}
+
+ar Base[IntState] next : {:} --> Int =
+  get
+  { !next = i(inc) put, current = }
+  .current
+
+ar Cat pureState : Base[IntState] --> Base =
+  interpret
+    IntState
+  over
+    { state : Int, value : }
+  with
+    { ar get  |->  {state = .state, value = .state},
+      ar put  |->  {state = .value, value = {=}}
+    }
+
+
+
+// list stuff
+
+ar Cat list : Base --> Base =
+  [ empty : {:},
+    cons  : { head : ,
+              tail : list } ]
+
+ar Base bump : list({:}) --> list({:}) =
+  { head = {=}, tail = } cons.
+
+ar Base exampleList : {:} --> list({:}) =
+  empty. bump bump bump
+
+// make a function which maps `next` over a list of units::
+
+ar Base[IntState] mapNext : list({:}) --> list(Int) =
+  [ empty = empty.,
+    cons = { !head = .head next,
+             !tails = .tails mapGet } cons.
+  ]
+
+// apply it:
+
+ar Base[IntState] counting : {:} --> list(Int) =
+  i(exampleList) mapNext
+
+
+ar Base main : {:} --> list(Int) =
+  { state = 0, value = }  // setup the initial state
+  pureState(counting)     // interpret the free freyd category
+  .value                  // throw away the accumulated state and just keep the value

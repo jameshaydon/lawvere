@@ -1,5 +1,6 @@
 module Lawvere.Eval where
 
+import Control.Lens
 import Data.Bifunctor
 import Data.List (lookup)
 import qualified Data.Map.Strict as Map
@@ -11,12 +12,21 @@ import Lawvere.Expr
 import Lawvere.Scalar
 import Prettyprinter
 import Protolude
+import Data.Generics.Labels ()
+
+data FreydDict = FreydDict
+  { inj :: Fun,
+    handlers :: Map LcIdent Fun,
+    sumDistr :: Fun
+  }
 
 data Val
   = Rec (Map Label Val)
   | Tag Label Val
   | Sca Sca
-  | VFun (Val -> IO Val)
+  | VFun Fun
+
+type Fun = Val -> IO Val
 
 instance Disp Val where
   disp = \case
@@ -25,9 +35,22 @@ instance Disp Val where
     Tag t v -> disp t <> "." <> disp v
     VFun _ -> "<unshowable>"
 
-type Tops = Map LcIdent (Val -> IO Val)
+data Interp =
+  Interp { iInj :: Fun,
+           iSum :: Fun,
+           iSide :: Expr,
+           iHandlers :: Map LcIdent Fun
+         }
 
-evalAr :: Tops -> Expr -> Val -> IO Val
+data Top
+  = TFun Fun
+  | TExpr Expr
+  | TInterp Interp
+  | TFreyd Expr
+
+type Tops = Map LcIdent Top
+
+evalAr :: Tops -> Expr -> Fun
 evalAr tops = \case
   EPrim _ -> panic "TODO prim"
   ELim limOfFunctors -> functor
@@ -44,9 +67,9 @@ evalAr tops = \case
                   res <- evalAr tops func f
                   case res of
                     VFun resF -> resF x
-                    _ -> panic "bad ELim"
-                Nothing -> panic "bad ELim"
-          g _ = panic "bad ELim"
+                    _ -> panic "bad ELim 1"
+                Nothing -> panic $ "couldn't find " <> render label <> " - " <> render x <> " - " <> render (Rec r)
+          g _ = panic "bad ELim 3"
   ECoLim colimOfFunctors -> functor
     where
       functor :: Val -> IO Val
@@ -63,7 +86,8 @@ evalAr tops = \case
           g _ = panic "bad EColim"
   EConst e -> const (pure (VFun (evalAr tops e)))
   Top i -> \v -> case Map.lookup i tops of
-    Just f -> f v
+    Just (TFun f) -> f v
+    Just (TFreyd e) -> evalAr tops e v
     Nothing -> panic $ "no toplevel: " <> show i
   Lit x -> const (pure (Sca x))
   Inj i -> pure . Tag i
@@ -71,34 +95,66 @@ evalAr tops = \case
     Rec r -> case Map.lookup l r of
       Just y -> case y of
         Tag t z -> pure (Tag t (Rec (Map.insert l z r)))
-        _ -> panic "bad1"
+        _ -> panic $ "bad distr: " <> render l <> " - " <> render y
       Nothing -> panic "bad2"
     _ -> panic "bad 3"
   Proj l -> \case
     v@(Rec xs) -> case Map.lookup l xs of
       Just y -> pure y
-      Nothing -> panic ("bad record projection, no key: " <> show l <> " " <> render v)
+      Nothing -> panic ("bad record projection, no key: " <> render l <> " in " <> render v)
     _ -> panic ("bad record projection, not record: " <> show l)
   Comp fs -> foldr' comp pure fs
     where
       comp e cur = evalAr tops e >=> cur
   Tuple parts -> evalAr tops (tupleToCone parts)
   Cone fs -> mkCone fs
-  CoCone fs -> mkCoCone fs
+  CoCone fs -> evalAr tops (Top (LcIdent "sumPreserver")) >=> mkCoCone fs
   EFunApp name e ->
-    let f = VFun (evalAr tops e)
-     in \x ->
-          case Map.lookup name tops of
-            Just ff -> do
-              g <- ff f
-              case g of
-                VFun g' -> g' x
-                v -> panic $ "bad efunapp: " <> render v
-            Nothing -> panic $ "bad efunapp: " <> render name
-  FromFree sketchName overThis withThis -> \x -> panic "TODO from free"
+    case Map.lookup name tops of
+      Just (TFun ff) -> \x -> do
+        let f = VFun (evalAr tops e)
+        g <- ff f
+        case g of
+          VFun g' -> g' x
+          v -> panic $ "bad efunapp: " <> render v
+      Just (TInterp Interp{..}) ->
+           evalAr ((TFun <$> iHandlers) <> Map.fromList [(LcIdent "i", TFun iInj), (LcIdent "sumPreserver", TFun iSum), (LcIdent "side", TExpr iSide)] <> tops) e
+      Nothing -> panic "bad efunapp"
   Curry _ _ -> panic "curry"
-  Object _ -> panic "object"
+  Object ob -> \v -> pure (VFun pure)
+  CanonicalInj e -> evalAr tops (EFunApp (LcIdent "i") e)
+  Side lab e -> tr "before sidecar" >=> applyInj (sidePrep (LNam lab)) >=> tr "after prep" >=> sidecar e >=> tr "after side" >=> applyInj (sideUnprep (LNam lab))
   where
+
+    tr :: Text -> Fun
+    tr t v = do
+      -- putStrLn $ "=> TRACE: " <> t
+      -- putStrLn (render v)
+      -- putStrLn ("--------" :: Text)
+      pure v
+    sidecar e = case getTop "side" of
+      TExpr sideE -> evalAr (Map.insert (LcIdent "eff") (TFun (evalAr tops e)) tops) sideE
+      _ -> panic "base sidecar"
+    getTop name = case Map.lookup (LcIdent name) tops of
+      Just top -> top
+      _ -> panic "could not get top"
+    getTopFun name = case getTop name of
+      TFun f -> f
+      _ -> panic "bad getTopFun"
+    sidePrep :: Label -> Fun
+    sidePrep lab = \case
+      Rec r@(Map.lookup lab -> Just x) -> pure (Rec (Map.fromList [(LNam "eff", x), (LNam "pur", Rec (Map.delete lab r))]))
+      v -> panic $  "bad side prep: " <> render lab <> " - " <> render v
+    sideUnprep :: Label -> Fun
+    sideUnprep lab = \case
+      Rec r | Just x <- Map.lookup (LNam "eff") r, Just (Rec rest) <- Map.lookup (LNam "pur") r -> pure (Rec (Map.insert lab x rest))
+      _ -> panic "bad side unprep"
+    applyInj :: Fun -> Fun
+    applyInj f = \x -> do
+      f_ <- getTopFun "i" (VFun f)
+      case f_ of
+        VFun g -> g x
+        _ -> panic "bad apply inj"
     mkCone fs =
       let ars = second (evalAr tops) <$> fs
        in \x -> do
@@ -119,38 +175,55 @@ lkp = Map.lookup
 primTops :: Tops
 primTops =
   Map.fromList
-    [ LcIdent "plus"
-        =: \case
+    [ "plus"
+        |-> \case
           Rec r
             | Just (Sca (Int x)) <- lkp (LPos 1) r,
               Just (Sca (Int y)) <- lkp (LPos 2) r ->
               pure (Sca (Int (x + y)))
           _ -> panic "bad plus",
-      LcIdent "print"
-        =: \case
+      "print"
+        |-> \case
           v -> do
             putStrLn ("PRINT" :: Text)
             putStrLn (render v)
             pure (Rec mempty),
-      LcIdent "incr"
-        =: \case
+      "incr"
+        |-> \case
           Sca (Int x) -> pure (Sca (Int (x + 1)))
           _ -> panic "bad incr",
-      LcIdent "app"
-        =: \case
+      "app"
+        |-> \case
           Rec r
             | Just (VFun ff) <- lkp (LPos 1) r,
               Just aa <- lkp (LPos 2) r ->
               ff aa
-          v -> panic ("bad app: " <> render v)
+          v -> panic ("bad app: " <> render v),
+      -- The base interp:
+      "i" |-> pure,
+      "sumPreserver" |-> pure,
+      "side" |-> pure
     ]
+  where
+    x |-> y = (LcIdent x, TFun y) 
 
 (=:) :: a -> b -> (a, b)
 (=:) = (,)
 
-evalDecl :: Tops -> Decl -> [(LcIdent, Val -> IO Val)]
+evalInterp :: Tops -> Expr -> SketchInterp -> Expr -> Expr -> Interp
+evalInterp tops iInj iHandlers iSum iSide =
+  Interp
+    { iInj = evalAr tops iInj,
+      iSum = evalAr tops iSum,
+      iHandlers = Map.fromList [(name, evalAr tops e) | (name,e) <- iHandlers ^. #ars],
+      iSide = iSide
+    }
+
+evalDecl :: Tops -> Decl -> [(LcIdent, Top)]
 evalDecl tops = \case
-  DAr _ name _ _ e -> [(name, evalAr tops e)]
+  DAr _ name _ _ e -> [(name, TFun (evalAr tops e))]
+  DFreyd _ name _ _ e -> [(name, TFreyd e)]
+  DInterp name _sketchName iInj iHandlers iSum iSide -> [(name, TInterp (evalInterp tops iInj iHandlers iSum iSide))]
   DOb {} -> []
   DSketch {} -> []
 
@@ -158,7 +231,8 @@ eval :: Val -> Decls -> IO Val
 eval v ds =
   let tops = primTops <> Map.fromList [bind | d <- ds, bind <- evalDecl tops d]
    in case Map.lookup (LcIdent "main") tops of
-        Just m -> m v
+        Just (TFun m) -> m v
+        Just (TInterp _) -> panic "main can't be an interp"
         Nothing -> panic "No main!"
 
 primsJS :: [(Text, Text)]
@@ -184,7 +258,6 @@ jsLabel (LNam l) = show (render l)
 
 evalJS :: Expr -> Text
 evalJS = \case
-  FromFree {} -> panic "TODO"
   Curry {} -> panic "TODO"
   Object {} -> panic "TODO"
   EFunApp _ _ -> panic "TODO"

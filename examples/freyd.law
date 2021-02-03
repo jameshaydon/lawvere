@@ -3,24 +3,57 @@ sketch IntState over Base = {
   ar put : Int --> {:}
 }
 
-ar Base[IntState] next : {:} --> Int =
+freyd Base[IntState] next : {:} --> Int =
   get
-  { !next = i(inc) put, current = }
-  .current
+  i({ current = , next = })
+  !next{ i(incr) put }
+  i(.current)
 
-ar Cat pureState : Base[IntState] --> Base =
-  interpret
-    IntState
+interp IntState pureState =
   over
     { state : Int, value : }
-  with
+  handling
     { ar get  |->  {state = .state, value = .state},
       ar put  |->  {state = .value, value = {=}}
     }
+  summing
+    @value
+  side
+    { eff = { state = .state,
+              value = .value .eff }
+            eff,
+      pur = .value
+    }
+    { state = .eff .state,
+      value = { pur = .pur .pur,
+                eff = .eff .value }
+    }
+
+// make a function which maps `next` over a list of units:
+
+freyd Base[IntState] mapNext : list({:}) --> list(Int) =
+    [ empty = i(empty.),
+      cons  = !head{ next }
+              !tail{ mapNext }
+              i(cons.)
+    ]
+
+// apply it:
+
+freyd Base[IntState] counting : {:} --> list(Int) =
+  i(exampleList) mapNext
+
+ar Base main : {:} --> Int =
+  { state = 0, value = }  // set the initial state to 0
+  pureState(counting)     // use the freyd arrow `counting` interpreting it with `pureState` functor
+  .value                  // we are jut interesting in the result, not the accumulated state
 
 
+////////////////
+// list stuff //
+////////////////
 
-// list stuff
+// This is just defining the `list` functor and then defining an example list.
 
 ar Cat list : Base --> Base =
   [ empty : {:},
@@ -32,22 +65,3 @@ ar Base bump : list({:}) --> list({:}) =
 
 ar Base exampleList : {:} --> list({:}) =
   empty. bump bump bump
-
-// make a function which maps `next` over a list of units::
-
-ar Base[IntState] mapNext : list({:}) --> list(Int) =
-  [ empty = empty.,
-    cons = { !head = .head next,
-             !tails = .tails mapGet } cons.
-  ]
-
-// apply it:
-
-ar Base[IntState] counting : {:} --> list(Int) =
-  i(exampleList) mapNext
-
-
-ar Base main : {:} --> list(Int) =
-  { state = 0, value = }  // setup the initial state
-  pureState(counting)     // interpret the free freyd category
-  .value                  // throw away the accumulated state and just keep the value

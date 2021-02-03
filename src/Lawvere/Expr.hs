@@ -19,30 +19,6 @@ instance Disp Prim where
       PrimApp -> "app"
       PrimIncr -> "incr"
 
-data SketchInterp = SketchInterp
-  { obs :: [(UcIdent, Expr)],
-    ars :: [(LcIdent, Expr)]
-  }
-  deriving stock (Show)
-
-instance Disp SketchInterp where
-  disp SketchInterp {..} =
-    braces . vsep . punctuate comma $
-      (("ob" <+>) . dispMapping <$> obs)
-        ++ (("ar" <+>) . dispMapping <$> ars)
-    where
-      dispMapping (x, e) = disp x <+> "|->" <+> disp e
-
-instance Parsed SketchInterp where
-  parsed = do
-    mappings <- pCommaSep '{' '}' pMapping
-    let (obs, ars) = partitionEithers mappings
-    pure SketchInterp {..}
-    where
-      pMapping = (Left <$> (kwOb *> pMapsto)) <|> (Right <$> (kwAr *> pMapsto))
-      pMapsto :: (Parsed a, Parsed b) => Parser (a, b)
-      pMapsto = (,) <$> lexeme parsed <*> (symbol "|->" *> parsed)
-
 data ComponentDecorator = Eff | Pure
   deriving stock (Show)
 
@@ -76,11 +52,12 @@ data Expr
   | EConst Expr
   | EPrim Prim
   | EFunApp LcIdent Expr
-  | FromFree UcIdent Expr SketchInterp
+  -- | Interp Expr SketchInterp Expr
   | Curry LcIdent Expr
   | Object UcIdent
   | CanonicalInj Expr
-  | Abstract Expr
+  -- | Freyd Expr
+  | Side LcIdent Expr
   deriving stock (Show)
 
 -- Tuples are just shorthand for records.
@@ -96,15 +73,19 @@ pApp = do
   e <- wrapped '(' ')' parsed
   pure (EFunApp f e)
 
+{-
 pInterp :: Parser Expr
 pInterp = do
-  kwInterpret
-  sketchName <- lexeme parsed
+  -- kwInterpret
+  -- sketchName <- lexeme parsed
   kwOver
   overThis <- lexeme parsed
-  kwWith
-  theInterp <- parsed
-  pure (FromFree sketchName overThis theInterp)
+  kwHandling
+  theInterp <- lexeme parsed
+  kwSumming
+  summing <- parsed
+  pure (Interp overThis theInterp summing)
+-}
 
 pCurry :: Parser Expr
 pCurry = do
@@ -113,10 +94,17 @@ pCurry = do
   body <- parsed
   pure (Curry lab body)
 
+pSide :: Parser Expr
+pSide = do
+  lab <- single '!' *> lexeme parsed
+  e <- wrapped '{' '}' parsed
+  pure (Side lab e)
+
 pAtom :: Parser Expr
 pAtom =
   choice
-    [ pInterp,
+    [ --pInterp,
+      pSide,
       pCurry,
       try pApp,
       Proj <$> ("." *> parsed),
@@ -135,7 +123,7 @@ pAtom =
       Distr <$> (single '@' *> parsed),
       EConst <$> kwCall kwConst,
       CanonicalInj <$> kwCall kwI,
-      Abstract <$> kwCall kwAbstract,
+      --Freyd <$> kwCall kwFreyd,
       Object <$> parsed
     ]
 
@@ -145,7 +133,7 @@ instance Parsed Expr where
 instance Disp Expr where
   disp = \case
     Object o -> disp o
-    Abstract e -> "abstract" <> parens (disp e)
+    -- Freyd e -> "freyd" <> parens (disp e)
     CanonicalInj e -> "i" <> parens (disp e)
     EFunApp f e -> disp f <> parens (disp e)
     EPrim p -> disp p
@@ -161,13 +149,11 @@ instance Disp Expr where
     CoCone parts -> commaBracket '=' parts
     ECoLim parts -> commaBracket ':' parts
     Tuple parts -> dispTup parts
-    FromFree sketchName overThis interp ->
-      vsep
-        [ "interpret",
-          disp sketchName,
-          "over",
-          disp overThis,
-          "with",
-          disp interp
-        ]
+    -- Interp _sketchName overThis interp ->
+    --   vsep
+    --     [ "over",
+    --       disp overThis,
+    --       "with",
+    --       disp interp
+    --     ]
     Curry lab f -> "curry" <+> disp lab <+> disp f

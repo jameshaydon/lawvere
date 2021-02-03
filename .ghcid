@@ -1,0 +1,8 @@
+--command "stack repl --ghci-options=-fobject-code" \
+--test "Main.main"
+--warnings
+--restart=examples/basic.law
+--restart=examples/list.law
+--restart=examples/error.law
+--restart=examples/state.law
+--restart=examples/freyd.law

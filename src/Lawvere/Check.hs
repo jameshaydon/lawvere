@@ -174,6 +174,8 @@ getNamedOb name = do
 
 checkDecl :: Decl -> Check ()
 checkDecl (DAr _ _ a b body) = check (a, b) body
+checkDecl (DFreyd {}) = pure () -- TODO
+checkDecl (DInterp {}) = pure () -- TODO
 checkDecl DOb {} = pure () -- TODO
 checkDecl DSketch {} = pure ()
 

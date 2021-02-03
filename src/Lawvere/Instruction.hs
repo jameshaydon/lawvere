@@ -99,6 +99,7 @@ compile = \case
     a <- compStore e
     pure [IPutFun a]
   Comp es -> concat <$> traverse compile es
+  _ -> panic "can't compile to vm code"
   where
     compStore = compile >=> storeCode
 

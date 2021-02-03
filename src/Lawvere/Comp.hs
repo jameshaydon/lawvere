@@ -45,15 +45,6 @@ sequ :: [Comp] -> ([Dom] -> Comp) -> Comp
 sequ [] k = k []
 sequ (c : cs) k = bind c $ \x -> sequ cs (k . (x :))
 
-sequ' :: (Foldable f) => f Comp -> (f Dom -> Comp) -> Comp
-sequ' xs k = foldr go _ xs
-  where
-    go :: Comp -> Comp -> Comp
-    go c c' = bind c $ \x -> _
-
--- sequ' [] k = k []
--- sequ' (c : cs) k = bind c $ \x -> sequ cs (k . (x :))
-
 compile :: Expr -> Hask
 compile = \case
   Lit s -> const (Done (Sca s))
@@ -76,16 +67,18 @@ compile = \case
   Distr l -> \case
     Rec r@(Map.lookup l -> Just (Tag t x)) -> Done (Tag t (Rec (Map.insert l x r)))
     _ -> ierr "bad distr"
-  ELim limOfFunctors -> functor
+  ELim _limOfFunctors -> functor
     where
       functor :: Dom -> Comp
-      functor f = Done (Fun g)
-        where
-          g :: Hask
-          g (Rec r) = let foo = Map.mapWithKey go r in _
-            where
-              go :: Label -> Dom -> Comp
-              go = _
+      functor _f = Done (Fun undefined) -- (Fun g)
+        -- where
+        --   g :: Hask
+        --   g (Rec r) = let foo = Map.toList (Map.mapWithKey go r)
+        --                in undefined
+        --     where
+        --       go :: Label -> Dom -> Comp
+        --       go = undefined
+  _ -> undefined
 
 {-
 ELim limOfFunctors -> functor

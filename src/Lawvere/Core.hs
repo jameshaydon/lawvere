@@ -24,20 +24,22 @@ reserved name = lexeme $
     notFollowedBy (satisfy isAlphaNum <|> oneOf identSpecials) <?> "end of " ++ toS name
 
 keywords :: Set Text
-keywords = Set.fromList ["ob", "ar", "const", "id", "sketch", "interpret", "over", "with", "curry", "i", "abstract"]
+keywords = Set.fromList ["ob", "ar", "interp", "const", "sketch", "interpret", "over", "handling", "curry", "i", "freyd", "summing", "side"]
 
-kwOb, kwAr, kwId, kwConst, kwSketch, kwInterpret, kwOver, kwWith, kwCurry, kwI, kwAbstract :: Parser ()
+kwOb, kwAr, kwInterp, kwConst, kwSketch, kwInterpret, kwOver, kwHandling, kwCurry, kwI, kwFreyd, kwSumming, kwSide :: Parser ()
 kwOb = reserved "ob"
 kwAr = reserved "ar"
+kwInterp = reserved "interp"
 kwConst = reserved "const"
-kwId = reserved "id"
 kwSketch = reserved "sketch"
 kwInterpret = reserved "interpret"
 kwOver = reserved "over"
-kwWith = reserved "with"
+kwHandling = reserved "handling"
 kwCurry = reserved "curry"
 kwI = reserved "i"
-kwAbstract = reserved "abstract"
+kwFreyd = reserved "freyd"
+kwSumming = reserved "summing"
+kwSide = reserved "side"
 
 identParser :: (Char -> Bool) -> Parser Text
 identParser firstCond = toS <$> ((:) <$> char0 <*> charRest)

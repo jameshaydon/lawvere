@@ -1,0 +1,21 @@
+ar Base someNumber : {:} --> Int = 42
+
+ob Base Point = { x : Float, y : Flaot }
+
+ar Base horizontal : Point --> Float = .x 
+
+ob Base Bool =
+  [ true:  {:},
+    false: {:} ]
+
+ar Base not : Bool --> Bool =
+  [ true = {=} false.,
+    false = {=} true. ]
+
+ar Base and : (Bool, Bool) --> Bool =
+  @1 [ true = .2,
+       false = {=} false. ]
+
+ar Base main : {:} --> Float =
+  42 incr incr incr
+  // { x = 2.3, y = 4.6 } horizontal

@@ -52,6 +52,7 @@ testExample name = do
 
 main :: IO ()
 main = do
+  testExample "tutorial"
   testExample "basic"
   testExample "list"
   --testExample "error"

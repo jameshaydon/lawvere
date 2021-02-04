@@ -107,10 +107,10 @@ pAtom =
       pSide,
       pCurry,
       try pApp,
+      Lit <$> parsed,
       Proj <$> ("." *> parsed),
       try (Inj <$> (parsed <* ".")), -- we need to look ahead for the dot
       Top <$> parsed,
-      Lit <$> parsed,
       Tuple <$> pTuple parsed,
       -- TODO: try to get rid of the 'try' by committing on the first
       -- label/seperator pair encountered.

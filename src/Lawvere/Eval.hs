@@ -85,10 +85,10 @@ evalAr tops = \case
             Nothing -> panic "bad EColim"
           g _ = panic "bad EColim"
   EConst e -> const (pure (VFun (evalAr tops e)))
-  Top i -> \v -> case Map.lookup i tops of
+  Top i ->  \v -> case Map.lookup i tops of
     Just (TFun f) -> f v
     Just (TFreyd e) -> evalAr tops e v
-    Nothing -> panic $ "no toplevel: " <> show i
+    _ -> panic $ "bad toplevel: " <> show i
   Lit x -> const (pure (Sca x))
   Inj i -> pure . Tag i
   Distr l -> \case
@@ -106,7 +106,7 @@ evalAr tops = \case
   Comp fs -> foldr' comp pure fs
     where
       comp e cur = evalAr tops e >=> cur
-  Tuple parts -> evalAr tops (tupleToCone parts)
+  Tuple fs -> evalAr tops (tupleToCone fs)
   Cone fs -> mkCone fs
   CoCone fs -> evalAr tops (Top (LcIdent "sumPreserver")) >=> mkCoCone fs
   EFunApp name e ->
@@ -119,15 +119,15 @@ evalAr tops = \case
           v -> panic $ "bad efunapp: " <> render v
       Just (TInterp Interp{..}) ->
            evalAr ((TFun <$> iHandlers) <> Map.fromList [(LcIdent "i", TFun iInj), (LcIdent "sumPreserver", TFun iSum), (LcIdent "side", TExpr iSide)] <> tops) e
-      Nothing -> panic "bad efunapp"
+      _ -> panic "bad efunapp"
   Curry _ _ -> panic "curry"
-  Object ob -> \v -> pure (VFun pure)
+  Object _ -> const (pure (VFun pure))
   CanonicalInj e -> evalAr tops (EFunApp (LcIdent "i") e)
   Side lab e -> tr "before sidecar" >=> applyInj (sidePrep (LNam lab)) >=> tr "after prep" >=> sidecar e >=> tr "after side" >=> applyInj (sideUnprep (LNam lab))
   where
 
     tr :: Text -> Fun
-    tr t v = do
+    tr _t v = do
       -- putStrLn $ "=> TRACE: " <> t
       -- putStrLn (render v)
       -- putStrLn ("--------" :: Text)
@@ -233,7 +233,7 @@ eval v ds =
    in case Map.lookup (LcIdent "main") tops of
         Just (TFun m) -> m v
         Just (TInterp _) -> panic "main can't be an interp"
-        Nothing -> panic "No main!"
+        _ -> panic "bad main!"
 
 primsJS :: [(Text, Text)]
 primsJS =
@@ -258,12 +258,6 @@ jsLabel (LNam l) = show (render l)
 
 evalJS :: Expr -> Text
 evalJS = \case
-  Curry {} -> panic "TODO"
-  Object {} -> panic "TODO"
-  EFunApp _ _ -> panic "TODO"
-  EPrim _ -> panic "TODO"
-  ELim _ -> panic "TODO"
-  ECoLim _ -> panic "TODO"
   Lit x -> jsCall1 "mkConst" (render x)
   Tuple xs -> evalJS (tupleToCone xs)
   EConst x -> jsCall1 "mkConst" (evalJS x)
@@ -276,6 +270,7 @@ evalJS = \case
       go x e = jsCall2 "comp" x (evalJS e)
   Cone xs -> jsCall1 "cone" $ jsCone [(componentLabel label, evalJS e) | (label, e) <- xs]
   CoCone xs -> jsCall1 "cocone" $ jsCone [(label, evalJS e) | (label, e) <- xs]
+  _ -> panic "TODO"
   where
     labCombi f p = jsCall1 f (jsLabel p)
 
@@ -293,6 +288,7 @@ mkJS decls =
     mkDecl (DAr _ (LcIdent name) _ _ e) = addTop name (evalJS e)
     mkDecl DOb {} = ""
     mkDecl DSketch {} = ""
+    mkDecl _ = ""
     addTop name e = "tops[\"" <> name <> "\"] = " <> e
     statements xs = Text.intercalate "\n" ((<> ";") <$> xs)
     jsPriv :: Text -> Text -> Text

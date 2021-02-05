@@ -1,5 +1,8 @@
 ar Base someNumber : {:} --> Int = 42
 
+ar Base anotherNumber : {:} --> Int =
+  someNumber incr incr incr
+
 ob Base Point = { x : Float, y : Flaot }
 
 ar Base horizontal : Point --> Float = .x 

@@ -142,6 +142,7 @@ instance Disp Decl where
     DAr catName name a b body -> dispDef "ar" (disp catName <+> disp name <+> ":" <+> disp a <+> "-->" <+> disp b) (disp body)
     DSketch sketch -> disp sketch
     DInterp {} -> "TODO"
+    DFreyd{} -> "TODO"
 
 dispDef :: Text -> Doc Ann -> Doc Ann -> Doc Ann
 dispDef defname thing body = nest 2 $ vsep [pretty defname <+> thing <+> "=", body]

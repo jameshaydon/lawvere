@@ -133,7 +133,6 @@ instance Parsed Expr where
 instance Disp Expr where
   disp = \case
     Object o -> disp o
-    -- Freyd e -> "freyd" <> parens (disp e)
     CanonicalInj e -> "i" <> parens (disp e)
     EFunApp f e -> disp f <> parens (disp e)
     EPrim p -> disp p
@@ -149,11 +148,5 @@ instance Disp Expr where
     CoCone parts -> commaBracket '=' parts
     ECoLim parts -> commaBracket ':' parts
     Tuple parts -> dispTup parts
-    -- Interp _sketchName overThis interp ->
-    --   vsep
-    --     [ "over",
-    --       disp overThis,
-    --       "with",
-    --       disp interp
-    --     ]
     Curry lab f -> "curry" <+> disp lab <+> disp f
+    Side lab f -> "!" <> disp lab <> braces (disp f)

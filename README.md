@@ -4,6 +4,11 @@
 
 Lawvere is a categorical programming language. It allows you to program morphisms in arbitrary cartesian closed categories, allows you to define locally finitely presentable categories, and allows you to define functors between these categories. Lawvere does not have lambdas, just morphisms.
 
+## Installation
+
+First install stack (`curl -sSL https://get.haskellstack.org/ | sh
+`) and then use `stack build`.
+
 ## Tutorial
 
 This is a small tutorial introducing the basics of the Lawvere programming language. These can all be found in the [example](/examples).
@@ -67,11 +72,18 @@ The morphism which projects out the `x` component from `Point` is written `.x`. 
 To map _to_ a product we need to specify a _cone_. This specifies a morphism to each component of the product. For example,
 
 ``` lawvere
-ar Base somePoint : {=} --> Point =
+ar Base somePoint : {:} --> Point =
   { x = 2.3, y = 4.6 }
 ```
 
 This works because `2.3` and `4.6` are syntax for morphisms. In this case they have type `{:} --> Float`.
+
+In general, to specify a morphism `X --> { a : A, b : B, c : C, ... }`, one uses a cone:
+
+``` lawvere
+{ a = f, b = g, ... }
+```
+where `f : X --> A`, `g : X --> B`, `h : X --> C`, etc.
 
 A complete program would be:
 
@@ -87,11 +99,40 @@ ar Base main : {:} --> Int =
 
 whose result is `2.3`.
 
+When there are no components one still uses the seperator symbol. So the empty product object is denoted `{:}`, and the unique morphism to is it denoted `{=}`.
+
 ### Sums
 
 We can define sum-types too. Let's define the booleans:
 
+``` lawvere
+ob Base Bool = [ true : {:}, false : {:} ]
+```
 
+Using square brackets we define a sumtype with two summands, `true` and `false`, each with the terminal object `{:}` as payload.
+
+Sum types come equipped with canonical injections. The canonical injection into the component with name `foo` is denoted `foo.`, simply mirroring the notation for canonical projections.
+
+In order to define some simple boolean functions, we'll need to learn how map _from_ sums. This is done with a cocone. This is simply the specification of a morphism for each component of the sum. This is exacly like a cone except using square brackets instead of braces. To illustrate this let's define the negation function:
+
+``` lawvere
+ar Base not : Bool --> Bool
+  = [ true  = false.,
+      false = true. ]
+```
+
+In words, we split the morphism into two cases. In the first case, on the `true` component, we use the canonical injection `false.`. On the other component, `false`, we use `true.`.
+
+In general, to specify a morphism
+
+``` lawvere
+[ a : A, b : B, c : C, ... ] --> X 
+```
+one uses a cocone
+``` lawvere
+[ a = f, b = g, c = h, ... ]
+```
+where `f : A --> X`, `g : B --> X`, `h : C --> X`, etc.
 
 ---
 

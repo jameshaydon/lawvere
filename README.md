@@ -2,7 +2,7 @@
 
 > Programming in categories
 
-Lawvere is a categorical programming language. It allows you to program morphisms in arbitrary cartesian closed categories, allows you to define locally finitely presentable categories, and allows you to define functors between these categories. Lawvere is completely pointfree; it does not have lambdas or variables, just morphisms.
+Lawvere is a categorical programming language. It allows you to program morphisms in arbitrary cartesian closed categories, allows you (soon) to define locally finitely presentable categories, and allows you to define functors between these categories. Lawvere is completely pointfree; it does not have lambdas or variables, just morphisms.
 
 ## Installation
 
@@ -216,6 +216,10 @@ ar Base sumList : ListI --> Int =
 ```
 
 In words: If the list is `empty`, then return `0`. Otherwise take the `head`, and the `sumList` of the `.tail`, and `plus` them together.
+
+## Editor support
+
+For the moment there is only an [emacs mode](/tools/emacs). The syntax looks much better if you use a font with programming ligatures, e.g. [FiraCode](/tonsky/FiraCode) or [alternatives](/tonsky/FiraCode#alternatives).
 
 ---
 

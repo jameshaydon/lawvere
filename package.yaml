@@ -8,7 +8,6 @@ copyright:           "2020 Author name here"
 
 extra-source-files:
 - README.md
-- ChangeLog.md
 
 # Metadata used when publishing your package
 # synopsis:            Short description of your package
@@ -40,6 +39,15 @@ executables:
   lawvere-exe:
     main:                Main.hs
     source-dirs:         app
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    dependencies:
+    - lawvere
+  bill:
+    main:                Main.hs
+    source-dirs:         bill
     ghc-options:
     - -threaded
     - -rtsopts

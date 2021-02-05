@@ -16,6 +16,6 @@ ar Base and : (Bool, Bool) --> Bool =
   @1 [ true = .2,
        false = {=} false. ]
 
-ar Base main : {:} --> Float =
+ar Base main : {:} --> Int =
   42 incr incr incr
   // { x = 2.3, y = 4.6 } horizontal

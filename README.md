@@ -6,7 +6,7 @@ Lawvere is a categorical programming language. It allows you to program morphism
 
 ## Tutorial
 
-This is a small tutorial introducing the basics of the Lawvere programming language. The full program, along with other examples, is [here](/examples).
+This is a small tutorial introducing the basics of the Lawvere programming language. These can all be found in the [example](/examples).
 
 ### Basic types
 
@@ -29,10 +29,21 @@ ar Base main : {:} --> Int = 42 incr incr incr
 ```
 will output `45`.
 
-To run this, save this code to a file and call `bill`:
+To run this, create a file with contents:
+
+``` lawvere
+ar Base someNumber : {:} --> Int = 42
+
+ar Base main : {:} --> Int =
+  someNumber incr incr incr
+```
+
+same this to a file, and use `bill`:
 
 ```
-$ bill test.law
+Lawvere v0.0.0
+-------
+checking..
 Check OK!
 
 input:
@@ -41,21 +52,44 @@ output:
   45
 ```
 
+A lawvere file should always have a `main` morphism, whose source is `{=}` (the terminal object).
+
 ### Products
 
-Product types in `Lawvere` are defined using braces:
+We define a new object `Point` with the keyword `ob`, and specify a product using braces:
 
 ``` lawvere
 ob Base Point = { x : Float, y : Flaot }
 ```
 
-The morphism which projects out the `x` component from `Point` is written `.x`. This is supposed to remind one of the `foo.x` notation, except without anything preceding the dot.
+The morphism which projects out the `x` component from `Point` is written `.x`. This is supposed to remind one of the `foo.x` notation that is usual in other programming languages, except without anything preceding the dot.
+
+To map _to_ a product we need to specify a _cone_. This specifies a morphism to each component of the product. For example,
+
+``` lawvere
+ar Base somePoint : {=} --> Point =
+  { x = 2.3, y = 4.6 }
+```
+
+This works because `2.3` and `4.6` are syntax for morphisms. In this case they have type `{:} --> Float`.
+
+A complete program would be:
 
 ``` lawvere
 ar Base horizontal : Point --> Float = .x
+
+ar Base somePoint : {:} --> Point =
+  { x = 2.3, y = 4.6 }
+
+ar Base main : {:} --> Int =
+  somePoint horizontal
 ```
 
-The result of `main` is `2.3`.
+whose result is `2.3`.
+
+### Sums
+
+We can define sum-types too. Let's define the booleans:
 
 
 

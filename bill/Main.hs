@@ -16,30 +16,29 @@ parseTest p inp =
     Left err -> putStr (Mega.errorBundlePretty err)
     Right _ -> pure ()
 
-testExample :: Text -> IO ()
-testExample name = do
-  let fileName = name <> ".law"
-  say ""
-  say "--------------------"
-  say $ "Testing: " <> fileName
-  say "--------------------"
-  say ""
-  example <- readFile (toS ("examples/" <> fileName))
-  case Mega.parse (parsed <* Mega.eof) (toS fileName) example of
-    Left err -> putStr (Mega.errorBundlePretty err)
+say :: Text -> IO ()
+say = putStrLn
+
+runFile :: FilePath -> IO ()
+runFile filepath = do
+  say "Lawvere v0.0.0"
+  say "-------"
+  source <- readFile filepath
+  case Mega.parse (parsed <* Mega.eof) filepath source of
+    Left err -> say . toS $ Mega.errorBundlePretty err
     Right (prog :: [Decl]) -> do
-      --putStrLn (render prog)
+      say "checking.."
       case checkProg prog of
         Right _ -> say "Check OK!"
         Left err -> do
-          say "Check ERROR!"
+          say "Oh no, a category error:"
           say (render err)
       let inp = Rec mempty
-      say "---------------------------"
+      say ""
       say "input:"
       say ("  " <> render inp)
       -- Haskell:
-      say "haskell interpreter:"
+      say "output:"
       v <- eval inp prog
       putStrLn ("  " <> render v)
       -- Javascript:
@@ -52,14 +51,7 @@ testExample name = do
 
 main :: IO ()
 main = do
-  testExample "tutorial"
-  --testExample "basic"
-  --testExample "list"
-  --testExample "error"
-  --testExample "state"
-  --testExample "freyd"
-
---parseTest @Ob parsed "Base[State]"
-
-say :: Text -> IO ()
-say = putStrLn
+  args <- getArgs
+  case args of
+    [filename] -> runFile filename
+    _ -> say "Please specify exactly one file."

@@ -68,13 +68,13 @@
 
 (add-to-list 'auto-mode-alist '("\\.law\\'" . lawvere-mode))
 
-(defun art--disable-highlight-numbers ()
+(defun lawvere--disable-highlight-numbers ()
   "The highlight-numbers package interferes with our syntax rules.
 Disable it, if it's available."
   (if (featurep 'highlight-numbers)
       (highlight-numbers-mode -1)))
 
-(add-hook 'art-mode-hook 'art--disable-highlight-numbers)
+(add-hook 'lawvere-mode-hook 'lawvere--disable-highlight-numbers)
 
 (provide 'lawvere-mode)
 ;;; lawvere-mode.el ends here

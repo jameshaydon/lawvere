@@ -2,7 +2,7 @@
 
 > Programming in categories
 
-Lawvere is a categorical programming language. It allows you to program morphisms in arbitrary cartesian closed categories, allows you to define locally finitely presentable categories, and allows you to define functors between these categories. Lawvere does not have lambdas, just morphisms.
+Lawvere is a categorical programming language. It allows you to program morphisms in arbitrary cartesian closed categories, allows you to define locally finitely presentable categories, and allows you to define functors between these categories. Lawvere is completely pointfree; it does not have lambdas or variables, just morphisms.
 
 ## Installation
 
@@ -64,7 +64,7 @@ A lawvere file should always have a `main` morphism, whose source is `{=}` (the 
 We define a new object `Point` with the keyword `ob`, and specify a product using braces:
 
 ``` lawvere
-ob Base Point = { x : Float, y : Flaot }
+ob Base Point = { x: Float, y: Flaot }
 ```
 
 The morphism which projects out the `x` component from `Point` is written `.x`. This is supposed to remind one of the `foo.x` notation that is usual in other programming languages, except without anything preceding the dot.
@@ -78,7 +78,7 @@ ar Base somePoint : {:} --> Point =
 
 This works because `2.3` and `4.6` are syntax for morphisms. In this case they have type `{:} --> Float`.
 
-In general, to specify a morphism `X --> { a : A, b : B, c : C, ... }`, one uses a cone:
+In general, to specify a morphism `X --> { a: A, b: B, c: C, ... }`, one uses a cone:
 
 ``` lawvere
 { a = f, b = g, ... }
@@ -101,12 +101,26 @@ whose result is `2.3`.
 
 When there are no components one still uses the seperator symbol. So the empty product object is denoted `{:}`, and the unique morphism to is it denoted `{=}`.
 
+By using parentheses instead of braces, the components are positional rather than named. In this case the projections are `.1`, `.2`, etc. Using a positional product for `Point` the previous program would be:
+
+``` lawvere
+ob Base Point = (Float, Float)
+
+ar Base horizontal : Point --> Float = .1
+
+ar Base somePoint : {:} --> Point =
+  ( 2.3, 4.6 )
+
+ar Base main : {:} --> Float =
+  somePoint horizontal
+```
+
 ### Sums
 
 We can define sum-types too. Let's define the booleans:
 
 ``` lawvere
-ob Base Bool = [ true : {:}, false : {:} ]
+ob Base Bool = [ true: {:}, false: {:} ]
 ```
 
 Using square brackets we define a sumtype with two summands, `true` and `false`, each with the terminal object `{:}` as payload.
@@ -126,13 +140,82 @@ In words, we split the morphism into two cases. In the first case, on the `true`
 In general, to specify a morphism
 
 ``` lawvere
-[ a : A, b : B, c : C, ... ] --> X 
+[ a: A, b: B, c: C, ... ] --> X 
 ```
 one uses a cocone
 ``` lawvere
 [ a = f, b = g, c = h, ... ]
 ```
 where `f : A --> X`, `g : B --> X`, `h : C --> X`, etc.
+
+### Distribution
+
+Continuing with boolean functions, let's try to define the `and` function:
+
+``` lawvere
+ar Base and : {x: Bool, y: Bool} --> Bool = ?
+```
+
+This is a morphism _to_ a sum (`Bool`), so we can't use a cocone, and _from_ a product (`{x : Bool, y: Bool }`), so we can't use a cone---are we stuck? Intuitively we want to inspect one of the two arguments `x`, `y` in order to continue. For this we will use a _distributor_. To distribute the product at the `x` component, we use `@x`. To understand what this does, first let's re-write `{x : Bool, y : Bool}` by expanding the definition of `Bool` at the `x` summand:
+
+``` lawvere
+{ x: [ true: {:}, false: {:}], y: Bool }
+```
+
+The type of `@x` is:
+
+``` lawvere
+@x : { x: [ true: {:}, false: {:}], y: Bool } --> [ true: { x: {:}, y: Bool}, false: { x: {:}, y: Bool } ] 
+```
+
+The morphism `@x` transforms the product into a sum; a sum with the same summand names as the sum in the component it targets. So in this case we end up with a sum with summands `true` and `false`, and the `x` component contains the unwrapped payload for the original sum at `x` (in this case they are both `{:}`).
+
+Using this we can define `and` as follows:
+
+``` lawvere
+ar Base and : {x : Bool, y : Bool} --> Bool =
+  @x [ true  = .y,
+       false = {=} false. ]
+```
+
+In words: "Perform a case analysis on `x`, if `x` is true, then return `y`, otherwise return `false`". Note the similarity with the equivalent Elm program (Haskell doesn't have anonymous records, making the comparison less clear), even though lawvere has no variables or lamdas:
+
+```elm
+and : { x : Bool, y : Bool } -> Bool
+and input =
+  case input.x of
+    True  -> input.y
+    False -> False 
+```
+
+### Summing over a list
+
+In this example we'll sum up a list of values.
+
+First we'll define lists of `Int`s (we'll learn how to define the list _functor_ later, which means we don't need to define a new object for each possible object of elements):
+
+``` lawvere
+ob Base ListI =
+  [ empty: {:},
+    cons:  { head: Int, tail: ListI }
+  ]
+```
+
+In order to sum up the elements of a list we'll use the built-in function `plus`:
+
+``` lawvere
+plus : (Int, Int) --> Int
+```
+
+as follow:
+
+``` lawvere
+ar Base sumList : ListI --> Int =
+  [ empty = 0,
+    cons  = (.head, .tail sumList) plus ]
+```
+
+In words: If the list is `empty`, then return `0`. Otherwise take the `head`, and the `sumList` of the `.tail`, and `plus` them together.
 
 ---
 

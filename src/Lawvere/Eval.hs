@@ -166,7 +166,7 @@ evalAr tops = \case
        in \case
             Tag l x -> case Map.lookup l ars of
               Just f -> f x
-              Nothing -> panic ("bad cocone: " <> show l <> " " <> render x)
+              Nothing -> panic ("bad cocone: " <> render l <> " " <> render x)
             v -> panic ("bad cocone: " <> render v)
 
 lkp :: Label -> Map Label a -> Maybe a

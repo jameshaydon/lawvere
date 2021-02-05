@@ -20,11 +20,11 @@ runFile filepath = do
   case Mega.parse (parsed <* Mega.eof) filepath source of
     Left err -> say . toS $ Mega.errorBundlePretty err
     Right (prog :: [Decl]) -> do
-      say "checking.."
+      say "Checking.."
       case checkProg prog of
         Right _ -> say "Check OK!"
         Left err -> do
-          say "😱 Oh no! a category error:"
+          say "😲 Oh no! A category error:"
           say ""
           say (render err)
       let inp = Rec mempty

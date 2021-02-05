@@ -1,5 +1,5 @@
 resolver:
-  url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/nightly/2021/1/28.yaml
+  url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/nightly/2021/2/5.yaml
 
 packages:
 - .

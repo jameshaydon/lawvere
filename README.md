@@ -4,10 +4,10 @@
 
 Lawvere is a categorical programming language. It allows you to program morphisms in arbitrary cartesian closed categories, allows you (soon) to define locally finitely presentable categories, and allows you to define functors between these categories. Lawvere is completely pointfree; it does not have lambdas or variables, just morphisms.
 
-## Installation
+## Build/Installation
 
 First install stack (`curl -sSL https://get.haskellstack.org/ | sh
-`) and then use `stack build`.
+`) and then use `stack build`. To install the `bill` executable (to `~/.local/bin`) run `stack install`.
 
 ## Tutorial
 
@@ -46,8 +46,10 @@ ar Base main : {:} --> Int =
 same this to a file, and use `bill`:
 
 ```
+$ bill test.law
+--------------
 Lawvere v0.0.0
--------
+--------------
 checking..
 Check OK!
 
@@ -56,6 +58,8 @@ input:
 output:
   45
 ```
+
+(Or run `stack exec bill -- test.law`.)
 
 A lawvere file should always have a `main` morphism, whose source is `{=}` (the terminal object).
 

@@ -11,7 +11,7 @@ First install stack (`curl -sSL https://get.haskellstack.org/ | sh
 
 ## Tutorial
 
-This is a small tutorial introducing the basics of the Lawvere programming language. These can all be found in the [example](/examples).
+This is a small tutorial introducing the basics of the Lawvere programming language. These can all be found in the [examples](/examples).
 
 ### Basic types
 
@@ -219,7 +219,7 @@ In words: If the list is `empty`, then return `0`. Otherwise take the `head`, an
 
 ## Editor support
 
-For the moment there is only an [emacs mode](/tools/emacs). The syntax looks much better if you use a font with programming ligatures, e.g. [FiraCode](/tonsky/FiraCode) or [alternatives](/tonsky/FiraCode#alternatives).
+For the moment there is only an [emacs mode](/tools/emacs). The syntax looks much better if you use a font with programming ligatures, e.g. [FiraCode](https://github.com/tonsky/FiraCode) or [alternatives](https://github.com/tonsky/FiraCode#alternatives).
 
 ---
 

@@ -1,4 +1,4 @@
-module Main where
+module Main (main, dev) where
 
 import Lawvere.Check
 import Lawvere.Decl
@@ -8,17 +8,12 @@ import Lawvere.Parse
 import Protolude hiding (empty)
 import qualified Text.Megaparsec as Mega
 
-parseTest :: Parser a -> Text -> IO ()
-parseTest p inp =
-  case Mega.parse (p <* Mega.eof) "parse test" inp of
-    Left err -> putStr (Mega.errorBundlePretty err)
-    Right _ -> pure ()
-
 say :: Text -> IO ()
 say = putStrLn
 
 runFile :: FilePath -> IO ()
 runFile filepath = do
+  say "--------------"
   say "Lawvere v0.0.0"
   say "--------------"
   source <- readFile filepath
@@ -29,7 +24,8 @@ runFile filepath = do
       case checkProg prog of
         Right _ -> say "Check OK!"
         Left err -> do
-          say "Oh no, a category error:"
+          say "😱 Oh no! a category error:"
+          say ""
           say (render err)
       let inp = Rec mempty
       say ""
@@ -45,3 +41,11 @@ main = do
   case args of
     [filename] -> runFile filename
     _ -> say "Please specify exactly one file."
+
+dev :: IO ()
+dev = do
+  runFile "examples/product.law"
+  -- runFile "examples/tutorial.law"
+  -- runFile "examples/basic.law"
+  -- runFile "examples/list.law"
+  -- runFile "examples/freyd.law"

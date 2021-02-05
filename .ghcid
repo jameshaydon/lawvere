@@ -1,5 +1,5 @@
 --command "stack repl --ghci-options=-fobject-code" \
---test "Main.main"
+--test "dev"
 --warnings
 --restart=examples/tutorial.law
 --restart=examples/basic.law

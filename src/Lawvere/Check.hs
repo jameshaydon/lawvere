@@ -75,7 +75,7 @@ instance Disp Err where
     CeCantInferTarget source f ->
       sep ["given source", disp source, "can't infer target of", disp f]
     CeCantUnify a b ->
-      sep ["Can't unify:", disp a, "and", disp b]
+      vsep ["Can't unify:", indent 2 (disp a), "and", indent 2 (disp b)]
     CeCantProjLabelMissing label diag ->
       sep ["Can't project", disp label, "as it is missing:", disp (Lim diag)]
     CeCantCheck a b f ->
@@ -89,14 +89,7 @@ instance Disp Err where
 newtype Check a = Check
   { runTypecheckM :: ExceptT Err (StateT TcState (Reader TcTops)) a
   }
-  deriving newtype
-    ( Functor,
-      Applicative,
-      Monad,
-      MonadReader TcTops,
-      MonadState TcState,
-      MonadError Err
-    )
+  deriving newtype (Functor, Applicative, Monad, MonadReader TcTops, MonadState TcState, MonadError Err)
 
 runCheck :: TcTops -> TcState -> Check a -> Either Err a
 runCheck init_env init_state =
@@ -264,8 +257,9 @@ inferTarget (TFunApp name o) f = do
   (_, e) <- getNamedAr name
   o' <- applyFunctor e o
   inferTarget o' f
-inferTarget _ (Top name) = do
-  ((_, b), _) <- getNamedAr name
+inferTarget a (Top name) = do
+  ((a', b), _) <- getNamedAr name
+  unify a a'
   pure b
 inferTarget (ONamed name) f = do
   source <- getNamedOb name

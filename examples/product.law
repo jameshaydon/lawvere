@@ -6,4 +6,4 @@ ar Base somePoint : {:} --> Point =
   { x = 2.3, y = 4.6 }
 
 ar Base main : {:} --> Float =
-  somePoint horizontal
+  somePoint horizontal horizontal

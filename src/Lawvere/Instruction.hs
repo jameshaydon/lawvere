@@ -109,6 +109,7 @@ compileDecl (DAr _ name _ _ e) = do
   #code %= Map.insert (AddrTop name) code
 compileDecl DOb {} = pure ()
 compileDecl DSketch {} = pure ()
+compileDecl _ = panic "TODO"
 
 compileProg :: Decls -> Code
 compileProg ds = prims <> view #code (execState (traverse_ compileDecl ds) initCompilerState)

@@ -15,7 +15,7 @@ This is a small tutorial introducing the basics of the Lawvere programming langu
 
 ### Basic types
 
-Lawvere has support for some basic types. They are written as you would expect, e.g. `"hello"` for the string of characters spelling "hello", and `42` for a special interger. However these actually denote _morphisms_ (in some category with has objects `String` and `Int`). For example `42` denotes the morphism which which is constantly 42:
+Lawvere has support for some basic types. They are written as you would expect, e.g. `"hello"` for the string of characters spelling "hello", and `42` for a special integer. However these actually denote _morphisms_ (in some category with has objects `String` and `Int`). For example `42` denotes the morphism which is constantly 42:
 
 ```lawvere
 ar someNumber : {:} --> Int = 42
@@ -25,7 +25,7 @@ The above code defined an _arrow_ (using the `ar` keyword) in the category `Base
 
 ### Composition
 
-The main way to build up larger programs from smaller ones if by using _composition_. The syntax for this is very lightweight, it is simply whitespace: `f g` denotes the composition of `f` and `g`. If you are coming from Haskell, note that this is _not_ `.`, its `>>>`, that is, `f` comes first, then `g`. The identity morphisms is written with no characters at all ` `.
+The main way to build up larger programs from smaller ones is by using _composition_. The syntax for this is very lightweight, it is simply whitespace: `f g` denotes the composition of `f` and `g`. If you are coming from Haskell, note that this is _not_ `.`, its `>>>`, that is, `f` comes first, then `g`. The identity morphisms are written with no characters at all ` `.
 
 To illustrate this we can use the built-in function `incr`, which increments an integer:
 
@@ -43,7 +43,7 @@ ar Base main : {:} --> Int =
   someNumber incr incr incr
 ```
 
-same this to a file, and use `bill`:
+save this to a file, and use `bill`:
 
 ```
 $ bill test.law
@@ -68,7 +68,7 @@ A lawvere file should always have a `main` morphism, whose source is `{=}` (the 
 We define a new object `Point` with the keyword `ob`, and specify a product using braces:
 
 ``` lawvere
-ob Base Point = { x: Float, y: Flaot }
+ob Base Point = { x: Float, y: Float }
 ```
 
 The morphism which projects out the `x` component from `Point` is written `.x`. This is supposed to remind one of the `foo.x` notation that is usual in other programming languages, except without anything preceding the dot.
@@ -99,7 +99,7 @@ ar Base horizontal : Point --> Float = .x
 ar Base somePoint : {:} --> Point =
   { x = 2.3, y = 4.6 }
 
-ar Base main : {:} --> Int =
+ar Base main : {:} --> Float =
   somePoint horizontal
 ```
 

@@ -44,8 +44,8 @@ main = do
 
 dev :: IO ()
 dev = do
-  runFile "examples/product.law"
-  -- runFile "examples/tutorial.law"
+  --runFile "examples/product.law"
+  runFile "examples/tutorial.law"
   -- runFile "examples/basic.law"
-  -- runFile "examples/list.law"
+  runFile "examples/list.law"
   -- runFile "examples/freyd.law"

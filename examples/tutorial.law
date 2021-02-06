@@ -1,11 +1,4 @@
-ar Base someNumber : {:} --> Int = 42
-
-ar Base anotherNumber : {:} --> Int =
-  someNumber incr incr incr
-
 ob Base Point = { x : Float, y : Flaot }
-
-ar Base horizontal : Point --> Float = .x 
 
 ob Base Bool =
   [ true:  {:},
@@ -15,10 +8,32 @@ ar Base not : Bool --> Bool =
   [ true = {=} false.,
     false = {=} true. ]
 
-ar Base and : (Bool, Bool) --> Bool =
-  @1 [ true = .2,
-       false = {=} false. ]
+ob Base ListF =
+  [ empty: {:},
+    cons:  { head: Float, tail: ListF }
+  ]
 
-ar Base main : {:} --> Int =
-  42 incr incr incr
-  // { x = 2.3, y = 4.6 } horizontal
+ob Base ListPoint =
+  [ empty: {:},
+    cons:  { head: Point, tail: ListPoint }
+  ]
+
+ar Base zip : { xs : ListF, ys : ListF } --> ListPoint =
+  @xs [ empty = {=} empty.,
+        cons  = @ys [ empty = {=} empty.,
+                      cons  = { head = { x = .xs .head,
+                                         y = .ys .head },
+                                tail = { xs = .xs .tail,
+                                         ys = .ys .tail } zip
+                              } cons. ] ]
+
+ar Base ex : {:} --> ListF =
+  empty.
+  { head = 0,   tail = } cons.
+  { head = 1.2, tail = } cons.
+  { head = 100, tail = } cons.
+
+ar Base main : {:} --> ListPoint =
+  { xs = ex, ys = ex } zip
+  
+  

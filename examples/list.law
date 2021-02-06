@@ -9,8 +9,6 @@ ar Base length : list(Int) --> Int =
 
 ar Base main : {:} --> list(Int)  =  listOfLists list(length)
 
-
-
 // Some lists follow
 
 ar Base cons1 : list(Int) --> list(Int) =

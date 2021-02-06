@@ -2,6 +2,7 @@ module Lawvere.Eval where
 
 import Control.Lens
 import Data.Bifunctor
+import Data.Generics.Labels ()
 import Data.List (lookup)
 import qualified Data.Map.Strict as Map
 import qualified Data.Text as Text
@@ -12,7 +13,6 @@ import Lawvere.Expr
 import Lawvere.Scalar
 import Prettyprinter
 import Protolude
-import Data.Generics.Labels ()
 
 data FreydDict = FreydDict
   { inj :: Fun,
@@ -35,12 +35,12 @@ instance Disp Val where
     Tag t v -> disp t <> "." <> disp v
     VFun _ -> "<unshowable>"
 
-data Interp =
-  Interp { iInj :: Fun,
-           iSum :: Fun,
-           iSide :: Expr,
-           iHandlers :: Map LcIdent Fun
-         }
+data Interp = Interp
+  { iInj :: Fun,
+    iSum :: Fun,
+    iSide :: Expr,
+    iHandlers :: Map LcIdent Fun
+  }
 
 data Top
   = TFun Fun
@@ -85,7 +85,7 @@ evalAr tops = \case
             Nothing -> panic "bad EColim"
           g _ = panic "bad EColim"
   EConst e -> const (pure (VFun (evalAr tops e)))
-  Top i ->  \v -> case Map.lookup i tops of
+  Top i -> \v -> case Map.lookup i tops of
     Just (TFun f) -> f v
     Just (TFreyd e) -> evalAr tops e v
     _ -> panic $ "bad toplevel: " <> show i
@@ -117,15 +117,14 @@ evalAr tops = \case
         case g of
           VFun g' -> g' x
           v -> panic $ "bad efunapp: " <> render v
-      Just (TInterp Interp{..}) ->
-           evalAr ((TFun <$> iHandlers) <> Map.fromList [(LcIdent "i", TFun iInj), (LcIdent "sumPreserver", TFun iSum), (LcIdent "side", TExpr iSide)] <> tops) e
+      Just (TInterp Interp {..}) ->
+        evalAr ((TFun <$> iHandlers) <> Map.fromList [(LcIdent "i", TFun iInj), (LcIdent "sumPreserver", TFun iSum), (LcIdent "side", TExpr iSide)] <> tops) e
       _ -> panic "bad efunapp"
   Curry _ _ -> panic "curry"
   Object _ -> const (pure (VFun pure))
   CanonicalInj e -> evalAr tops (EFunApp (LcIdent "i") e)
   Side lab e -> tr "before sidecar" >=> applyInj (sidePrep (LNam lab)) >=> tr "after prep" >=> sidecar e >=> tr "after side" >=> applyInj (sideUnprep (LNam lab))
   where
-
     tr :: Text -> Fun
     tr _t v = do
       -- putStrLn $ "=> TRACE: " <> t
@@ -144,7 +143,7 @@ evalAr tops = \case
     sidePrep :: Label -> Fun
     sidePrep lab = \case
       Rec r@(Map.lookup lab -> Just x) -> pure (Rec (Map.fromList [(LNam "eff", x), (LNam "pur", Rec (Map.delete lab r))]))
-      v -> panic $  "bad side prep: " <> render lab <> " - " <> render v
+      v -> panic $ "bad side prep: " <> render lab <> " - " <> render v
     sideUnprep :: Label -> Fun
     sideUnprep lab = \case
       Rec r | Just x <- Map.lookup (LNam "eff") r, Just (Rec rest) <- Map.lookup (LNam "pur") r -> pure (Rec (Map.insert lab x rest))
@@ -205,7 +204,7 @@ primTops =
       "side" |-> pure
     ]
   where
-    x |-> y = (LcIdent x, TFun y) 
+    x |-> y = (LcIdent x, TFun y)
 
 (=:) :: a -> b -> (a, b)
 (=:) = (,)
@@ -215,7 +214,7 @@ evalInterp tops iInj iHandlers iSum iSide =
   Interp
     { iInj = evalAr tops iInj,
       iSum = evalAr tops iSum,
-      iHandlers = Map.fromList [(name, evalAr tops e) | (name,e) <- iHandlers ^. #ars],
+      iHandlers = Map.fromList [(name, evalAr tops e) | (name, e) <- iHandlers ^. #ars],
       iSide = iSide
     }
 

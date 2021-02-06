@@ -92,6 +92,8 @@ where `f : X --> A`, `g : X --> B`, `h : X --> C`, etc.
 A complete program would be:
 
 ``` lawvere
+ob Base Point = { x: Float, y: Float }
+
 ar Base horizontal : Point --> Float = .x
 
 ar Base somePoint : {:} --> Point =

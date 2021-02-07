@@ -4,9 +4,9 @@
 
 Lawvere is a categorical programming language.
 
-- Program morphisms in any category with enough structure (e.g. [cartesian closed](https://ncatlab.org/nlab/show/cartesian+closed+category) or [distributive](https://ncatlab.org/nlab/show/distributive+category)),
+- Program morphisms in any category with enough structure (e.g. [cartesian closed](https://ncatlab.org/nlab/show/cartesian+closed+category), [distributive](https://ncatlab.org/nlab/show/distributive+category), etc.),
 - Define (soon) locally finitely presentable categories and functors between these categories.
-- Pointfree; functional programming with no lambdas.
+- Pointfree functional programming (no lambdas).
 
 (Still very work-in-progress.)
 
@@ -19,11 +19,11 @@ First install stack (`curl -sSL https://get.haskellstack.org/ | sh
 
 ## Tutorial
 
-This is a small tutorial introducing the basics of the Lawvere programming language. These can all be found in the [examples](/examples).
+This is a small tutorial introducing the basics of the Lawvere programming language.
 
 ### Basic types
 
-Lawvere has support for some basic types. They are written as you would expect, e.g. `"hello"` for the string of characters spelling "hello", and `42` for a special integer. However these actually denote _morphisms_ (in some category with has objects `String` and `Int`). For example `42` denotes the morphism which is constantly 42:
+Lawvere has support for some basic types. They are written as you would expect, e.g. `"hello"` for a string of character, and `42` for a special integer. However these actually denote _morphisms_ (in some category with has objects `String` and `Int`). For example `42` denotes the morphism which is constantly 42:
 
 ```lawvere
 ar someNumber : {:} --> Int = 42
@@ -33,7 +33,7 @@ The above code defined an _arrow_ (using the `ar` keyword) in the category `Base
 
 ### Composition
 
-The main way to build up larger programs from smaller ones is by using _composition_. The syntax for this is very lightweight, it is simply whitespace: `f g` denotes the composition of `f` and `g`. If you are coming from Haskell, note that this is _not_ `.`, its `>>>`, that is, `f` comes first, then `g`. The identity morphism is written with no characters at all: ` `.
+The main way to build up larger programs from smaller ones is by using _composition_. The syntax for this is very lightweight, simply whitespace: `f g` denotes the composition of `f` and `g`. If you are coming from Haskell, note that this is _not_ `.`, it's `>>>`, that is, `f` comes first, then `g`. The identity morphism is written with no characters at all: ` `.
 
 To illustrate this we can use the built-in function `incr`, which increments an integer:
 
@@ -67,9 +67,9 @@ output:
   45
 ```
 
-(Or run `stack exec bill -- test.law`.)
+(Or run `stack exec bill -- test.law` if you haven't installed `bill`.)
 
-A lawvere file should always have a `main` morphism, whose source is `{=}` (the terminal object).
+A Lawvere file should always have a `main` morphism, whose source is `{:}` (the terminal object).
 
 ### Products
 
@@ -88,7 +88,7 @@ ar Base somePoint : {:} --> Point =
   { x = 2.3, y = 4.6 }
 ```
 
-This works because `2.3` and `4.6` are syntax for morphisms. In this case they have type `{:} --> Float`.
+This works because, as mentioned above, `2.3` and `4.6` are morphisms of type `{:} --> Float`.
 
 In general, to specify a morphism `X --> { a: A, b: B, c: C, ... }`, one uses a cone:
 
@@ -113,7 +113,7 @@ ar Base main : {:} --> Float =
 
 whose result is `2.3`.
 
-When there are no components one still uses the seperator symbol. So the empty product object is denoted `{:}`, and the unique morphism to is it denoted `{=}`.
+When there are no components one still uses the seperator symbol. So the empty product object (the terminal object) is denoted `{:}`, and the unique morphism to is it denoted `{=}`.
 
 By using parentheses instead of braces, the components are positional rather than named. In this case the projections are `.1`, `.2`, etc. Using a positional product for `Point` the previous program would be:
 
@@ -141,7 +141,7 @@ Using square brackets we define a sumtype with two summands, `true` and `false`,
 
 Sum types come equipped with canonical injections. The canonical injection into the component with name `foo` is denoted `foo.`, simply mirroring the notation for canonical projections.
 
-In order to define some simple boolean functions, we'll need to learn how map _from_ sums. This is done with a cocone. This is simply the specification of a morphism for each component of the sum. This is exacly like a cone except using square brackets instead of braces. To illustrate this let's define the negation function:
+In order to define some simple boolean functions, we'll need to learn how to map _from_ sums. This is done with a _cocone_, which specifies a morphism for each summand. This is exacly like a cone except using square brackets instead of braces. To illustrate this let's define the negation function:
 
 ``` lawvere
 ar Base not : Bool --> Bool
@@ -149,7 +149,7 @@ ar Base not : Bool --> Bool
       false = true. ]
 ```
 
-In words, we split the morphism into two cases. In the first case, on the `true` component, we use the canonical injection `false.`. On the other component, `false`, we use `true.`.
+In words, we split the morphism into two cases. In the first case (on the `true` component) we use the canonical injection `false.`, on the other component we use `true.`.
 
 In general, to specify a morphism
 
@@ -170,7 +170,7 @@ Continuing with boolean functions, let's try to define the `and` function:
 ar Base and : {x: Bool, y: Bool} --> Bool = ?
 ```
 
-This is a morphism _to_ a sum (`Bool`), so we can't use a cocone, and _from_ a product (`{x : Bool, y: Bool }`), so we can't use a cone---are we stuck? Intuitively we want to inspect one of the two arguments `x`, `y` in order to continue. For this we will use a _distributor_. To distribute the product at the `x` component, we use `@x`. To understand what this does, first let's re-write `{x : Bool, y : Bool}` by expanding the definition of `Bool` at the `x` summand:
+This is a morphism _to_ a sum (`Bool`), so we can't use a cocone, and _from_ a product (`{x : Bool, y: Bool }`), so we can't use a cone---are we stuck? Intuitively we want to inspect one of the two arguments `(x` or `y`) in order to continue. For this we will use the _distributor_ `@x`. To understand what this does, first let's re-write `{x : Bool, y : Bool}` by expanding the definition of `Bool` at the `x` summand:
 
 ``` lawvere
 { x: [ true: {:}, false: {:}], y: Bool }

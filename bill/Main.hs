@@ -48,4 +48,4 @@ dev = do
   runFile "examples/tutorial.law"
   -- runFile "examples/basic.law"
   runFile "examples/list.law"
-  -- runFile "examples/freyd.law"
+  runFile "examples/freyd-state.law"

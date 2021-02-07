@@ -40,13 +40,10 @@ freyd Base[IntState] mapNext : list({:}) --> list(Int) =
 
 // apply it:
 
-freyd Base[IntState] counting : {:} --> list(Int) =
-  i(exampleList) mapNext
-
 ar Base main : {:} --> Int =
-  { state = 0, value = }  // set the initial state to 0
-  pureState(counting)     // use the freyd arrow `counting` interpreting it with `pureState` functor
-  .value                  // we are jut interesting in the result, not the accumulated state
+  { state = 0, value = }            // set the initial state to 0
+  pureState(i(exampleList) mapNext) // use the freyd arrow `counting` interpreting it with `pureState` functor
+  .value                            // we are jut interesting in the result, not the accumulated state
 
 
 ////////////////

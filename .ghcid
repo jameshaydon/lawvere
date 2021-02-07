@@ -6,5 +6,5 @@
 --restart=examples/list.law
 --restart=examples/error.law
 --restart=examples/state.law
---restart=examples/freyd.law
+--restart=examples/freyd-state.law
 --restart=examples/product.law

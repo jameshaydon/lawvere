@@ -2,7 +2,15 @@
 
 > Programming in categories
 
-Lawvere is a categorical programming language. It allows you to program morphisms in arbitrary cartesian closed categories, allows you (soon) to define locally finitely presentable categories, and allows you to define functors between these categories. Lawvere is completely pointfree; it does not have lambdas or variables, just morphisms.
+Lawvere is a categorical programming language.
+
+- Program morphisms in any category with enough structure (e.g. [cartesian closed](https://ncatlab.org/nlab/show/cartesian+closed+category) or [distributive](https://ncatlab.org/nlab/show/distributive+category)),
+- Define (soon) locally finitely presentable categories and functors between these categories.
+- Pointfree; functional programming with no lambdas.
+
+(Still very work-in-progress.)
+
+The Lawvere language (and the executable `bill`) is named after [William Lawvere](https://en.wikipedia.org/wiki/William_Lawvere).
 
 ## Build/Installation
 
@@ -25,7 +33,7 @@ The above code defined an _arrow_ (using the `ar` keyword) in the category `Base
 
 ### Composition
 
-The main way to build up larger programs from smaller ones is by using _composition_. The syntax for this is very lightweight, it is simply whitespace: `f g` denotes the composition of `f` and `g`. If you are coming from Haskell, note that this is _not_ `.`, its `>>>`, that is, `f` comes first, then `g`. The identity morphisms are written with no characters at all ` `.
+The main way to build up larger programs from smaller ones is by using _composition_. The syntax for this is very lightweight, it is simply whitespace: `f g` denotes the composition of `f` and `g`. If you are coming from Haskell, note that this is _not_ `.`, its `>>>`, that is, `f` comes first, then `g`. The identity morphism is written with no characters at all: ` `.
 
 To illustrate this we can use the built-in function `incr`, which increments an integer:
 
@@ -222,6 +230,93 @@ ar Base sumList : ListI --> Int =
 ```
 
 In words: If the list is `empty`, then return `0`. Otherwise take the `head`, and the `sumList` of the `.tail`, and `plus` them together.
+
+### Effects
+
+(Very WIP)
+
+Lawvere is is a pure language but allows programming with effects using free [Freyd categories](https://ncatlab.org/nlab/show/Freyd+category), much like Haskell is pure but allows programming with effects using monads or arrows. In fact Freyd categories and arrows are very similar, e.g. see [Categorical semantics for arrows](http://homepages.inf.ed.ac.uk/cheunen/publications/2008/arrows/arrows.pdf).
+
+
+As an example we define a new effect sketch for some integer state (see [here](/examples/freyd-state.law) for the full example).
+
+``` lawvere
+sketch IntState over Base = {
+  ar get : {:} --> Int,
+  ar put : Int --> {:}
+}
+```
+
+This defines a theory for extending the `Base` category with two distinguished morphisms `get` and `put`.
+
+We can then define morphisms in this abstract extension of `Base`. The following morphisms increments the state while returning the original value:
+
+``` lawvere
+freyd Base[IntState] next : {:} --> Int =
+  get i({ current = , next = }) !next{ i(incr) put } i(.current)
+```
+
+There are two new pieces of syntax:
+- `i(...)` denotes the canonical injection into the Freyd category. So this can be used for lifting any pure morphism. This performs the same role as the [`arr`](https://hackage.haskell.org/package/base-4.14.1.0/docs/Control-Arrow.html#v:arr) method of the [`Arrow`](https://hackage.haskell.org/package/base-4.14.1.0/docs/Control-Arrow.html#t:Arrow) typeclass in Haskell.
+- `!label{...}` (where `label` can  be any component name). Effect categories do not (necessarily) have products, so using the cone syntax is prohibited. The sequencing of effects is specified by using the categorical composition. The Freyd category does have the same objects as the pure category it extends however, and an effectful morphisms can be performed at one component of a product of the base category. If `f : B --> B'` is effectful morphism and `{a : A, b : B, c : C}` is a product in the pure category, then `!b{f} : {a : A, b : B, c : C} --> {a : A, b : B', c : C}` is another effectful morphism. In other words, `!b{f}` means "perform effect `f` at component `b`".
+
+So `next` works as follows:
+- `get` the current state,
+- Fanout (duplicate) the current state using the pure morphism `{current = , next = }`. This is the cone whcih uses the identity morphism at both components.
+- On the `next` component, `incr` and `put`,
+- Project out (purely) the `current` component.
+
+Next we'll specify how to map this function over a list. We can't reuse the `list` functor because that doesn't specify how to sequence the effects: should the effect be performed first on the head or the tail of the list?
+
+``` lawvere
+freyd Base[IntState] mapNext : list({:}) --> list(Int) =
+    [ empty = i(empty.),
+      cons  = !head{ next } !tail{ mapNext } i(cons.) ]
+```
+
+We explicitely sequence the effects, using composition, on first the head and then the tail of the list.
+
+The Freyd category is still totally abstract, to actually use it we must define a functor to a category we know how to "execute":
+
+``` lawvere
+interp IntState pureState =
+  over
+    { state : Int, value : }
+  handling
+    { ar get  |->  {state = .state, value = .state},
+      ar put  |->  {state = .value, value = {=}}
+    }
+  summing
+    @value
+  side
+    { eff = { state = .state,
+              value = .value .eff }
+            eff,
+      pur = .value
+    }
+    { state = .eff .state,
+      value = { pur = .pur .pur,
+                eff = .eff .value }
+    }
+```
+
+This defines an interpretation of the `IntState` sketch.
+
+- First one specifies how the interpretation acts on the pure morphisms: it maps them using the functor `{state: Int, value: }`, in other words what used to be an object `X` is now interpreted as `{state: Int, value: X}`, the same object but bundled with `Int`.
+- Next we specify how to handle the two generators `get` and `put`. `get` simply copies the state to the value component: `{state = .state, value = .state}`, while `put` copies the value component to the state one (while setting the state to unit): `{state = .value, value = {=}}`.
+- The Freyd category does have sums, and the interpretation functor should preserve them, that's what `@value` does.
+- Finally we need to specify how effectful morphisms are lifted into products, in this case `!eff{...}`, lifting some effectful morphism `A --> B` into a product `{ pur: P, eff: A } --> { pur: P, eff: B }`.
+
+We can then executre this effect on an `exampleList`:
+
+``` lawvere
+ar Base main : {:} --> Int =
+  { state = 0, value = }            // set the initial state to 0
+  pureState(i(exampleList) mapNext) // use the freyd arrow `counting` interpreting it with `pureState` functor
+  .value                            // we are jut interesting in the result, not the accumulated state
+```
+
+Checkout the [full example](/examples/freyd-state.law).
 
 ## Editor support
 

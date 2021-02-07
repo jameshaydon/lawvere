@@ -1,2 +1,6 @@
 .stack-work/
+.vscode
+dist-newstyle
+**/cabal.project.local
+**/result*
 *~

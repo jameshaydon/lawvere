@@ -1,0 +1,13 @@
+cradle:
+  cabal:
+    - path: "src"
+      component: "lib:lawvere"
+
+    - path: "bill/Main.hs"
+      component: "lawvere:exe:bill"
+
+    - path: "bill/Paths_lawvere.hs"
+      component: "lawvere:exe:bill"
+
+    - path: "test"
+      component: "lawvere:test:lawvere-test"

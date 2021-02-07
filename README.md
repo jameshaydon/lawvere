@@ -14,8 +14,48 @@ The Lawvere language (and the executable `bill`) is named after [William Lawvere
 
 ## Build/Installation
 
+### Stack
+
 First install stack (`curl -sSL https://get.haskellstack.org/ | sh
 `) and then use `stack build`. To install the `bill` executable (to `~/.local/bin`) run `stack install`.
+
+### Nix
+
+Make sure you have [nix](https://nixos.org/) and optionally [direnv](https://direnv.net/) installed.
+
+To build project dependencies and tooling the first time enter a nix shell either using direnv (recommended):
+
+```
+$ echo "use nix" > .envrc
+$ direnv allow
+```
+
+or manually:
+
+```
+$ nix-shell
+```
+
+Once in the nix shell, to build a release and run it:
+
+```
+$ nix-build nix/release.nix
+$ result/bin/bill <file>
+```
+
+To update the nix derivation when project dependencies change:
+
+```
+$ hpack
+$ cabal2nix . > nix/packages/lawvere.nix
+$ direnv reload
+```
+
+Note: Cabal is also available in the nix shell so you can build with it as well if you like:
+
+```
+$ cabal build
+```
 
 ## Tutorial
 

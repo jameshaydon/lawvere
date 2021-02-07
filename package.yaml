@@ -1,13 +1,13 @@
-name:                lawvere
-version:             0.1.0.0
-github:              "githubuser/lawvere"
-license:             BSD3
-author:              "Author name here"
-maintainer:          "example@example.com"
-copyright:           "2020 Author name here"
+name: lawvere
+version: 0.1.0.0
+github: "jameshaydon/lawvere"
+license: BSD3
+author: "Author name here"
+maintainer: "example@example.com"
+copyright: "2020 Author name here"
 
 extra-source-files:
-- README.md
+  - README.md
 
 # Metadata used when publishing your package
 # synopsis:            Short description of your package
@@ -16,46 +16,49 @@ extra-source-files:
 # To avoid duplicated efforts in documentation and dealing with the
 # complications of embedding Haddock markup inside cabal files, it is
 # common to point users to the README.md file.
-description:         Please see the README on GitHub at <https://github.com/githubuser/lawvere#readme>
+description: Please see the README on GitHub at <https://github.com/jameshaydon/lawvere#readme>
 
 dependencies:
-- base >= 4.7 && < 5
-- protolude
-- containers
-- lens
-- generic-lens
-- aeson
-- bytestring
-- prettyprinter
-- megaparsec
-- parser-combinators
-- transformers
-- text
+  - base >= 4.7 && < 5
+  - protolude
+  - containers
+  - lens
+  - generic-lens
+  - aeson
+  - bytestring
+  - prettyprinter
+  - megaparsec
+  - parser-combinators
+  - transformers
+  - text
 
 library:
   source-dirs: src
 
 executables:
   bill:
-    main:                Main.hs
-    source-dirs:         bill
+    main: Main.hs
+    source-dirs: bill
     ghc-options:
-    - -threaded
-    - -rtsopts
-    - -with-rtsopts=-N
+      - -threaded
+      - -rtsopts
+      - -with-rtsopts=-N
     dependencies:
-    - lawvere
+      - lawvere
 
 tests:
   lawvere-test:
-    main:                Spec.hs
-    source-dirs:         test
+    main: Spec.hs
+    source-dirs: test
     ghc-options:
-    - -threaded
-    - -rtsopts
-    - -with-rtsopts=-N
+      - -threaded
+      - -rtsopts
+      - -with-rtsopts=-N
     dependencies:
-    - lawvere
+      - hspec
+      - lawvere
+    verbatim:
+      build-tool-depends: hspec-discover:hspec-discover == 2.*
 
 default-extensions:
   - BangPatterns

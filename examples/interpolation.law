@@ -1,7 +1,9 @@
-ar Base james : {:} --> { name: String, hobby: String } =
+ob Base Person = { name: String, hobby: String }
+
+ar Base james : {:} --> Person =
   { name= "James", hobby= "playing Go" }
 
-ar Base description : { name: String, hobby: String } --> String =
+ar Base description : Person --> String =
   "{.name} likes {.hobby}."
 
 ar Base main : {:} --> String =

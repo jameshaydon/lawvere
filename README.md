@@ -32,6 +32,8 @@ First install stack (`curl -sSL https://get.haskellstack.org/ | sh
 
 Make sure you have [nix](https://nixos.org/) and optionally [direnv](https://direnv.net/) installed.
 
+_Optional:_ (but faster) install cachix (`nix-env -iA cachix -f https://cachix.org/api/v1/install`) and use the `lawvere` cache: `cachix use lawvere`.
+
 To build project dependencies and tooling the first time enter a nix shell either using direnv (recommended):
 
 ```

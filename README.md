@@ -1,8 +1,12 @@
+<div align="center">
+
 # Lawvere
 
-> Programming in categories
+A categorical programming language
 
-Lawvere is a categorical programming language.
+[Install](#buildinstallation) • [Tutorial](#tutorial) • [Editor support](#editor-support)
+
+</div>
 
 - Program morphisms in any category with enough structure (e.g. [cartesian closed](https://ncatlab.org/nlab/show/cartesian+closed+category), [distributive](https://ncatlab.org/nlab/show/distributive+category), etc.). New compilers will be added, for the moment there is an evaluator in Haskell and a compiler to JavaScript.
 - Define (soon) locally finitely presentable categories and functors between these categories.

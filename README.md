@@ -316,11 +316,11 @@ We can then define morphisms in this abstract extension of `Base`. The following
 
 ``` lawvere
 freyd Base[IntState] next : {:} --> Int =
-  get i({ current = , next = }) !next{ i(incr) put } i(.current)
+  get <{ current = , next = }> !next{ <incr> put } <.current>
 ```
 
 There are two new pieces of syntax:
-- `i(...)` denotes the canonical injection into the Freyd category. So this can be used for lifting any pure morphism. This performs the same role as the [`arr`](https://hackage.haskell.org/package/base-4.14.1.0/docs/Control-Arrow.html#v:arr) method of the [`Arrow`](https://hackage.haskell.org/package/base-4.14.1.0/docs/Control-Arrow.html#t:Arrow) typeclass in Haskell.
+- `<..>` denotes the canonical injection into the Freyd category. So this can be used for lifting any pure morphism. This performs the same role as the [`arr`](https://hackage.haskell.org/package/base-4.14.1.0/docs/Control-Arrow.html#v:arr) method of the [`Arrow`](https://hackage.haskell.org/package/base-4.14.1.0/docs/Control-Arrow.html#t:Arrow) typeclass in Haskell.
 - `!label{...}` (where `label` can  be any component name). Effect categories do not (necessarily) have products, so using the cone syntax is prohibited. The sequencing of effects is specified by using the categorical composition. The Freyd category does have the same objects as the pure category it extends however, and an effectful morphisms can be performed at one component of a product of the base category. If `f : B --> B'` is effectful morphism and `{a : A, b : B, c : C}` is a product in the pure category, then `!b{f} : {a : A, b : B, c : C} --> {a : A, b : B', c : C}` is another effectful morphism. In other words, `!b{f}` means "perform effect `f` at component `b`". This performs the same role as [`first`](https://hackage.haskell.org/package/base-4.14.1.0/docs/Control-Arrow.html#v:first) in [`Arrow`](https://hackage.haskell.org/package/base-4.14.1.0/docs/Control-Arrow.html#t:Arrow) except for any component.
 
 So `next` works as follows:
@@ -333,8 +333,8 @@ Next we'll specify how to map this function over a list. We can't reuse the `lis
 
 ``` lawvere
 freyd Base[IntState] mapNext : list({:}) --> list(Int) =
-    [ empty = i(empty.),
-      cons  = !head{ next } !tail{ mapNext } i(cons.) ]
+    [ empty = <empty.>,
+      cons  = !head{ next } !tail{ mapNext } <cons.> ]
 ```
 
 We explicitely sequence the effects, using composition, on first the head and then the tail of the list.
@@ -370,14 +370,16 @@ This defines an interpretation of the `IntState` sketch.
 - The Freyd category does have sums, and the interpretation functor should preserve them, that's what `@value` does.
 - Finally we need to specify how effectful morphisms are lifted into products, in this case `!eff{...}`, lifting some effectful morphism `A --> B` into a product `{ pur: P, eff: A } --> { pur: P, eff: B }`.
 
-We can then executre this effect on an `exampleList`:
+We can then execute this effect on an `exampleList`:
 
 ``` lawvere
 ar Base main : {:} --> Int =
-  { state = 0, value = }            // set the initial state to 0
-  pureState(i(exampleList) mapNext) // use the freyd arrow `counting` interpreting it with `pureState` functor
-  .value                            // we are jut interesting in the result, not the accumulated state
+  { state = 0, value = }           // set the initial state to 0
+  pureState(<exampleList> mapNext) // use the freyd arrow `counting` interpreting it with `pureState` functor
+  .value                           // we are jut interesting in the result, not the accumulated state
 ```
+
+(The checker will complain because it doesn't handle interpretations yet.)
 
 Checkout the [full example](/examples/freyd-state.law).
 

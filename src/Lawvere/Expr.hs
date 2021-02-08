@@ -8,6 +8,8 @@ import Lawvere.Scalar
 import Prettyprinter
 import Protolude hiding (many, try)
 import Text.Megaparsec
+import qualified Text.Megaparsec.Char as Char
+import qualified Text.Megaparsec.Char.Lexer as L
 
 data Prim = PrimPlus | PrimApp | PrimIncr
   deriving stock (Show)
@@ -37,12 +39,16 @@ instance Disp ConeComponent where
 componentLabel :: ConeComponent -> Label
 componentLabel (ConeComponent _ lab) = lab
 
+data ISPart = ISRaw Text | ISExpr Expr
+  deriving stock (Show)
+
 data Expr
   = Cone [(ConeComponent, Expr)]
   | ELim [(Label, Expr)]
   | Tuple [Expr]
   | CoCone [(Label, Expr)]
   | ECoLim [(Label, Expr)]
+  | InterpolatedString [ISPart]
   | Lit Sca
   | Proj Label
   | Inj Label
@@ -52,12 +58,12 @@ data Expr
   | EConst Expr
   | EPrim Prim
   | EFunApp LcIdent Expr
-  -- | Interp Expr SketchInterp Expr
-  | Curry LcIdent Expr
+  | -- | Interp Expr SketchInterp Expr
+    Curry LcIdent Expr
   | Object UcIdent
   | CanonicalInj Expr
-  -- | Freyd Expr
-  | Side LcIdent Expr
+  | -- | Freyd Expr
+    Side LcIdent Expr
   deriving stock (Show)
 
 -- Tuples are just shorthand for records.
@@ -73,20 +79,6 @@ pApp = do
   e <- wrapped '(' ')' parsed
   pure (EFunApp f e)
 
-{-
-pInterp :: Parser Expr
-pInterp = do
-  -- kwInterpret
-  -- sketchName <- lexeme parsed
-  kwOver
-  overThis <- lexeme parsed
-  kwHandling
-  theInterp <- lexeme parsed
-  kwSumming
-  summing <- parsed
-  pure (Interp overThis theInterp summing)
--}
-
 pCurry :: Parser Expr
 pCurry = do
   kwCurry
@@ -100,13 +92,30 @@ pSide = do
   e <- wrapped '{' '}' parsed
   pure (Side lab e)
 
+pCanInj :: Parser Expr
+pCanInj = CanonicalInj <$> wrapped '<' '>' parsed
+
+pInterpolated :: Parser Expr
+pInterpolated = Char.char '"' *> (InterpolatedString <$> (manyTill (pE <|> try pRaw) (Char.char '"')))
+  where
+    pRaw = ISRaw . toS <$> escapedString
+    pE = ISExpr <$> (Char.char '{' *> parsed <* Char.char '}')
+    escapedString = catMaybes <$> someTill ch (lookAhead (Char.char '"' <|> Char.char '{'))
+    ch =
+      choice
+        [ Just <$> L.charLiteral,
+          Nothing <$ Char.string "\\&",
+          Just '{' <$ Char.string "\\{",
+          Just '}' <$ Char.string "\\}"
+        ]
+
 pAtom :: Parser Expr
 pAtom =
   choice
-    [ --pInterp,
-      pSide,
+    [ pSide,
       pCurry,
       try pApp,
+      pInterpolated,
       Lit <$> parsed,
       Proj <$> ("." *> parsed),
       try (Inj <$> (parsed <* ".")), -- we need to look ahead for the dot
@@ -122,8 +131,7 @@ pAtom =
       ECoLim <$> pBracketedFields ':',
       Distr <$> (single '@' *> parsed),
       EConst <$> kwCall kwConst,
-      CanonicalInj <$> kwCall kwI,
-      --Freyd <$> kwCall kwFreyd,
+      pCanInj,
       Object <$> parsed
     ]
 
@@ -133,7 +141,7 @@ instance Parsed Expr where
 instance Disp Expr where
   disp = \case
     Object o -> disp o
-    CanonicalInj e -> "i" <> parens (disp e)
+    CanonicalInj e -> angles (disp e)
     EFunApp f e -> disp f <> parens (disp e)
     EPrim p -> disp p
     EConst e -> "const" <> parens (disp e)
@@ -150,3 +158,7 @@ instance Disp Expr where
     Tuple parts -> dispTup parts
     Curry lab f -> "curry" <+> disp lab <+> disp f
     Side lab f -> "!" <> disp lab <> braces (disp f)
+    InterpolatedString ps -> dquotes (foldMap go ps)
+      where
+        go (ISRaw t) = pretty t
+        go (ISExpr e) = braces (disp e)

@@ -5,9 +5,9 @@ sketch IntState over Base = {
 
 freyd Base[IntState] next : {:} --> Int =
   get
-  i({ current = , next = })
-  !next{ i(incr) put }
-  i(.current)
+  <{ current= , next= }>
+  !next{ <incr> put }
+  <.current>
 
 interp IntState pureState =
   over
@@ -32,18 +32,15 @@ interp IntState pureState =
 // make a function which maps `next` over a list of units:
 
 freyd Base[IntState] mapNext : list({:}) --> list(Int) =
-    [ empty = i(empty.),
-      cons  = !head{ next }
-              !tail{ mapNext }
-              i(cons.)
-    ]
+    [ empty = <empty.>,
+      cons  = !head{ next } !tail{ mapNext } <cons.> ]
 
 // apply it:
 
 ar Base main : {:} --> Int =
-  { state = 0, value = }            // set the initial state to 0
-  pureState(i(exampleList) mapNext) // use the freyd arrow `counting` interpreting it with `pureState` functor
-  .value                            // we are jut interesting in the result, not the accumulated state
+  { state = 0, value = }           // set the initial state to 0
+  pureState(<exampleList> mapNext) // use the freyd arrow `counting` interpreting it with `pureState` functor
+  .value                           // we are jut interesting in the result, not the accumulated state
 
 
 ////////////////

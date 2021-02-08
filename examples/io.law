@@ -1,0 +1,11 @@
+freyd Base[IO] ask : String --> String =
+  putLine getLine
+
+freyd Base[IO] greet : {:} --> {:} =
+  <{name = "What is your name?", hobby = "What is your favourite hobby?"}>
+  !name{ask}
+  !hobby{ask}
+  "Hello {.name}, I like {.hobby} too!" putLine
+  
+
+ar IO main : {:} --> {:} = io(greet)

@@ -11,7 +11,9 @@ import qualified Text.Megaparsec as Mega
 say :: Text -> IO ()
 say = putStrLn
 
-data Target = JS | Hask
+data Target
+  = JS
+  | Hask
   deriving stock (Eq)
 
 runFile :: Target -> FilePath -> IO ()
@@ -24,7 +26,9 @@ runFile target filepath = do
     Left err -> say . toS $ Mega.errorBundlePretty err
     Right (prog :: [Decl]) -> do
       sayi "Checking.."
-      case checkProg prog of
+      let (res, warns) = checkProg prog
+      forM_ warns (putErr . ("WARN: " <>))
+      case res of
         Right _ -> sayi "Check OK!"
         Left err -> do
           putErr "😲 Oh no! A category error:"
@@ -36,8 +40,10 @@ runFile target filepath = do
         Hask -> do
           say "input:"
           say ("  " <> render inp)
-          say "output:"
+          say ""
           v <- eval inp prog
+          say ""
+          say "output:"
           say ("  " <> render v)
         JS -> putStrLn (mkJS prog)
   where
@@ -55,7 +61,9 @@ main = do
 dev :: IO ()
 dev = do
   --runFile "examples/product.law"
-  runFile Hask "examples/tutorial.law"
-  -- runFile "examples/basic.law"
-  runFile Hask "examples/list.law"
-  runFile Hask "examples/freyd-state.law"
+  --runFile Hask "examples/tutorial.law"
+  runFile Hask "examples/io.law"
+
+-- runFile "examples/basic.law"
+--runFile Hask "examples/list.law"
+--runFile Hask "examples/freyd-state.law"

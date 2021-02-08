@@ -1,6 +1,4 @@
---command "stack repl --ghci-options=-fobject-code" \
---test "dev"
---warnings
+--command "cabal repl" \
 --restart=examples/tutorial.law
 --restart=examples/basic.law
 --restart=examples/list.law
@@ -8,3 +6,4 @@
 --restart=examples/state.law
 --restart=examples/freyd-state.law
 --restart=examples/product.law
+--restart=examples/io.law

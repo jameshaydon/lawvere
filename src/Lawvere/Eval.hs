@@ -89,6 +89,15 @@ evalAr tops = \case
     Just (TFun f) -> f v
     Just (TFreyd e) -> evalAr tops e v
     _ -> panic $ "bad toplevel: " <> show i
+  InterpolatedString ps -> \v -> do
+    let go (ISRaw t) = pure t
+        go (ISExpr e) = do
+          s_ <- evalAr tops e v
+          case s_ of
+            Sca (Str s) -> pure s
+            _ -> panic "bad string interpolation"
+    ss <- traverse go ps
+    pure (Sca (Str (mconcat ss)))
   Lit x -> const (pure (Sca x))
   Inj i -> pure . Tag i
   Distr l -> \case
@@ -109,6 +118,23 @@ evalAr tops = \case
   Tuple fs -> evalAr tops (tupleToCone fs)
   Cone fs -> mkCone fs
   CoCone fs -> evalAr tops (Top (LcIdent "sumPreserver")) >=> mkCoCone fs
+  EFunApp "io" e ->
+    evalAr
+      ( Map.fromList
+          [ (LcIdent "putLine", TFun lawPutLine),
+            (LcIdent "getLine", TFun (const (Sca . Str <$> getLine))),
+            ( LcIdent "side",
+              TExpr
+                ( Cone
+                    [ (ConeComponent Pure (LNam (LcIdent "pur")), Proj (LNam (LcIdent "pur"))),
+                      (ConeComponent Pure (LNam (LcIdent "eff")), Comp [Proj (LNam (LcIdent "eff")), Top "eff"])
+                    ]
+                )
+            )
+          ]
+          <> tops
+      )
+      e
   EFunApp name e ->
     case Map.lookup name tops of
       Just (TFun ff) -> \x -> do
@@ -125,6 +151,11 @@ evalAr tops = \case
   CanonicalInj e -> evalAr tops (EFunApp (LcIdent "i") e)
   Side lab e -> tr "before sidecar" >=> applyInj (sidePrep (LNam lab)) >=> tr "after prep" >=> sidecar e >=> tr "after side" >=> applyInj (sideUnprep (LNam lab))
   where
+    lawPutLine = \case
+      Sca (Str s) -> do
+        putStrLn s
+        pure (Rec mempty)
+      _ -> panic "bad putLine"
     tr :: Text -> Fun
     tr _t v = do
       -- putStrLn $ "=> TRACE: " <> t
@@ -133,7 +164,12 @@ evalAr tops = \case
       pure v
     sidecar e = case getTop "side" of
       TExpr sideE -> evalAr (Map.insert (LcIdent "eff") (TFun (evalAr tops e)) tops) sideE
-      _ -> panic "base sidecar"
+      TFun f -> \v -> do
+        g <- f (VFun (evalAr tops e))
+        case g of
+          VFun g' -> g' v
+          _ -> panic "bad sidecar"
+      _ -> panic "bad sidecar"
     getTop name = case Map.lookup (LcIdent name) tops of
       Just top -> top
       _ -> panic "could not get top"
@@ -147,7 +183,7 @@ evalAr tops = \case
     sideUnprep :: Label -> Fun
     sideUnprep lab = \case
       Rec r | Just x <- Map.lookup (LNam "eff") r, Just (Rec rest) <- Map.lookup (LNam "pur") r -> pure (Rec (Map.insert lab x rest))
-      _ -> panic "bad side unprep"
+      v -> panic $ "bad side unprep: " <> render v
     applyInj :: Fun -> Fun
     applyInj f = \x -> do
       f_ <- getTopFun "i" (VFun f)
@@ -187,6 +223,13 @@ primTops =
             putStrLn ("PRINT" :: Text)
             putStrLn (render v)
             pure (Rec mempty),
+      "concat"
+        |-> \case
+          Rec r
+            | Just (Sca (Str x)) <- lkp (LPos 1) r,
+              Just (Sca (Str y)) <- lkp (LPos 2) r ->
+              pure (Sca (Str (x <> y)))
+          _ -> panic "bad concat",
       "incr"
         |-> \case
           Sca (Int x) -> pure (Sca (Int (x + 1)))
@@ -200,8 +243,7 @@ primTops =
           v -> panic ("bad app: " <> render v),
       -- The base interp:
       "i" |-> pure,
-      "sumPreserver" |-> pure,
-      "side" |-> pure
+      "sumPreserver" |-> pure
     ]
   where
     x |-> y = (LcIdent x, TFun y)

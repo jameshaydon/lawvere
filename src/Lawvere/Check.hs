@@ -41,7 +41,7 @@ prims decls =
     ta = OVar va
     tb = OVar vb
 
-checkProg :: Decls -> Either Err ()
+checkProg :: Decls -> (Either Err (), [Text])
 checkProg decls = runCheck (prims decls) initState (checkDecls decls)
 
 data Err
@@ -91,13 +91,14 @@ newtype Check a = Check
   }
   deriving newtype (Functor, Applicative, Monad, MonadReader TcTops, MonadState TcState, MonadError Err)
 
-runCheck :: TcTops -> TcState -> Check a -> Either Err a
+runCheck :: TcTops -> TcState -> Check a -> (Either Err a, [Text])
 runCheck init_env init_state =
-  flip runReader init_env . flip evalStateT init_state . runExceptT . runTypecheckM
+  over _2 warnings . flip runReader init_env . flip runStateT init_state . runExceptT . runTypecheckM
 
 data TcState = TcState
   { ob_vars :: Map MetaVar Ob,
-    nextFresh :: Int
+    nextFresh :: Int,
+    warnings :: [Text]
   }
   deriving stock (Generic)
 
@@ -105,8 +106,12 @@ initState :: TcState
 initState =
   TcState
     { ob_vars = mempty,
-      nextFresh = 0
+      nextFresh = 0,
+      warnings = []
     }
+
+warning :: Text -> Check ()
+warning w = #warnings %= (w :)
 
 data TcTops = TcTops
   { ars :: Map LcIdent (Scheme, Expr),
@@ -167,8 +172,8 @@ getNamedOb name = do
 
 checkDecl :: Decl -> Check ()
 checkDecl (DAr _ _ a b body) = check (a, b) body
-checkDecl (DFreyd {}) = pure () -- TODO
-checkDecl (DInterp {}) = pure () -- TODO
+checkDecl DFreyd {} = warning "Freyd arrows are not checked yet." -- TODO
+checkDecl DInterp {} = warning "Interpretatoins are not checked yet." -- TODO
 checkDecl DOb {} = pure () -- TODO
 checkDecl DSketch {} = pure ()
 
@@ -177,32 +182,6 @@ checkDecls = traverse_ checkDecl
 
 infer :: Expr -> Check (Ob, Ob)
 infer = \case
-  -- Cone fs -> do
-  --   a <- freshT
-  --   let go (label, f) = do
-  --         (a', b) <- infer f
-  --         unify a a'
-  --         pure (label, b)
-  --   bs <- traverse go fs
-  --   pure (a, Lim bs)
-  -- CoCone fs -> do
-  --   b <- freshT
-  --   let go (label, f) = do
-  --         (a, b') <- infer f
-  --         unify b b'
-  --         pure (label, a)
-  --   as <- traverse go fs
-  --   pure (CoLim as, b)
-  -- Tuple fs -> infer (Cone (tupleToCone fs))
-  -- Lit (Int _) -> (,ONamed "Int") <$> freshT
-  -- Lit (Float _) -> (,ONamed "Float") <$> freshT
-  -- Lit (Str _) -> (,ONamed "String") <$> freshT
-  -- Proj label -> do
-  --   b <- freshT
-  --   pure (Lim [(label, b)], b)
-  -- Inj label -> do
-  --   a <- freshT
-  --   pure (a, CoLim [(label, a)])
   Comp [] -> do
     a <- freshT
     pure (a, a)
@@ -355,6 +334,7 @@ check (a, CoLim bs) (Inj label) = do
 check niche (Inj label) = throwError (CeCantInjIntoNonCoLim label niche)
 check niche (Tuple fs) = check niche (tupleToCone fs)
 check (a, b) (Comp []) = unify a b
+check (a, b) (Comp [f]) = check (a, b) f
 check (a, c) (Comp (f : fs)) = do
   b <- inferTarget a f
   check (b, c) (Comp fs)
@@ -368,6 +348,7 @@ check (a, b) (CoCone fs) = do
 check (a, b) (Distr label) = do
   b' <- inferDistrTarget label a
   unify b' b
+check _ (EFunApp _ _) = warning "Functor applications are not checked yet."
 check (a, b) f = throwError (CeCantCheck a b f)
 
 unify :: Ob -> Ob -> Check ()
@@ -414,4 +395,4 @@ unifyMany (a : b : rest) = unify a b >> unifyMany (b : rest)
 unifyMany _ = pure ()
 
 unifyLim :: DiscDiag -> DiscDiag -> Check ()
-unifyLim _ _ = pure () -- TODO
+unifyLim _ _ = warning "Limit unification not implemented."

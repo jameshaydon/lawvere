@@ -6,7 +6,7 @@ A categorical programming language
 
 [Install](#buildinstallation) • [Tutorial](#tutorial) • [Editor support](#editor-support)
 
-`<"What is your name?"> putLine getLine <"Hello {}"> putLine`
+`<"What is your name?"> putLine getLine <"Hello {}!"> putLine`
 
 </div>
 
@@ -147,7 +147,7 @@ ob Base Point = { x: Float, y: Float }
 
 The morphism which projects out the `x` component from `Point` is written `.x`. This is supposed to remind one of the `foo.x` notation that is usual in other programming languages, except without anything preceding the dot.
 
-To map _to_ a product we need to specify a _cone_. This specifies a morphism to each component of the product. For example,
+To map _to_ a product we need to specify a [_cone_](https://ncatlab.org/nlab/show/limit#definition_in_terms_of_universal_cones). This specifies a morphism to each component of the product. For example,
 
 ``` lawvere
 ar Base somePoint : {:} --> Point =
@@ -179,7 +179,7 @@ ar Base main : {:} --> Float =
 
 whose result is `2.3`.
 
-When there are no components one still uses the seperator symbol. So the empty product object (the terminal object) is denoted `{:}`, and the unique morphism to is it denoted `{=}`.
+When there are no components one still uses the separator symbol. So the empty product object (the terminal object) is denoted `{:}`, and the unique morphism to is it denoted `{=}`.
 
 By using parentheses instead of braces, the components are positional rather than named. In this case the projections are `.1`, `.2`, etc. Using a positional product for `Point` the previous program would be:
 
@@ -214,11 +214,11 @@ We can define sum-types too. Let's define the booleans:
 ob Base Bool = [ true: {:}, false: {:} ]
 ```
 
-Using square brackets we define a sumtype with two summands, `true` and `false`, each with the terminal object `{:}` as payload.
+Using square brackets we define a sum type with two summands, `true` and `false`, each with the terminal object `{:}` as payload.
 
 Sum types come equipped with canonical injections. The canonical injection into the component with name `foo` is denoted `foo.`, simply mirroring the notation for canonical projections.
 
-In order to define some simple boolean functions, we'll need to learn how to map _from_ sums. This is done with a _cocone_, which specifies a morphism for each summand. This is exacly like a cone except using square brackets instead of braces. To illustrate this let's define the negation function:
+In order to define some simple boolean functions, we'll need to learn how to map _from_ sums. This is done with a _cocone_, which specifies a morphism for each summand. This is exactly like a cone except using square brackets instead of braces. To illustrate this let's define the negation function:
 
 ``` lawvere
 ar Base not : Bool --> Bool
@@ -269,7 +269,7 @@ ar Base and : {x : Bool, y : Bool} --> Bool =
        false = {=} false. ]
 ```
 
-In words: "Perform a case analysis on `x`, if `x` is true, then return `y`, otherwise return `false`". Note the similarity with the equivalent Elm program (Haskell doesn't have anonymous records, making the comparison less clear), even though lawvere has no variables or lamdas:
+In words: "Perform a case analysis on `x`, if `x` is true, then return `y`, otherwise return `false`". Note the similarity with the equivalent Elm program (Haskell doesn't have anonymous records, making the comparison less clear), even though Lawvere has no variables or λs:
 
 ```elm
 and : { x : Bool, y : Bool } -> Bool
@@ -384,7 +384,7 @@ There are two new pieces of syntax:
 
 So `next` works as follows:
 - `get` the current state,
-- Fanout (duplicate) the current state using the pure morphism `{current = , next = }`. This is the cone whcih uses the identity morphism at both components.
+- Fanout (duplicate) the current state using the pure morphism `{current = , next = }`. This is the cone which uses the identity morphism at both components.
 - On the `next` component, `incr` and `put`,
 - Project out (purely) the `current` component.
 
@@ -396,7 +396,7 @@ freyd Base[IntState] mapNext : list({:}) --> list(Int) =
       cons  = !head{ next } !tail{ mapNext } <cons.> ]
 ```
 
-We explicitely sequence the effects, using composition, on first the head and then the tail of the list.
+We explicitly sequence the effects, using composition, on first the head and then the tail of the list.
 
 The Freyd category is still totally abstract, to actually use it we must define a functor to a category we know how to "execute":
 
@@ -456,4 +456,4 @@ For the moment there is only an [emacs mode](/tools/emacs). The syntax looks muc
 - Make a small (but not just a few lines) "real program".
 - Allow one to define morphisms via curry/uncurry.
 - Think about if diagrams (which are used for e.g. (co)limits) can be represented as functors directly (from discrete categories).
-- Typechecker is not complete.
+- Type checker is not complete.

@@ -113,9 +113,26 @@ output:
   45
 ```
 
-(Or run `stack exec bill -- test.law` if you haven't installed `bill`.)
+(Or run `stack exec bill -- test.law` or `cabal run bill -- test.law` if you haven't installed `bill`.)
 
 A Lawvere file should always have a `main` morphism, whose source is `{:}` (the terminal object).
+
+### Compiling to JavaScript
+
+To compile to JavaScript, use the `--js` option:
+
+```
+$ bill --js test.law
+```
+
+This will output a JavaScript program that logs the output. You can pipe this directly to `node`:
+
+```
+$ bill --js test.law | node
+45
+```
+
+The JavaScript compiler isn't very well maintained and will just error out on the anything but the most basic features of the language.
 
 ### Products
 

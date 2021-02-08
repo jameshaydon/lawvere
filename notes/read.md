@@ -32,3 +32,5 @@ sketching and adequacy https://arxiv.org/pdf/2012.10783.pdf
 - https://www.sciencedirect.com/science/article/pii/S1571066108003435
 - https://libres.uncg.edu/ir/asu/f/Johann_Patricia_2015_%20Interleaving_Data_and_Effects..pdf
 - In Search of Effectful Dependent Types https://arxiv.org/pdf/1706.07997.pdf
+
+- Cartesian effect categories are Freyd-categories https://hal.archives-ouvertes.fr/hal-00369328v3/document

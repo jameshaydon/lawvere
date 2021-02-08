@@ -11,41 +11,51 @@ import qualified Text.Megaparsec as Mega
 say :: Text -> IO ()
 say = putStrLn
 
-runFile :: FilePath -> IO ()
-runFile filepath = do
-  say "--------------"
-  say "Lawvere v0.0.0"
-  say "--------------"
+data Target = JS | Hask
+  deriving stock (Eq)
+
+runFile :: Target -> FilePath -> IO ()
+runFile target filepath = do
+  sayi "--------------"
+  sayi "Lawvere v0.0.0"
+  sayi "--------------"
   source <- readFile filepath
   case Mega.parse (parsed <* Mega.eof) filepath source of
     Left err -> say . toS $ Mega.errorBundlePretty err
     Right (prog :: [Decl]) -> do
-      say "Checking.."
+      sayi "Checking.."
       case checkProg prog of
-        Right _ -> say "Check OK!"
+        Right _ -> sayi "Check OK!"
         Left err -> do
-          say "😲 Oh no! A category error:"
-          say ""
-          say (render err)
+          putErr "😲 Oh no! A category error:"
+          putErr ""
+          putErr (render err)
       let inp = Rec mempty
       say ""
-      say "input:"
-      say ("  " <> render inp)
-      say "output:"
-      v <- eval inp prog
-      say ("  " <> render v)
+      case target of
+        Hask -> do
+          say "input:"
+          say ("  " <> render inp)
+          say "output:"
+          v <- eval inp prog
+          say ("  " <> render v)
+        JS -> putStrLn (mkJS prog)
+  where
+    sayi t = when (target == Hask) (say t)
+    putErr = hPutStrLn stderr
 
 main :: IO ()
 main = do
   args <- getArgs
   case args of
-    [filename] -> runFile filename
-    _ -> say "Please specify exactly one file."
+    [filename] -> runFile Hask filename
+    ["--js", filename] -> runFile JS filename
+    _ -> say "Please specify exactly one file, and optionally the --js option."
 
 dev :: IO ()
 dev = do
   --runFile "examples/product.law"
-  runFile "examples/tutorial.law"
+  runFile Hask "examples/tutorial.law"
   -- runFile "examples/basic.law"
-  runFile "examples/list.law"
-  runFile "examples/freyd-state.law"
+  runFile Hask "examples/list.law"
+  runFile Hask "examples/freyd-state.law"

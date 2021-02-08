@@ -275,7 +275,7 @@ evalJS = \case
 
 mkJS :: Decls -> Text
 mkJS decls =
-  jsPriv prelude "tops"
+  "console.log(" <> jsPriv prelude "tops" <> ".main({}));"
   where
     prelude =
       jsClone

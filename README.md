@@ -4,7 +4,7 @@
 
 Lawvere is a categorical programming language.
 
-- Program morphisms in any category with enough structure (e.g. [cartesian closed](https://ncatlab.org/nlab/show/cartesian+closed+category), [distributive](https://ncatlab.org/nlab/show/distributive+category), etc.),
+- Program morphisms in any category with enough structure (e.g. [cartesian closed](https://ncatlab.org/nlab/show/cartesian+closed+category), [distributive](https://ncatlab.org/nlab/show/distributive+category), etc.). New compilers will be added, for the moment there is an evaluator in Haskell and a compiler to JavaScript.
 - Define (soon) locally finitely presentable categories and functors between these categories.
 - Pointfree functional programming (no lambdas).
 
@@ -13,6 +13,8 @@ Lawvere is a categorical programming language.
 The Lawvere language (and the executable `bill`) is named after [William Lawvere](https://en.wikipedia.org/wiki/William_Lawvere).
 
 ## Build/Installation
+
+You can build the project with stack or nix.
 
 ### Stack
 

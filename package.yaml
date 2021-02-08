@@ -1,10 +1,10 @@
 name: lawvere
 version: 0.1.0.0
 github: "jameshaydon/lawvere"
-license: BSD3
-author: "Author name here"
-maintainer: "example@example.com"
-copyright: "2020 Author name here"
+license: MIT
+author: "James Henri Haydon"
+maintainer: "james.haydon@gmail.com"
+copyright: "2020 James Henri Haydon"
 
 extra-source-files:
   - README.md

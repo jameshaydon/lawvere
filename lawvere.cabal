@@ -4,17 +4,17 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 19ed0d7bedcfd4802965ee432540f9cb57a8dc6ae46422786f9cb21b16c9c233
+-- hash: 2dc0f2a336b4b4e5a95f4fad8c0c861411c0f02e7ca4d9551b1cca62c9441804
 
 name:           lawvere
 version:        0.1.0.0
 description:    Please see the README on GitHub at <https://github.com/jameshaydon/lawvere#readme>
 homepage:       https://github.com/jameshaydon/lawvere#readme
 bug-reports:    https://github.com/jameshaydon/lawvere/issues
-author:         Author name here
-maintainer:     example@example.com
-copyright:      2020 Author name here
-license:        BSD3
+author:         James Henri Haydon
+maintainer:     james.haydon@gmail.com
+copyright:      2020 James Henri Haydon
+license:        MIT
 build-type:     Simple
 extra-source-files:
     README.md

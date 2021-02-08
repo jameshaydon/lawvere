@@ -1,5 +1,6 @@
 module Main (main, dev) where
 
+import Data.List (nub)
 import Lawvere.Check
 import Lawvere.Decl
 import Lawvere.Disp
@@ -26,7 +27,7 @@ runFile target filepath = do
     Left err -> say . toS $ Mega.errorBundlePretty err
     Right (prog :: [Decl]) -> do
       sayi "Checking.."
-      let (res, warns) = checkProg prog
+      let (res, nub -> warns) = checkProg prog
       forM_ warns (putErr . ("WARN: " <>))
       case res of
         Right _ -> sayi "Check OK!"

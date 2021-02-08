@@ -9,6 +9,7 @@ A categorical programming language
 </div>
 
 - Program morphisms in any category with enough structure (e.g. [cartesian closed](https://ncatlab.org/nlab/show/cartesian+closed+category), [distributive](https://ncatlab.org/nlab/show/distributive+category), etc.). New compilers will be added, for the moment there is an evaluator in Haskell and a compiler to JavaScript.
+- Effect system via free Freyd categories.
 - Define (soon) locally finitely presentable categories and functors between these categories.
 - Pointfree functional programming (no lambdas).
 
@@ -191,6 +192,17 @@ ar Base somePoint : {:} --> Point =
 ar Base main : {:} --> Float =
   somePoint horizontal
 ```
+
+### String interpolation
+
+A string can contain interpolated expressions. For example, `"Name: {f}, Age: {g}"` denotes a morphism `A --> String` as long as both `f` and `g` are also morphisms `A --> String`.
+
+The program:
+``` lawvere
+ar Base main : {:} --> String =
+  { name= "James", hobby= "playing Go" } "{.name} likes {.hobby}."
+```
+will print `"James likes playing Go."`
 
 ### Sums
 

@@ -228,6 +228,13 @@ noEffects = traverse go
     go _ = throwError CeEff
 
 inferTarget :: Ob -> Expr -> Check Ob
+inferTarget a (InterpolatedString ps) = do
+  traverse_ go ps
+  pure strTyp
+  where
+    strTyp = ONamed (UcIdent "String")
+    go (ISRaw _) = pure ()
+    go (ISExpr e) = check (a, strTyp) e
 inferTarget (TFunApp name a) (EFunApp name' f)
   | name == name' = do
     b <- inferTarget a f
@@ -307,6 +314,13 @@ inferDistrTarget label (Lim theLim) = do
 inferDistrTarget label source = throwError (CeDistrSourceNotLim label source)
 
 check :: (Ob, Ob) -> Expr -> Check ()
+check (a, b) (InterpolatedString ps) = do
+  unify b strTyp
+  traverse_ go ps
+  where
+    strTyp = ONamed (UcIdent "String")
+    go (ISRaw _) = pure ()
+    go (ISExpr e) = check (a, strTyp) e
 check (ONamed name, b) f = do
   a <- getNamedOb name
   check (a, b) f
@@ -380,7 +394,9 @@ unify typ (OVar v) =
     Just r -> unify typ r
 unify (OTuple as) b = unify (prodToLim as) b
 unify a (OTuple bs) = unify a (prodToLim bs)
-unify (Lim diag) (Lim diag') = unifyLim diag diag'
+unify (Lim as) (Lim bs) = do
+  ys <- pairwise as bs ?:: CeCantUnifyPairwise
+  forM_ ys $ \(_, (a, b)) -> unify a b
 unify (CoLim as) (CoLim bs) = do
   ys <- pairwise as bs ?:: CeCantUnifyPairwise
   forM_ ys $ \(_, (a, b)) -> unify a b
@@ -393,6 +409,3 @@ unify a b = throwError (CeCantUnify a b)
 unifyMany :: [Ob] -> Check ()
 unifyMany (a : b : rest) = unify a b >> unifyMany (b : rest)
 unifyMany _ = pure ()
-
-unifyLim :: DiscDiag -> DiscDiag -> Check ()
-unifyLim _ _ = warning "Limit unification not implemented."

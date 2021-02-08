@@ -1,0 +1,7 @@
+freyd Base[IO] hello : {:} --> String =
+  <"What is your name?"> putLine
+  getLine
+  <"Hello {}"> putLine
+
+ar IO main : {:} --> {:} =
+  io(hello)

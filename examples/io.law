@@ -6,6 +6,6 @@ freyd Base[IO] greet : {:} --> {:} =
   !name{ask}
   !hobby{ask}
   "Hello {.name}, I like {.hobby} too!" putLine
-  
 
-ar IO main : {:} --> {:} = io(greet)
+ar IO main : {:} --> {:} =
+  io(greet)

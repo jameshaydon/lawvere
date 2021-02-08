@@ -312,6 +312,51 @@ In words: If the list is `empty`, then return `0`. Otherwise take the `head`, an
 
 Lawvere is is a pure language but allows programming with effects using free [Freyd categories](https://ncatlab.org/nlab/show/Freyd+category), much like Haskell is pure but allows programming with effects using monads or arrows. In fact Freyd categories and arrows are very similar, e.g. see [Categorical semantics for arrows](http://homepages.inf.ed.ac.uk/cheunen/publications/2008/arrows/arrows.pdf).
 
+#### I/O
+
+The `IO` effect is built-in. Here is an example of a morphism which performs I/O:
+
+``` lawvere
+freyd Base[IO] hello : {:} --> String =
+  <"What is your name?"> putLine
+  getLine
+  <"Hello {}"> putLine
+```
+
+To run this, one must use the `io` functor:
+
+``` lawvere
+ar IO main : {:} --> {:} =
+  io(ask)
+```
+
+This will print `What is your name`, wait for the user to input their name, and then greet them.
+
+Cones (`{..}`) are not permitted in effectful morphisms, but one can still perform effects at a single component. Here is a program which asks for 2 pieces of user input:
+
+``` lawvere
+// Turn a question into an answer.
+freyd Base[IO] ask : String --> String =
+  putLine getLine
+
+// Ask some questions and then print a greeting.
+freyd Base[IO] greet : {:} --> {:} =
+  <{name = "What is your name?", hobby = "What is your favourite hobby?"}>
+  !name{ask}
+  !hobby{ask}
+  "Hello {.name}, I like {.hobby} too!" putLine
+
+ar IO main : {:} --> {:} =
+  io(greet)
+```
+
+Effectful programming will be explained more in the next section. In practice the main points are:
+- Cones (`{..}`) are not permitted.
+- Pure computations must be wrapped in `<..>`.
+- To run an effect at a single component of a product, use `!label{..}` syntax.
+- To run effects you need to map to the `IO` category with `io`.
+
+#### State
 
 As an example we define a new effect sketch for some integer state (see [here](/examples/freyd-state.law) for the full example).
 
@@ -332,7 +377,7 @@ freyd Base[IntState] next : {:} --> Int =
 ```
 
 There are two new pieces of syntax:
-- `<..>` denotes the canonical injection into the Freyd category. So this can be used for lifting any pure morphism. This performs the same role as the [`arr`](https://hackage.haskell.org/package/base-4.14.1.0/docs/Control-Arrow.html#v:arr) method of the [`Arrow`](https://hackage.haskell.org/package/base-4.14.1.0/docs/Control-Arrow.html#t:Arrow) typeclass in Haskell.
+- `<..>` denotes the canonical injection into the Freyd category. So this can be used for lifting any pure morphism. This performs the same role as the [`arr`](https://hackage.haskell.org/package/base-4.14.1.0/docs/Control-Arrow.html#v:arr) method of the [`Arrow`](https://hackage.haskell.org/package/base-4.14.1.0/docs/Control-Arrow.html#t:Arrow) type class in Haskell.
 - `!label{...}` (where `label` can  be any component name). Effect categories do not (necessarily) have products, so using the cone syntax is prohibited. The sequencing of effects is specified by using the categorical composition. The Freyd category does have the same objects as the pure category it extends however, and an effectful morphisms can be performed at one component of a product of the base category. If `f : B --> B'` is effectful morphism and `{a : A, b : B, c : C}` is a product in the pure category, then `!b{f} : {a : A, b : B, c : C} --> {a : A, b : B', c : C}` is another effectful morphism. In other words, `!b{f}` means "perform effect `f` at component `b`". This performs the same role as [`first`](https://hackage.haskell.org/package/base-4.14.1.0/docs/Control-Arrow.html#v:first) in [`Arrow`](https://hackage.haskell.org/package/base-4.14.1.0/docs/Control-Arrow.html#t:Arrow) except for any component.
 
 So `next` works as follows:
@@ -408,5 +453,5 @@ For the moment there is only an [emacs mode](/tools/emacs). The syntax looks muc
 - Defining via sketches more pure categories, finitely presentable caregories, etc.
 - Make a small (but not just a few lines) "real program".
 - Allow one to define morphisms via curry/uncurry.
-- Think about if diagrams (which are used for e.g. (co)limits) can be
-  represented as functors directly (from discrete categories).
+- Think about if diagrams (which are used for e.g. (co)limits) can be represented as functors directly (from discrete categories).
+- Typechecker is not complete.

@@ -6,6 +6,8 @@ A categorical programming language
 
 [Install](#buildinstallation) • [Tutorial](#tutorial) • [Editor support](#editor-support)
 
+`<"What is your name?"> putLine getLine <"Hello {}"> putLine`
+
 </div>
 
 - Program morphisms in any category with enough structure (e.g. [cartesian closed](https://ncatlab.org/nlab/show/cartesian+closed+category), [distributive](https://ncatlab.org/nlab/show/distributive+category), etc.). New compilers will be added, for the moment there is an evaluator in Haskell and a compiler to JavaScript.
@@ -344,7 +346,7 @@ freyd Base[IO] greet : {:} --> {:} =
   <{name = "What is your name?", hobby = "What is your favourite hobby?"}>
   !name{ask}
   !hobby{ask}
-  "Hello {.name}, I like {.hobby} too!" putLine
+  <"Hello {.name}, I like {.hobby} too!"> putLine
 
 ar IO main : {:} --> {:} =
   io(greet)

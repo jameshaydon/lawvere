@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 8144e8c20ee48b72ce8c37cb3475a4c592430a9e577fbf61274c9f06ef428fb4
+-- hash: f836ec17085b19ae69b963b5e4a0532d176877550e868ab8e5339d317ed0bcbe
 
 name:           lawvere
 version:        0.1.0.0
@@ -56,6 +56,7 @@ library
     , generic-lens
     , lens
     , megaparsec
+    , optparse-applicative
     , pandoc-types
     , parser-combinators
     , prettyprinter
@@ -83,6 +84,7 @@ executable bill
     , lawvere
     , lens
     , megaparsec
+    , optparse-applicative
     , pandoc-types
     , parser-combinators
     , prettyprinter
@@ -112,6 +114,7 @@ test-suite lawvere-test
     , lawvere
     , lens
     , megaparsec
+    , optparse-applicative
     , pandoc-types
     , parser-combinators
     , prettyprinter

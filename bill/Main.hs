@@ -7,8 +7,9 @@ import Lawvere.Decl
 import Lawvere.Disp
 import Lawvere.Eval
 import Lawvere.Literate
-import Lawvere.Parse
-import Protolude hiding (empty)
+import Lawvere.Parse hiding (Parser)
+import Options.Applicative
+import Protolude hiding (empty, option)
 import qualified Text.Megaparsec as Mega
 
 say :: (MonadIO m) => Text -> m ()
@@ -20,7 +21,7 @@ putErr = liftIO . hPutStrLn stderr
 data Target
   = JS
   | Hask
-  deriving stock (Eq)
+  deriving stock (Eq, Show)
 
 runFile :: Target -> FilePath -> IO ()
 runFile target filepath = handleErr $ do
@@ -63,13 +64,56 @@ runFile target filepath = handleErr $ do
         Left e -> putErr e
         Right x -> pure x
 
+data Mode = Batch | Interactive
+
+data Opts = Opts
+  { mode :: Mode,
+    target :: Target,
+    file :: FilePath
+  }
+
+optsParser :: Parser Opts
+optsParser =
+  Opts
+    <$> ( (\i -> if i then Interactive else Batch)
+            <$> switch
+              ( long "interactive"
+                  <> short 'i'
+                  <> help "Interactive mode"
+              )
+        )
+    <*> option
+      (maybeReader parseTarget)
+      ( long "target"
+          <> help "Which compiler to target"
+          <> showDefault
+          <> value Hask
+          <> metavar "TARGET"
+      )
+    <*> strArgument
+      ( help "The source file to compile/run"
+          <> metavar "FILE"
+      )
+  where
+    parseTarget (map toLower -> t) = case t of
+      "js" -> Just JS
+      "javascript" -> Just JS
+      "hs" -> Just Hask
+      "hask" -> Just Hask
+      _ -> Nothing
+
 main :: IO ()
 main = do
-  args <- getArgs
-  case args of
-    [filename] -> runFile Hask filename
-    ["--js", filename] -> runFile JS filename
-    _ -> say "Please specify exactly one file, and optionally the --js option."
+  Opts {..} <- execParser opts
+  runFile target file
+  where
+    opts =
+      info
+        (optsParser <**> helper)
+        ( fullDesc
+            <> progDesc "Run the Lawvere compiler on FILE compiling to TARGET"
+            <> header "Lawvere - A categorical programming language"
+        )
 
 dev :: IO ()
 dev = do

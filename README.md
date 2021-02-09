@@ -4,7 +4,7 @@
 
 A categorical programming language
 
-[Install](#buildinstallation) • [Tutorial](#tutorial) • [Editor support](#editor-support)
+[Install](#buildinstallation) • [Tutorial](#tutorial) • [Editor support](#editor-support) • [Development](#development) 
 
 `<"What is your name?"> putLine getLine <"Hello {}!"> putLine`
 
@@ -442,7 +442,7 @@ $ cabal2nix . > nix/packages/lawvere.nix
 $ direnv reload
 ```
 
-Note: Cabal is also available in the nix shell so you can build with it as well if you like:
+_Note:_ Cabal is also available in the nix shell so you can build with it as well if you like:
 
 ```
 $ cabal build

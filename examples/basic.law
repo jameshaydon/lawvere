@@ -35,9 +35,6 @@ ar Base map : (ListInt => Int, ListListInt) --> ListInt =
 ar Base mapLength : ListListInt --> ListInt =
   (const(length), ) map
 
-// ar main : {:} --> Int =
-//   list3 length
-
 ar Base main : {:} --> ListInt =
   listOfLists mapLength
 
@@ -57,4 +54,6 @@ ar Base list2 : {:} --> ListInt =
   empty. cons2 cons1 cons1 cons1
 
 ar Base listOfLists : {:} --> ListListInt =
-  empty. {head = list3, tail = } cons. {head = list2, tail = } cons.
+  empty.
+  { head = {=} list3, tail = } cons.
+  {head = {=} list2, tail = } cons.

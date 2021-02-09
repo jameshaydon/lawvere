@@ -1,4 +1,4 @@
-ob Base Point = { x : Float, y : Flaot }
+ob Base Point = { x : Float, y : Float }
 
 ar Base horizontal : Point --> Float = .x 
 

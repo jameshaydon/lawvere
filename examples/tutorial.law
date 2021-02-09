@@ -1,4 +1,4 @@
-ob Base Point = { x : Float, y : Flaot }
+ob Base Point = { x : Float, y : Float }
 
 ob Base Bool =
   [ true:  {:},
@@ -29,9 +29,9 @@ ar Base zip : { xs : ListF, ys : ListF } --> ListPoint =
 
 ar Base ex : {:} --> ListF =
   empty.
-  { head = 0,   tail = } cons.
-  { head = 1.2, tail = } cons.
-  { head = 100, tail = } cons.
+  { head = 0.0,   tail = } cons.
+  { head = 1.2,   tail = } cons.
+  { head = 100.0, tail = } cons.
 
 ar Base main : {:} --> ListPoint =
   { xs = ex, ys = ex } zip

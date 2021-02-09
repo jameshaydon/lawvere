@@ -3,7 +3,7 @@ sketch IntState over Base = {
   ar put : Int --> {:}
 }
 
-freyd Base[IntState] next : {:} --> Int =
+ar Base[IntState] next : {:} --> Int =
   get
   <{ current= , next= }>
   !next{ <incr> put }
@@ -31,7 +31,7 @@ interp IntState pureState =
 
 // make a function which maps `next` over a list of units:
 
-freyd Base[IntState] mapNext : list({:}) --> list(Int) =
+ar Base[IntState] mapNext : list({:}) --> list(Int) =
     [ empty = <empty.>,
       cons  = !head{ next } !tail{ mapNext } <cons.> ]
 

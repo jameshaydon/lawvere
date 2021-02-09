@@ -1,4 +1,5 @@
---command "cabal repl" \
+--command "cabal repl bill" \
+--test dev
 --restart=examples/tutorial.law
 --restart=examples/basic.law
 --restart=examples/list.law

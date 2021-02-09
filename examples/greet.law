@@ -1,7 +1,7 @@
-freyd Base[IO] hello : {:} --> String =
+ar Base[IO] hello : {:} --> String =
   <"What is your name?"> putLine
   getLine
-  <"Hello {}"> putLine
+  <"Hello {}!"> putLine
 
-ar IO main : {:} --> {:} =
+ar InputOutput main : {:} --> {:} =
   io(hello)

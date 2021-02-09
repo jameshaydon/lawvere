@@ -54,23 +54,7 @@ $ nix-build nix/release.nix
 $ result/bin/bill <file>
 ```
 
-To update the nix derivation when project dependencies change:
-
-```
-$ hpack
-$ cabal2nix . > nix/packages/lawvere.nix
-$ direnv reload
-```
-
-Note: Cabal is also available in the nix shell so you can build with it as well if you like:
-
-```
-$ cabal build
-```
-
 ## Tutorial
-
-This is a small tutorial introducing the basics of the Lawvere programming language.
 
 ### Basic types
 
@@ -80,7 +64,7 @@ Lawvere has support for some basic types. They are written as you would expect, 
 ar someNumber : {:} --> Int = 42
 ```
 
-The above code defined an _arrow_ (using the `ar` keyword) in the category `Base`. The arrow has source `{:}` (which is notation for the unit type) and target `Int`. The definition of the arrow is simply `42`.
+The above code defines an _arrow_ (using the `ar` keyword) in the category `Base`. The arrow has source `{:}` (which is notation for the unit type) and target `Int`. The definition of the arrow is simply `42`.
 
 ### Composition
 
@@ -121,6 +105,8 @@ output:
 (Or run `stack exec bill -- test.law` or `cabal run bill -- test.law` if you haven't installed `bill`.)
 
 A Lawvere file should always have a `main` morphism, whose source is `{:}` (the terminal object).
+
+_Note:_ The checker is a work-in-progress and is far from complete.
 
 ### Compiling to JavaScript
 
@@ -321,7 +307,7 @@ Lawvere is is a pure language but allows programming with effects using free [Fr
 The `IO` effect is built-in. Here is an example of a morphism which performs I/O:
 
 ``` lawvere
-freyd Base[IO] hello : {:} --> String =
+ar Base[IO] hello : {:} --> String =
   <"What is your name?"> putLine
   getLine
   <"Hello {}"> putLine
@@ -330,8 +316,8 @@ freyd Base[IO] hello : {:} --> String =
 To run this, one must use the `io` functor:
 
 ``` lawvere
-ar IO main : {:} --> {:} =
-  io(ask)
+ar InputOutput main : {:} --> {:} =
+  io(hello)
 ```
 
 This will print `What is your name`, wait for the user to input their name, and then greet them.
@@ -340,17 +326,17 @@ Cones (`{..}`) are not permitted in effectful morphisms, but one can still perfo
 
 ``` lawvere
 // Turn a question into an answer.
-freyd Base[IO] ask : String --> String =
+ar Base[IO] ask : String --> String =
   putLine getLine
 
 // Ask some questions and then print a greeting.
-freyd Base[IO] greet : {:} --> {:} =
+ar Base[IO] greet : {:} --> {:} =
   <{name = "What is your name?", hobby = "What is your favourite hobby?"}>
   !name{ask}
   !hobby{ask}
   <"Hello {.name}, I like {.hobby} too!"> putLine
 
-ar IO main : {:} --> {:} =
+ar InputOutput main : {:} --> {:} =
   io(greet)
 ```
 
@@ -358,7 +344,7 @@ Effectful programming will be explained more in the next section. In practice th
 - Cones (`{..}`) are not permitted.
 - Pure computations must be wrapped in `<..>`.
 - To run an effect at a single component of a product, use `!label{..}` syntax.
-- To run effects you need to map to the `IO` category with `io`.
+- To run effects you need to map to the `InputOutput` category with `io`.
 
 #### State
 
@@ -376,7 +362,7 @@ This defines a theory for extending the `Base` category with two distinguished m
 We can then define morphisms in this abstract extension of `Base`. The following morphisms increments the state while returning the original value:
 
 ``` lawvere
-freyd Base[IntState] next : {:} --> Int =
+ar Base[IntState] next : {:} --> Int =
   get <{ current = , next = }> !next{ <incr> put } <.current>
 ```
 
@@ -393,7 +379,7 @@ So `next` works as follows:
 Next we'll specify how to map this function over a list. We can't reuse the `list` functor because that doesn't specify how to sequence the effects: should the effect be performed first on the head or the tail of the list?
 
 ``` lawvere
-freyd Base[IntState] mapNext : list({:}) --> list(Int) =
+ar Base[IntState] mapNext : list({:}) --> list(Int) =
     [ empty = <empty.>,
       cons  = !head{ next } !tail{ mapNext } <cons.> ]
 ```
@@ -440,13 +426,27 @@ ar Base main : {:} --> Int =
   .value                           // we are jut interesting in the result, not the accumulated state
 ```
 
-(The checker will complain because it doesn't handle interpretations yet.)
-
 Checkout the [full example](/examples/freyd-state.law).
 
 ## Editor support
 
 For the moment there is only an [emacs mode](/tools/emacs). The syntax looks much better if you use a font with programming ligatures, e.g. [FiraCode](https://github.com/tonsky/FiraCode) or [alternatives](https://github.com/tonsky/FiraCode#alternatives).
+
+## Development
+
+To update the nix derivation when project dependencies change:
+
+```
+$ hpack
+$ cabal2nix . > nix/packages/lawvere.nix
+$ direnv reload
+```
+
+Note: Cabal is also available in the nix shell so you can build with it as well if you like:
+
+```
+$ cabal build
+```
 
 ---
 
@@ -458,4 +458,4 @@ For the moment there is only an [emacs mode](/tools/emacs). The syntax looks muc
 - Make a small (but not just a few lines) "real program".
 - Allow one to define morphisms via curry/uncurry.
 - Think about if diagrams (which are used for e.g. (co)limits) can be represented as functors directly (from discrete categories).
-- Type checker is not complete.
+- Type checker is not complete; it really needs row variables to be implemented properly.

@@ -81,7 +81,6 @@ instance Parsed SketchInterp where
 
 data Decl
   = DAr Ob LcIdent Ob Ob Expr
-  | DFreyd Ob LcIdent Ob Ob Expr
   | DOb Ob UcIdent Ob
   | DSketch Sketch
   | DInterp LcIdent UcIdent Expr SketchInterp Expr Expr
@@ -130,8 +129,7 @@ instance Parsed Decl where
   parsed =
     choice
       [ pObDecl,
-        pArDecl kwAr    DAr,
-        pArDecl kwFreyd DFreyd,
+        pArDecl kwAr DAr,
         pInterpDecl,
         DSketch <$> parsed
       ]
@@ -142,7 +140,6 @@ instance Disp Decl where
     DAr catName name a b body -> dispDef "ar" (disp catName <+> disp name <+> ":" <+> disp a <+> "-->" <+> disp b) (disp body)
     DSketch sketch -> disp sketch
     DInterp {} -> "TODO"
-    DFreyd{} -> "TODO"
 
 dispDef :: Text -> Doc Ann -> Doc Ann -> Doc Ann
 dispDef defname thing body = nest 2 $ vsep [pretty defname <+> thing <+> "=", body]

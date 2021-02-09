@@ -61,10 +61,9 @@ main = do
 
 dev :: IO ()
 dev = do
-  --runFile "examples/product.law"
-  --runFile Hask "examples/tutorial.law"
+  runFile Hask "examples/product.law"
+  runFile Hask "examples/tutorial.law"
   runFile Hask "examples/io.law"
-
--- runFile "examples/basic.law"
---runFile Hask "examples/list.law"
---runFile Hask "examples/freyd-state.law"
+  runFile Hask "examples/basic.law"
+  runFile Hask "examples/list.law"
+  runFile Hask "examples/freyd-state.law"

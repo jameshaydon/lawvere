@@ -10,6 +10,7 @@ import Lawvere.Core
 import Lawvere.Decl
 import Lawvere.Disp
 import Lawvere.Expr
+import Lawvere.Ob
 import Lawvere.Scalar
 import Prettyprinter
 import Protolude
@@ -262,8 +263,8 @@ evalInterp tops iInj iHandlers iSum iSide =
 
 evalDecl :: Tops -> Decl -> [(LcIdent, Top)]
 evalDecl tops = \case
+  DAr (OFree _ (Extension _ _)) name _ _ e -> [(name, TFreyd e)]
   DAr _ name _ _ e -> [(name, TFun (evalAr tops e))]
-  DFreyd _ name _ _ e -> [(name, TFreyd e)]
   DInterp name _sketchName iInj iHandlers iSum iSide -> [(name, TInterp (evalInterp tops iInj iHandlers iSum iSide))]
   DOb {} -> []
   DSketch {} -> []

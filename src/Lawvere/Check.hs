@@ -61,6 +61,7 @@ data Err
   | CeCantInferTarget Ob Expr
   | CeCantInferSource Ob Expr
   | CeCoConeCasesDontMatchColimSource DiscDiag [(Label, Expr)] (Label, Either Expr Ob)
+  | CeConeComponentsDontMatchTargetLim DiscDiag [(Label, Expr)] (Label, Either Expr Ob)
   | CeCantInferTargetOfEmptyCoCone
   | CeCantUnifyPairwise (Label, Either Ob Ob)
   | CeCantCheck Ob Ob Expr
@@ -171,8 +172,8 @@ getNamedOb name = do
     Nothing -> throwError (CeUndefinedOb name)
 
 checkDecl :: Decl -> Check ()
+checkDecl (DAr (OFree _ _) _ _ _ _) = warning "Freyd arrows are not checked yet."
 checkDecl (DAr _ _ a b body) = check (a, b) body
-checkDecl DFreyd {} = warning "Freyd arrows are not checked yet." -- TODO
 checkDecl DInterp {} = warning "Interpretatoins are not checked yet." -- TODO
 checkDecl DOb {} = pure () -- TODO
 checkDecl DSketch {} = pure ()
@@ -272,7 +273,8 @@ inferTarget (CoLim as) (CoCone fs) =
           unifyMany bs
           pure b
     Left err -> throwError (CeCoConeCasesDontMatchColimSource as fs err)
-inferTarget _ (Inj _) =
+inferTarget _ (Inj _) = do
+  warning "Not checking target of injection."
   freshT
 inferTarget (OTuple as) f =
   inferTarget (prodToLim as) f
@@ -280,14 +282,18 @@ inferTarget source (Distr label) =
   inferDistrTarget label source
 inferTarget (Lim as) (Proj label) =
   lookup label as ?: CeCantProjLabelMissing label as
--- TODO: here we could call yet another function 'infer', since in some cases
--- the full type of 'f' is inferrable.
 inferTarget _ (EConst f) = do
   (a, b) <- infer f
   pure (a :=> b)
+inferTarget _ (EFunApp _ _) = do
+  warning "Functor applications are not checked yet."
+  freshT
 inferTarget source f = throwError (CeCantInferTarget source f)
 
 inferSource :: Ob -> Expr -> Check Ob
+inferSource target (Lit s) = do
+  unify target (scalarTyp s)
+  freshT
 inferSource target (Top name) = do
   ((a, b), _) <- getNamedAr name
   unify b target
@@ -299,10 +305,35 @@ inferSource target (Comp []) = pure target
 inferSource target (Comp (f : fs)) = do
   b <- inferSource target (Comp fs)
   inferSource b f
+inferSource (OTuple as) f = inferSource (prodToLim as) f
+inferSource target (Tuple fs) = inferSource target (tupleToCone fs)
 inferSource target (Cone []) = do
   unify target (Lim [])
   freshT
---inferSource target (CoCone fs) = _
+inferSource (Lim bs) (Cone fs) = do
+  fs' <- noEffects fs
+  case pairwise bs fs' of
+    Left unmatch -> throwError (CeConeComponentsDontMatchTargetLim bs fs' unmatch)
+    Right pairs -> do
+      let go (_, (b, f)) = inferSource b f
+      as <- traverse go pairs
+      case as of
+        [] -> freshT
+        a : _ -> do
+          unifyMany as
+          pure a
+inferSource target (CoCone fs) = do
+  diag <- traverse (_2 (inferSource target)) fs
+  pure (CoLim diag)
+inferSource (CoLim as) (Inj lab) = case lookup lab as of
+  Just a -> pure a
+  Nothing -> throwError (CeCantInjLabelMissing lab as)
+inferSource _ (Proj _) = do
+  warning "Not checking source of projection."
+  freshT
+inferSource _ (Distr _) = do
+  warning "Not checking source of distributor."
+  freshT
 inferSource target f = throwError (CeCantInferSource target f)
 
 inferDistrTarget :: Label -> Ob -> Check Ob
@@ -341,11 +372,15 @@ check (_, b) (Lit s) = unify b (scalarTyp s)
 check (Lim as, b) (Proj label) = do
   a <- lookup label as ?: CeCantProjLabelMissing label as
   unify a b
-check niche (Proj label) = throwError (CeCantProjOutOfNonLim label niche)
+check (OVar _, _) (Proj _) = warning "Can't add component constraint."
+check (OTuple as, b) f = check (prodToLim as, b) f
+check (a, OTuple bs) f = check (a, prodToLim bs) f
 check (a, CoLim bs) (Inj label) = do
   b <- lookup label bs ?: CeCantInjLabelMissing label bs
   unify b a
-check niche (Inj label) = throwError (CeCantInjIntoNonCoLim label niche)
+check (a, b) (Inj lab) = do
+  b' <- resolveOb b
+  check (a, b') (Inj lab)
 check niche (Tuple fs) = check niche (tupleToCone fs)
 check (a, b) (Comp []) = unify a b
 check (a, b) (Comp [f]) = check (a, b) f
@@ -400,10 +435,17 @@ unify (Lim as) (Lim bs) = do
 unify (CoLim as) (CoLim bs) = do
   ys <- pairwise as bs ?:: CeCantUnifyPairwise
   forM_ ys $ \(_, (a, b)) -> unify a b
+unify (a :=> b) (a' :=> b') = unify a a' >> unify b b'
 unify (TFunApp name a) (TFunApp name' b)
   | name == name' -- TODO: we should also handle the non-equal case
     =
     unify a b
+unify a@(TFunApp _ _) b = do
+  a' <- resolveOb a
+  unify a' b
+unify a b@(TFunApp _ _) = do
+  b' <- resolveOb b
+  unify a b'
 unify a b = throwError (CeCantUnify a b)
 
 unifyMany :: [Ob] -> Check ()

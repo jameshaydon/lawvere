@@ -31,6 +31,9 @@ dependencies:
   - parser-combinators
   - transformers
   - text
+  - pandoc-types
+  - commonmark
+  - commonmark-pandoc
 
 library:
   source-dirs: src

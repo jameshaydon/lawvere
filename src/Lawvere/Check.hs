@@ -298,6 +298,14 @@ inferSource target (Top name) = do
   ((a, b), _) <- getNamedAr name
   unify b target
   pure a
+inferSource (TFunApp name b) (EFunApp name' f)
+  | name == name' = do
+    a <- inferSource b f
+    pure (TFunApp name a)
+inferSource (TFunApp name o) f = do
+  (_, e) <- getNamedAr name
+  o' <- applyFunctor e o
+  inferTarget o' f
 inferSource (ONamed name) f = do
   target <- getNamedOb name
   inferSource target f
@@ -387,16 +395,26 @@ check (a, b) (Comp [f]) = check (a, b) f
 check (a, c) (Comp (f : fs)) = do
   b <- inferTarget a f
   check (b, c) (Comp fs)
-check (a, b) (Cone fs) = do
+check (a, Lim bs) (Cone fs) = do
   fs' <- noEffects fs
-  bs <- traverse (_2 (inferTarget a)) fs'
-  unify b (Lim bs)
-check (a, b) (CoCone fs) = do
-  as <- traverse (_2 (inferSource b)) fs
-  unify a (CoLim as)
+  case pairwise bs fs' of
+    Left unmatch -> throwError (CeConeComponentsDontMatchTargetLim bs fs' unmatch)
+    Right pairs -> do
+      let go (_, (b, f)) = check (a, b) f
+      traverse_ go pairs
+check (CoLim as, b) (CoCone fs) = case pairwise as fs of
+  Left unmatch -> throwError (CeCoConeCasesDontMatchColimSource as fs unmatch)
+  Right pairs -> do
+    let go (_, (a, f)) = check (a, b) f
+    traverse_ go pairs
 check (a, b) (Distr label) = do
   b' <- inferDistrTarget label a
   unify b' b
+check (TFunApp name a, TFunApp name' b) (EFunApp name'' f)
+  | name == name', name == name'' = check (a, b) f
+check (a@(TFunApp _ _), b) f = do
+  a' <- resolveOb a
+  check (a', b) f
 check _ (EFunApp _ _) = warning "Functor applications are not checked yet."
 check (a, b) f = throwError (CeCantCheck a b f)
 

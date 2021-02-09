@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 2dc0f2a336b4b4e5a95f4fad8c0c861411c0f02e7ca4d9551b1cca62c9441804
+-- hash: 8144e8c20ee48b72ce8c37cb3475a4c592430a9e577fbf61274c9f06ef428fb4
 
 name:           lawvere
 version:        0.1.0.0
@@ -15,6 +15,7 @@ author:         James Henri Haydon
 maintainer:     james.haydon@gmail.com
 copyright:      2020 James Henri Haydon
 license:        MIT
+license-file:   LICENSE
 build-type:     Simple
 extra-source-files:
     README.md
@@ -33,6 +34,7 @@ library
       Lawvere.Eval
       Lawvere.Expr
       Lawvere.Instruction
+      Lawvere.Literate
       Lawvere.Ob
       Lawvere.Parse
       Lawvere.Prim
@@ -48,10 +50,13 @@ library
       aeson
     , base >=4.7 && <5
     , bytestring
+    , commonmark
+    , commonmark-pandoc
     , containers
     , generic-lens
     , lens
     , megaparsec
+    , pandoc-types
     , parser-combinators
     , prettyprinter
     , protolude
@@ -71,11 +76,14 @@ executable bill
       aeson
     , base >=4.7 && <5
     , bytestring
+    , commonmark
+    , commonmark-pandoc
     , containers
     , generic-lens
     , lawvere
     , lens
     , megaparsec
+    , pandoc-types
     , parser-combinators
     , prettyprinter
     , protolude
@@ -96,12 +104,15 @@ test-suite lawvere-test
       aeson
     , base >=4.7 && <5
     , bytestring
+    , commonmark
+    , commonmark-pandoc
     , containers
     , generic-lens
     , hspec
     , lawvere
     , lens
     , megaparsec
+    , pandoc-types
     , parser-combinators
     , prettyprinter
     , protolude

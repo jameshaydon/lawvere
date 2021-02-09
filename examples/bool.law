@@ -4,9 +4,6 @@ ar Base not : Bool --> Bool
   = [ true  = false.,
       false = true. ]
 
-ar Base distrAtx : { x: [ true: {:}, false: {:}], y: Bool } --> [ true: { x: {:}, y: Bool}, false: { x: {:}, y: Bool } ]
-  = @x
-
 ar Base and : {x : Bool, y : Bool} --> Bool =
   @x [ true  = .y,
        false = {=} false. ]

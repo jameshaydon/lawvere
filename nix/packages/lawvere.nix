@@ -1,8 +1,8 @@
 { mkDerivation, aeson, base, bytestring, commonmark
-, commonmark-pandoc, containers, generic-lens, hpack, hspec
-, hspec-discover, lens, lib, megaparsec, optparse-applicative
-, pandoc-types, parser-combinators, prettyprinter, protolude, text
-, transformers
+, commonmark-pandoc, containers, generic-lens, haskeline, hpack
+, hspec, hspec-discover, lens, lib, megaparsec
+, optparse-applicative, pandoc-types, parser-combinators
+, prettyprinter, protolude, text, transformers
 }:
 mkDerivation {
   pname = "lawvere";
@@ -12,18 +12,20 @@ mkDerivation {
   isExecutable = true;
   libraryHaskellDepends = [
     aeson base bytestring commonmark commonmark-pandoc containers
-    generic-lens lens megaparsec optparse-applicative pandoc-types
-    parser-combinators prettyprinter protolude text transformers
+    generic-lens haskeline lens megaparsec optparse-applicative
+    pandoc-types parser-combinators prettyprinter protolude text
+    transformers
   ];
   libraryToolDepends = [ hpack ];
   executableHaskellDepends = [
     aeson base bytestring commonmark commonmark-pandoc containers
-    generic-lens lens megaparsec optparse-applicative pandoc-types
-    parser-combinators prettyprinter protolude text transformers
+    generic-lens haskeline lens megaparsec optparse-applicative
+    pandoc-types parser-combinators prettyprinter protolude text
+    transformers
   ];
   testHaskellDepends = [
     aeson base bytestring commonmark commonmark-pandoc containers
-    generic-lens hspec lens megaparsec optparse-applicative
+    generic-lens haskeline hspec lens megaparsec optparse-applicative
     pandoc-types parser-combinators prettyprinter protolude text
     transformers
   ];

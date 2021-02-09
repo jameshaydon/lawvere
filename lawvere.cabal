@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: f836ec17085b19ae69b963b5e4a0532d176877550e868ab8e5339d317ed0bcbe
+-- hash: 5235e7ec2378eee5d3d2780ffce9e33d99418ac80d48ac1d7096a73f9d50e1ec
 
 name:           lawvere
 version:        0.1.0.0
@@ -54,6 +54,7 @@ library
     , commonmark-pandoc
     , containers
     , generic-lens
+    , haskeline
     , lens
     , megaparsec
     , optparse-applicative
@@ -81,6 +82,7 @@ executable bill
     , commonmark-pandoc
     , containers
     , generic-lens
+    , haskeline
     , lawvere
     , lens
     , megaparsec
@@ -110,6 +112,7 @@ test-suite lawvere-test
     , commonmark-pandoc
     , containers
     , generic-lens
+    , haskeline
     , hspec
     , lawvere
     , lens

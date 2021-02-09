@@ -35,6 +35,7 @@ dependencies:
   - commonmark
   - commonmark-pandoc
   - optparse-applicative
+  - haskeline
 
 library:
   source-dirs: src

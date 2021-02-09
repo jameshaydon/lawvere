@@ -95,5 +95,5 @@ ar Base plus3 : Int --> Int =
    incr incr incr
 
 ar Base main : {:} --> Int =
-  10 plus3
+  10 plus3 plus3
 ```

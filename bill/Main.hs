@@ -10,6 +10,7 @@ import Lawvere.Literate
 import Lawvere.Parse hiding (Parser)
 import Options.Applicative
 import Protolude hiding (empty, option)
+import System.Console.Haskeline
 import qualified Text.Megaparsec as Mega
 
 say :: (MonadIO m) => Text -> m ()
@@ -23,11 +24,8 @@ data Target
   | Hask
   deriving stock (Eq, Show)
 
-runFile :: Target -> FilePath -> IO ()
-runFile target filepath = handleErr $ do
-  sayi "--------------"
-  sayi "Lawvere v0.0.0"
-  sayi "--------------"
+loadFile :: (MonadIO m) => Target -> FilePath -> ExceptT Text m [Decl]
+loadFile target filepath = do
   t <- liftIO (readFile filepath)
   source <-
     if ".md" `isSuffixOf` filepath
@@ -35,7 +33,7 @@ runFile target filepath = handleErr $ do
         Left err -> throwError err
         Right s -> pure s
       else pure t
-  prog :: [Decl] <- except (first (toS . Mega.errorBundlePretty) (Mega.parse (parsed <* Mega.eof) filepath source)) -- toS $ Mega.errorBundlePretty err
+  prog :: [Decl] <- except (first (toS . Mega.errorBundlePretty) (Mega.parse (parsed <* Mega.eof) filepath source))
   sayi "Checking.."
   let (res, nub -> warns) = checkProg prog
   forM_ warns (sayi . ("WARN: " <>))
@@ -45,24 +43,62 @@ runFile target filepath = handleErr $ do
       putErr "😲 Oh no! A category error:"
       putErr ""
       putErr (render err)
+  pure prog
+  where
+    sayi = sayHask target
+
+sayHask :: (MonadIO m) => Target -> Text -> m ()
+sayHask target t = when (target == Hask) (say t)
+
+runFile :: Target -> FilePath -> IO ()
+runFile target filepath = handleErr $ do
+  prog <- loadFile target filepath
   let inp = Rec mempty
-  sayi ""
   case target of
     Hask -> do
       say "input:"
       say ("  " <> render inp)
       say ""
-      v <- liftIO $ eval inp prog
+      v <- liftIO $ evalMain inp prog
       say ""
       say "output:"
       say ("  " <> render v)
     JS -> putStrLn (mkJS prog)
   where
-    sayi t = when (target == Hask) (say t)
     handleErr m =
       runExceptT m >>= \case
         Left e -> putErr e
         Right x -> pure x
+
+repl :: FilePath -> IO ()
+repl filepath = do
+  prog_ <- load
+  case prog_ of
+    Left err -> putErr err
+    Right prog -> runInputT defaultSettings (loop prog)
+  where
+    load :: (MonadIO m) => m (Either Text [Decl])
+    load = runExceptT (loadFile Hask filepath)
+    loop :: [Decl] -> InputT IO ()
+    loop prog = do
+      inp_ <- getInputLine "> "
+      case inp_ of
+        Nothing -> pure ()
+        Just ":q" -> outputStrLn "Bye!"
+        Just ":r" -> do
+          prog'_ <- load
+          case prog'_ of
+            Left err -> do
+              outputStrLn "Couldn't reload:"
+              outputStrLn (toS err)
+            Right prog' -> loop prog'
+        Just inp -> do
+          case Mega.parse (parsed <* Mega.eof) "input" (toS inp) of
+            Left err -> outputStrLn (toS (Mega.errorBundlePretty err))
+            Right expr -> do
+              res <- liftIO $ eval (Rec mempty) prog expr
+              outputStrLn (toS (render res))
+              loop prog
 
 data Mode = Batch | Interactive
 
@@ -105,7 +141,13 @@ optsParser =
 main :: IO ()
 main = do
   Opts {..} <- execParser opts
-  runFile target file
+  sayHask target $
+    "--------------\n"
+      <> "Lawvere v0.0.0\n"
+      <> "--------------"
+  case mode of
+    Batch -> runFile target file
+    Interactive -> repl file
   where
     opts =
       info

@@ -269,13 +269,13 @@ evalDecl tops = \case
   DOb {} -> []
   DSketch {} -> []
 
-eval :: Val -> Decls -> IO Val
-eval v ds =
+evalMain :: Val -> Decls -> IO Val
+evalMain v ds = eval v ds (Top (LcIdent "main"))
+
+eval :: Val -> Decls -> Expr -> IO Val
+eval v ds expr =
   let tops = primTops <> Map.fromList [bind | d <- ds, bind <- evalDecl tops d]
-   in case Map.lookup (LcIdent "main") tops of
-        Just (TFun m) -> m v
-        Just (TInterp _) -> panic "main can't be an interp"
-        _ -> panic "bad main!"
+   in evalAr tops expr v
 
 primsJS :: [(Text, Text)]
 primsJS =

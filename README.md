@@ -17,7 +17,7 @@ _Very work-in-progress_
 "Player {.leader} is winning by {.delta} points!"
 ```
 
-- Compile to any category. Can target any category that has structures corresponding to the programming features you use ([cartesian closed](https://ncatlab.org/nlab/show/cartesian+closed+category), [distributive](https://ncatlab.org/nlab/show/distributive+category), etc.). Comes with is an evaluator in Haskell and a compiler to JavaScript.
+- Compile to any category. Target any category that has structures corresponding to the programming features you use ([cartesian closed](https://ncatlab.org/nlab/show/cartesian+closed+category), [distributive](https://ncatlab.org/nlab/show/distributive+category), etc.). Comes with is an evaluator in Haskell and a compiler to JavaScript.
 - Effect system based on freely generated effect categories.
 - Point free functional programming (no lambdas); a categorical take on concatenative programming.
 

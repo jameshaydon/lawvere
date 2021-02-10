@@ -82,7 +82,7 @@ instance Disp Err where
     CeCantProjLabelMissing label diag ->
       sep ["Can't project", disp label, "as it is missing:", disp (Lim diag)]
     CeCantCheck a b f ->
-      sep ["Can't check:", disp a, "to", disp b, "thing:", disp f]
+      sep ["Can't check:", disp a, "to", disp b, ":", disp f]
     CeDistrWasNotColimInSource label source ->
       sep ["Distr was not a colim in source", disp label, disp source]
     CeCantApplyFunctor e o ->
@@ -230,6 +230,9 @@ noEffects = traverse go
     go (ConeComponent Pure lab, e) = pure (lab, e)
     go _ = throwError CeEff
 
+tBool :: Ob
+tBool = CoLim [(LNam "true", Lim []), (LNam "false", Lim [])]
+
 inferTarget :: Ob -> Expr -> Check Ob
 inferTarget a (BinOp (NumOp _) f g) = do
   b <- inferTarget a f
@@ -240,7 +243,7 @@ inferTarget a (BinOp (CompOp _) f g) = do
   b <- inferTarget a f
   b' <- inferTarget a g
   unify b b'
-  pure (CoLim [(LNam "true", Lim []), (LNam "false", Lim [])])
+  pure tBool
 inferTarget a (InterpolatedString ps) = do
   traverse_ go ps
   pure strTyp
@@ -366,9 +369,15 @@ inferDistrTarget label source = throwError (CeDistrSourceNotLim label source)
 
 check :: (Ob, Ob) -> Expr -> Check ()
 check (a, b) (BinOp (NumOp _) f g) = do
-  warning "No checking Num instance."
+  warning "Not checking Num instance."
   check (a, b) f
   check (a, b) g
+check (a, b) (BinOp (CompOp _) f g) = do
+  unify b tBool
+  c <- inferTarget a f
+  c' <- inferTarget a g
+  unify c c'
+  warning "Not checking Ord instance."
 check (a, b) (InterpolatedString ps) = do
   unify b strTyp
   traverse_ go ps

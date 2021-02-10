@@ -174,7 +174,7 @@ operatorTable :: [[Operator Parser Expr]]
 operatorTable =
   [ [numOp OpTimes "*"],
     [numOp OpMinus "-", numOp OpPlus "+"],
-    [compOp OpLt "<", compOp OpLte "<=", compOp OpGt ">", compOp OpGte ">="]
+    [compOp OpLte "<=", compOp OpLt "<", compOp OpGte ">=", compOp OpGt ">"]
   ]
   where
     infixR o t = InfixR (BinOp o <$ symbol t)

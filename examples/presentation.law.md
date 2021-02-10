@@ -4,17 +4,9 @@
 
 I will present and demo some of the features of the language.
 
-But some of what I say is "aspirational" (i.e. does not work yet).
+But the talk is also "aspirational" (i.e. not implemented yet).
 
-## The ideas
-
-There were two ideas that led me to creating _Lawvere_:
-
-- Wanted to use sketches for functional programming.
-
-- `f(g(x))` syntax is wrong.
-
-## Example: a λ-calc interpreter
+## λ-calculus interpreter
 
 ```haskell
 data Expr
@@ -23,7 +15,7 @@ data Expr
   | App (Expr, Expr)
 
 eval :: Expr -> Val
-eval = undefined
+eval = todo
 
 -- .. lots more
 ```
@@ -31,24 +23,33 @@ eval = undefined
 ## Add let-bindings:
 
 ```haskell
-data ExprLam
+data Expr'
   = Lit' Int
   | Lambda' (Expr -> Expr)
   | App' (Expr, Expr)
   | Let' (Expr, Expr -> Expr) -- new!
+  
+eval' :: Expr' -> Val
+eval' = annoying
+
+-- .. more annoyance
 ```
 
-## "Desugar" lets into λ
+## "Desugar" `let` into λ
 
-`let x = v in e` ~~> `(λx.e)v`
+`let x = v in e`    |-> `(λ x. e) v`
+
+`Let' (v, binding)` |-> `App (Lambda binding, v)` 
 
 ```haskell
-desugar :: ExprLam -> Expr
+desugar :: Expr' -> Expr
 desugar = \case
-  Lit' i      -> Lit i
-  Lambda' f   -> Lambda f
-  App' (f, x) -> App (f, x)
-  Let' (v, b) -> App (Lambda b, v)
+  Lit' i      -> Lit i             -- 🗑
+  Lambda' f   -> Lambda f          -- 🗑
+  App' (f, x) -> App (f, x)        -- 🗑
+  Let' (v, b) -> App (Lambda b, v) -- 🍖
+
+eval' = eval . desugar
 ```
 
 ## Some sketches
@@ -68,16 +69,40 @@ sketch Let extends Lam where
 
 - `T(S)` the theory of the sketch `S`
 
-- `T(S) -> Set` ~~> _explain_
+- `T(S) -> Set` ~ models of `S`
 
-- `Let -> Lam` ~~> `i : T(Lam) -> T(Let)`
+- `Lam -> Let` |-> `i : T(Lam) -> T(Let)`
+
+- initial models:
+  `I(Lam) : T(Lam) -> Set`
+  `I(Let) : T(Let) -> Set`
+  `Expr  := I(Lam)(Expr)`
+  `Expr' := I(Let)(Expr)`
+  
+- `I(Let) . i : T(Lam) -> T(Let) -> Set`
+  ∴ `I(Lam) -> I(Let) . i`
+  ∴ `I(Lam)(Expr) -> I(Let)(i(Expr))`
+  ∴ `Expr -> Expr'`
+
+- We get the natural inclusion of the concrete expression types.
+
+- Other way?
+
+## Desugar
+
+Assume `d : T(Let) -> T(Lam)`, `d(Expr) = Expr`:
+
+`I(Lam) . d : T(Let) -> T(Lam) -> Set`
+∴ `I(Let) -> I(Lam) . d`
+∴ `I(Let)(Expr) -> I(Lam)(d(Expr))`
+∴ `Expr' -> Expr` ✔
 
 ## Cartesian retract
 
 *Goal:* `d : T(Let) -> T(Lam)`
 
-- Retract of `i`  ~~>  kills boilerplate
-- Cartesian  ~~>
+- Retract of `i`  ~~> `d(Expr) = Expr` + 🗑
+- Cartesian ~~>
 
 ```
 d(Let) :
@@ -85,15 +110,99 @@ d( (Expr,    Expr  =>   Expr)) -> d(Expr)
  (d(Expr), d(Expr  =>   Expr)) ->   Expr
  (  Expr,  d(Expr) => d(Expr)) ->   Expr
  (  Expr,    Expr  =>   Expr ) ->   Expr
-✅
 ```
 
-## Foo
+`(v, bind) |-> App (Lambda bind, v)` _what we wanted to write_
+
+## Dream
+
+```
+desugar : T(Let) --> T(Lam) =
+  generators {
+    Let |-> ((v, bind) |-> App (Lambda bind, v))
+  }
+  using (cartesian, retracts i)
+```
+
+> 💭 I should make a categorical programming language
+
+## Other design considerations
+
+A programming language is a text-format.
+
+- `print : Prog   --> String`
+  `parse : String --> Maybe Prog`
+
+- `String` ~ free monoid on `Char`.
+
+- If `Prog` is a category, `print` should be a functor.
+
+- "Concatenative" PLs already had this idea.
+
+## No λ, but lots of names
+
+An experiment.
+
+data <-> code
+
+> Bad programmers worry about the code. Good programmers worry about data
+> structures and their relationships.
+Linus Torvalds
+
+> Data dominates. If you've chosen the right data structures and organized
+> things well, the algorithms will almost always be self-evident. Data
+> structures, not algorithms, are central to programming.
+Rob Pike
+
+_Church encoding of data:_
+Easy transform good use of data-structures into a mess of variables and lambdas.
+
+## Scalars
+
+Scalars are written as normal, but represent constant morphisms.
 
 ```lawvere
-ar Base plus3 : Int --> Int =
-   incr incr incr
+ar Base favInt : {:} --> Int =
+  42
 
-ar Base main : {:} --> Int =
-  10 plus3 plus3
+ar Base myName : {:} --> String =
+  "James Haydon" 
+```
+
+## Composition
+
+```lawvere
+ar Base plus2 : Int --> Int =
+   incr incr
+
+ar Base plus4 : Int --> Int =
+  plus2 plus2
+
+ar Base plus10 : Int --> Int =
+  plus4 plus4 plus2
+```
+
+## Usual operations
+
+All operations operate at the morphism level:
+
+```lawvere
+ar Base inc : Int --> Int = + 1
+
+// Explained later
+ob Base Bool = [ true: {:}, false: {:}]
+
+ar Base foo : {:} --> Bool =
+  43 > 40 + 2
+```
+## Products
+
+```lawvere
+ob Base User = { name: String, points: Int }
+
+ar Base newPlayer : String --> User =
+  { name = , points = 0 }
+
+ar Base isPowerPlayer : User --> Bool =
+  .points >= 100
 ```

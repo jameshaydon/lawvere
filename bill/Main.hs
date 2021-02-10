@@ -56,9 +56,6 @@ runFile target filepath = handleErr $ do
   let inp = Rec mempty
   case target of
     Hask -> do
-      say "input:"
-      say ("  " <> render inp)
-      say ""
       v <- liftIO $ evalMain inp prog
       say ""
       say "output:"
@@ -70,34 +67,39 @@ runFile target filepath = handleErr $ do
         Left e -> putErr e
         Right x -> pure x
 
-repl :: FilePath -> IO ()
-repl filepath = do
+repl :: Maybe FilePath -> IO ()
+repl filepath_ = do
   prog_ <- load
   case prog_ of
     Left err -> putErr err
     Right prog -> runInputT defaultSettings (loop prog)
   where
     load :: (MonadIO m) => m (Either Text [Decl])
-    load = runExceptT (loadFile Hask filepath)
+    load = case filepath_ of
+      Just filepath -> runExceptT (loadFile Hask filepath)
+      Nothing -> pure (Right [])
     loop :: [Decl] -> InputT IO ()
     loop prog = do
       inp_ <- getInputLine "> "
       case inp_ of
         Nothing -> pure ()
-        Just ":q" -> outputStrLn "Bye!"
-        Just ":r" -> do
-          prog'_ <- load
-          case prog'_ of
-            Left err -> do
-              outputStrLn "Couldn't reload:"
-              outputStrLn (toS err)
-            Right prog' -> loop prog'
+        Just (':' : cmd) -> case cmd of
+          "q" -> outputStrLn "Bye!"
+          "r" -> do
+            prog'_ <- load
+            case prog'_ of
+              Left err -> do
+                outputStrLn "Couldn't reload:"
+                outputStrLn (toS err)
+              Right prog' -> loop prog'
+          _ -> do outputStrLn ("Unrecognised command: ':" <> cmd <> "'")
         Just inp -> do
           case Mega.parse (parsed <* Mega.eof) "input" (toS inp) of
             Left err -> outputStrLn (toS (Mega.errorBundlePretty err))
             Right expr -> do
-              res <- liftIO $ eval (Rec mempty) prog expr
-              outputStrLn (toS (render res))
+              let exec = render <$> eval (Rec mempty) prog expr
+              res <- liftIO $ catch exec $ \(FatalError err) -> pure ("ERROR: " <> err)
+              outputStrLn (toS res)
               loop prog
 
 data Mode = Batch | Interactive
@@ -105,7 +107,7 @@ data Mode = Batch | Interactive
 data Opts = Opts
   { mode :: Mode,
     target :: Target,
-    file :: FilePath
+    file :: Maybe FilePath
   }
 
 optsParser :: Parser Opts
@@ -126,9 +128,11 @@ optsParser =
           <> value Hask
           <> metavar "TARGET"
       )
-    <*> strArgument
-      ( help "The source file to compile/run"
-          <> metavar "FILE"
+    <*> optional
+      ( strArgument
+          ( help "The source file to compile/run"
+              <> metavar "FILE"
+          )
       )
   where
     parseTarget (map toLower -> t) = case t of
@@ -146,7 +150,9 @@ main = do
       <> "Lawvere v0.0.0\n"
       <> "--------------"
   case mode of
-    Batch -> runFile target file
+    Batch -> case file of
+      Nothing -> putErr "A file must be specified when not in interactive mode."
+      Just filepath -> runFile target filepath
     Interactive -> repl file
   where
     opts =

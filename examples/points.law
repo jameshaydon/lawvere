@@ -1,0 +1,7 @@
+ar Base main : {:} --> String =
+  { playerA = { points = 10},
+    playerB = { points = 20} }
+  (.playerA .points - .playerB .points)
+  { leader = (> 0) [ true = "A", false = "B"],
+    delta  = abs show }
+  "Player {.leader} is winning by {.delta} points!"

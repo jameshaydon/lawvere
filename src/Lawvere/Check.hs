@@ -31,7 +31,9 @@ prims decls =
         Map.fromList $
           [ ("plus", (Scheme [] (OTuple [OPrim TInt, OPrim TInt], ONamed "Int"), EPrim PrimPlus)),
             ("incr", (Scheme [] (OPrim TInt, OPrim TInt), EPrim PrimIncr)),
-            ("app", (Scheme [va, vb] (OTuple [ta :=> tb, ta], tb), EPrim PrimApp))
+            ("app", (Scheme [va, vb] (OTuple [ta :=> tb, ta], tb), EPrim PrimApp)),
+            ("abs", (Scheme [va] (ta, ta), EPrim PrimAbs)),
+            ("show", (Scheme [va] (ta, OPrim TString), EPrim PrimShow))
           ]
             ++ [(name, (Scheme [] (a, b), e)) | DAr _ name a b e <- decls]
     }
@@ -229,6 +231,16 @@ noEffects = traverse go
     go _ = throwError CeEff
 
 inferTarget :: Ob -> Expr -> Check Ob
+inferTarget a (BinOp (NumOp _) f g) = do
+  b <- inferTarget a f
+  b' <- inferTarget a g
+  unify b b'
+  pure b
+inferTarget a (BinOp (CompOp _) f g) = do
+  b <- inferTarget a f
+  b' <- inferTarget a g
+  unify b b'
+  pure (CoLim [(LNam "true", Lim []), (LNam "false", Lim [])])
 inferTarget a (InterpolatedString ps) = do
   traverse_ go ps
   pure strTyp
@@ -353,6 +365,10 @@ inferDistrTarget label (Lim theLim) = do
 inferDistrTarget label source = throwError (CeDistrSourceNotLim label source)
 
 check :: (Ob, Ob) -> Expr -> Check ()
+check (a, b) (BinOp (NumOp _) f g) = do
+  warning "No checking Num instance."
+  check (a, b) f
+  check (a, b) g
 check (a, b) (InterpolatedString ps) = do
   unify b strTyp
   traverse_ go ps

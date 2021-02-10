@@ -89,7 +89,7 @@ evalAr tops = \case
   Top i -> \v -> case Map.lookup i tops of
     Just (TFun f) -> f v
     Just (TFreyd e) -> evalAr tops e v
-    _ -> panic $ "bad toplevel: " <> show i
+    _ -> panic $ "undefined: " <> render i
   InterpolatedString ps -> \v -> do
     let go (ISRaw t) = pure t
         go (ISExpr e) = do
@@ -151,7 +151,28 @@ evalAr tops = \case
   Object _ -> const (pure (VFun pure))
   CanonicalInj e -> evalAr tops (EFunApp (LcIdent "i") e)
   Side lab e -> tr "before sidecar" >=> applyInj (sidePrep (LNam lab)) >=> tr "after prep" >=> sidecar e >=> tr "after side" >=> applyInj (sideUnprep (LNam lab))
+  BinOp o f g -> \v -> do
+    x <- evalAr tops f v
+    y <- evalAr tops g v
+    pure (binOp o x y)
   where
+    binOp (NumOp o) (Sca (Int x)) (Sca (Int y)) = Sca (Int (numOp o x y))
+    binOp (NumOp o) (Sca (Float x)) (Sca (Float y)) = Sca (Float (numOp o x y))
+    binOp (CompOp o) (Sca (Int x)) (Sca (Int y)) = compOp o x y
+    binOp (CompOp o) (Sca (Float x)) (Sca (Float y)) = compOp o x y
+    binOp _ _ _ = panic "bad binop"
+    numOp :: (Num a) => NumOp -> a -> a -> a
+    numOp OpPlus = (+)
+    numOp OpMinus = (-)
+    numOp OpTimes = (*)
+    compOp o x y = toValBool (compa o x y)
+    compa :: (Ord a) => CompOp -> a -> a -> Bool
+    compa OpLt = (<)
+    compa OpLte = (<=)
+    compa OpGt = (>)
+    compa OpGte = (>=)
+    toValBool True = Tag (LNam "true") (Rec mempty)
+    toValBool False = Tag (LNam "false") (Rec mempty)
     lawPutLine = \case
       Sca (Str s) -> do
         putStrLn s
@@ -235,6 +256,12 @@ primTops =
         |-> \case
           Sca (Int x) -> pure (Sca (Int (x + 1)))
           _ -> panic "bad incr",
+      "abs"
+        |-> \case
+          Sca (Int x) -> pure (Sca (Int (abs x)))
+          Sca (Float x) -> pure (Sca (Float (abs x)))
+          _ -> panic "bad abs",
+      "show" |-> (pure . Sca . Str . render),
       "app"
         |-> \case
           Rec r

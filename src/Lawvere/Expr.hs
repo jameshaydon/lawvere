@@ -1,6 +1,7 @@
 -- |
 module Lawvere.Expr where
 
+import Control.Monad.Combinators.Expr
 import Lawvere.Core
 import Lawvere.Disp
 import Lawvere.Parse
@@ -11,7 +12,7 @@ import Text.Megaparsec
 import qualified Text.Megaparsec.Char as Char
 import qualified Text.Megaparsec.Char.Lexer as L
 
-data Prim = PrimPlus | PrimApp | PrimIncr
+data Prim = PrimPlus | PrimApp | PrimIncr | PrimAbs | PrimShow
   deriving stock (Show)
 
 instance Disp Prim where
@@ -20,6 +21,8 @@ instance Disp Prim where
       PrimPlus -> "plus"
       PrimApp -> "app"
       PrimIncr -> "incr"
+      PrimAbs -> "abs"
+      PrimShow -> "show"
 
 data ComponentDecorator = Eff | Pure
   deriving stock (Show)
@@ -42,6 +45,32 @@ componentLabel (ConeComponent _ lab) = lab
 data ISPart = ISRaw Text | ISExpr Expr
   deriving stock (Show)
 
+data NumOp = OpPlus | OpMinus | OpTimes
+  deriving stock (Show)
+
+instance Disp NumOp where
+  disp = \case
+    OpPlus -> "+"
+    OpMinus -> "-"
+    OpTimes -> "*"
+
+data CompOp = OpLt | OpLte | OpGt | OpGte
+  deriving stock (Show)
+
+instance Disp CompOp where
+  disp = \case
+    OpLt -> "<"
+    OpLte -> "<="
+    OpGt -> ">"
+    OpGte -> ">="
+
+data BinOp = NumOp NumOp | CompOp CompOp
+  deriving stock (Show)
+
+instance Disp BinOp where
+  disp (NumOp o) = disp o
+  disp (CompOp o) = disp o
+
 data Expr
   = Cone [(ConeComponent, Expr)]
   | ELim [(Label, Expr)]
@@ -58,12 +87,11 @@ data Expr
   | EConst Expr
   | EPrim Prim
   | EFunApp LcIdent Expr
-  | -- | Interp Expr SketchInterp Expr
-    Curry LcIdent Expr
+  | Curry LcIdent Expr
   | Object UcIdent
   | CanonicalInj Expr
-  | -- | Freyd Expr
-    Side LcIdent Expr
+  | Side LcIdent Expr
+  | BinOp BinOp Expr Expr
   deriving stock (Show)
 
 -- Tuples are just shorthand for records.
@@ -109,6 +137,13 @@ pInterpolated = Char.char '"' *> (InterpolatedString <$> (manyTill (pE <|> try p
           Just '}' <$ Char.string "\\}"
         ]
 
+pTupledOrParensed :: Parser Expr
+pTupledOrParensed = do
+  xs <- pTuple parsed
+  pure $ case xs of
+    [x] -> x
+    _ -> Tuple xs
+
 pAtom :: Parser Expr
 pAtom =
   choice
@@ -120,7 +155,7 @@ pAtom =
       Proj <$> ("." *> parsed),
       try (Inj <$> (parsed <* ".")), -- we need to look ahead for the dot
       Top <$> parsed,
-      Tuple <$> pTuple parsed,
+      pTupledOrParensed,
       -- TODO: try to get rid of the 'try' by committing on the first
       -- label/seperator pair encountered.
       Cone <$> try (pBracedFields '='),
@@ -135,8 +170,27 @@ pAtom =
       Object <$> parsed
     ]
 
+operatorTable :: [[Operator Parser Expr]]
+operatorTable =
+  [ [numOp OpTimes "*"],
+    [numOp OpMinus "-", numOp OpPlus "+"],
+    [compOp OpLt "<", compOp OpLte "<=", compOp OpGt ">", compOp OpGte ">="]
+  ]
+  where
+    infixR o t = InfixR (BinOp o <$ symbol t)
+    numOp = infixR . NumOp
+    compOp = infixR . CompOp
+
+pComposition :: Parser Expr
+pComposition = do
+  xs <- many (lexeme pAtom)
+  pure $ case xs of
+    [] -> Comp []
+    [x] -> x
+    _ -> Comp xs
+
 instance Parsed Expr where
-  parsed = Comp <$> many (lexeme pAtom)
+  parsed = makeExprParser pComposition operatorTable
 
 instance Disp Expr where
   disp = \case
@@ -162,3 +216,4 @@ instance Disp Expr where
       where
         go (ISRaw t) = pretty t
         go (ISExpr e) = braces (disp e)
+    BinOp op x y -> parens (disp x <+> disp op <+> disp y)

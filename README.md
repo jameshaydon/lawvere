@@ -4,73 +4,65 @@
 
 A categorical programming language
 
-[Install](#buildinstallation) • [Tutorial](#tutorial) • [Editor support](#editor-support) • [Development](#development) 
+[Install](#buildinstallation) • [Tutorial](#tutorial) • [Editor support](#editor-support) • [Development](#development)
 
-`<"What is your name?"> putLine getLine <"Hello {}!"> putLine`
+_Very work-in-progress_
 
 </div>
 
-- Program morphisms in any category with enough structure (e.g. [cartesian closed](https://ncatlab.org/nlab/show/cartesian+closed+category), [distributive](https://ncatlab.org/nlab/show/distributive+category), etc.). New compilers will be added, for the moment there is an evaluator in Haskell and a compiler to JavaScript.
-- Effect system via free Freyd categories.
-- Define (soon) locally finitely presentable categories and functors between these categories.
-- Pointfree functional programming (no lambdas).
+``` lawvere
+(.playerA .points - .playerB .points)
+{ leader = (> 0) [ true = "A", false = "B"],
+  delta  = abs show }
+"Player {.leader} is winning by {.delta} points!"
+```
 
-(Still very work-in-progress.)
+- Compile to any category. Can target any category that has structures corresponding to the programming features you use ([cartesian closed](https://ncatlab.org/nlab/show/cartesian+closed+category), [distributive](https://ncatlab.org/nlab/show/distributive+category), etc.). Comes with is an evaluator in Haskell and a compiler to JavaScript.
+- Effect system based on freely generated effect categories.
+- Point free functional programming (no lambdas); a categorical take on concatenative programming.
 
 The Lawvere language (and the executable `bill`) is named after [William Lawvere](https://en.wikipedia.org/wiki/William_Lawvere).
 
-## Build/Installation
-
-You can build the project with stack or nix.
-
-### Stack
-
-First install stack (`curl -sSL https://get.haskellstack.org/ | sh
-`) and then use `stack build`. To install the `bill` executable (to `~/.local/bin`) run `stack install`.
-
-### Nix
-
-Make sure you have [nix](https://nixos.org/) and optionally [direnv](https://direnv.net/) installed.
-
-_Optional:_ (but faster) install cachix (`nix-env -iA cachix -f https://cachix.org/api/v1/install`) and use the `lawvere` cache: `cachix use lawvere`.
-
-To build project dependencies and tooling the first time enter a nix shell either using direnv (recommended):
-
-```
-$ echo "use nix" > .envrc
-$ direnv allow
-```
-
-or manually:
-
-```
-$ nix-shell
-```
-
-Once in the nix shell, to build a release and run it:
-
-```
-$ nix-build nix/release.nix
-$ result/bin/bill <file>
-```
-
 ## Tutorial
+
+### REPL
+
+To start a Lawvere REPL, run `bill -i`:
+
+```
+$ bill -i
+--------------
+Lawvere v0.0.0
+--------------
+> 42
+42
+> "hello"
+"hello"
+```
+
+(Or `cabal run bill -- -i` or `stack exec bill -- -i` if `bill` isn't install.)
+
+`bill` can also be executed on a file: `bill -i example.law`. By omitting the `-i` flag, the `main` morphism is executed directly and the REPL is not started. In the REPL, `:r` will reload the loaded file, and `:q` will terminate the session.
 
 ### Basic types
 
-Lawvere has support for some basic types. They are written as you would expect, e.g. `"hello"` for a string of character, and `42` for a special integer. However these actually denote _morphisms_ (in some category with has objects `String` and `Int`). For example `42` denotes the morphism which is constantly 42:
+Basic scalar types are written as in other programming languages, e.g. `42` and `"hello world"`. Except that in Lawvere everything is a morphism, so these actually denote constant morphisms. For example `42` denotes the morphism which is constantly 42:
 
 ```lawvere
-ar someNumber : {:} --> Int = 42
+ar Base someNumber : {:} --> Int = 42
 ```
 
-The above code defines an _arrow_ (using the `ar` keyword) in the category `Base`. The arrow has source `{:}` (which is notation for the unit type) and target `Int`. The definition of the arrow is simply `42`.
+The above code defines an morphisms using the `ar` keyword (standing for _arrow_) in the category `Base`. The arrow has source `{:}` (which is syntax for the unit type) and target `Int`.
+
+When the REPL accepts an input, it actually executes it on the unit input. So for example inputting `incr` (which expects an `Int`) will result in an error.
+
+Lawvere also has support for basic arithmetic and comparisons. These are operations on morphisms, for example `f + g` forms the pointwise addition of morphisms `f` and `g`.
 
 ### Composition
 
 The main way to build up larger programs from smaller ones is by using _composition_. The syntax for this is very lightweight, simply whitespace: `f g` denotes the composition of `f` and `g`. If you are coming from Haskell, note that this is _not_ `.`, it's `>>>`, that is, `f` comes first, then `g`. The identity morphism is written with no characters at all: ` `.
 
-To illustrate this we can use the built-in function `incr`, which increments an integer:
+To illustrate this we can use the built-in morphism `incr`, which increments an integer:
 
 ``` lawvere
 ar Base main : {:} --> Int = 42 incr incr incr
@@ -82,38 +74,33 @@ To run this, create a file with contents:
 ``` lawvere
 ar Base someNumber : {:} --> Int = 42
 
-ar Base main : {:} --> Int =
+ar Base biggerNumber : {:} --> Int =
   someNumber incr incr incr
 ```
 
 save this to a file, and use `bill`:
 
 ```
-$ bill test.law
+$ bill -i test.law
 --------------
 Lawvere v0.0.0
 --------------
 checking..
 Check OK!
-
-input:
-  {=}
-output:
-  45
+> biggerNumber
+45
+> biggerNumber incr incr
+47
 ```
-
-(Or run `stack exec bill -- test.law` or `cabal run bill -- test.law` if you haven't installed `bill`.)
-
-A Lawvere file should always have a `main` morphism, whose source is `{:}` (the terminal object).
 
 _Note:_ The checker is a work-in-progress and is far from complete.
 
 ### Compiling to JavaScript
 
-To compile to JavaScript, use the `--js` option:
+To compile to JavaScript, use the `--target js` option:
 
 ```
-$ bill --js test.law
+$ bill --target js test.law
 ```
 
 This will output a JavaScript program that logs the output. You can pipe this directly to `node`:
@@ -123,7 +110,7 @@ $ bill --js test.law | node
 45
 ```
 
-The JavaScript compiler isn't very well maintained and will just error out on the anything but the most basic features of the language.
+The JavaScript compiler isn't well maintained and will just error out on the anything but the most basic language features.
 
 ### Products
 
@@ -427,6 +414,41 @@ ar Base main : {:} --> Int =
 ```
 
 Checkout the [full example](/examples/freyd-state.law).
+
+## Build/Installation
+
+You can build the project with stack or nix.
+
+### Stack
+
+First install stack (`curl -sSL https://get.haskellstack.org/ | sh
+`) and then use `stack build`. To install the `bill` executable (to `~/.local/bin`) run `stack install`.
+
+### Nix
+
+Make sure you have [nix](https://nixos.org/) and optionally [direnv](https://direnv.net/) installed.
+
+_Optional:_ (but faster) install cachix (`nix-env -iA cachix -f https://cachix.org/api/v1/install`) and use the `lawvere` cache: `cachix use lawvere`.
+
+To build project dependencies and tooling the first time enter a nix shell either using direnv (recommended):
+
+```
+$ echo "use nix" > .envrc
+$ direnv allow
+```
+
+or manually:
+
+```
+$ nix-shell
+```
+
+Once in the nix shell, to build a release and run it:
+
+```
+$ nix-build nix/release.nix
+$ result/bin/bill <file>
+```
 
 ## Editor support
 

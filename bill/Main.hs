@@ -1,8 +1,11 @@
 module Main (main, dev) where
 
+import Control.Lens
 import Control.Monad.Trans.Except
 import Data.List (isSuffixOf, nub)
+import qualified Data.Set as Set
 import Lawvere.Check
+import Lawvere.Core
 import Lawvere.Decl
 import Lawvere.Disp
 import Lawvere.Eval
@@ -12,6 +15,7 @@ import Options.Applicative
 import Protolude hiding (empty, option)
 import System.Console.Haskeline
 import qualified Text.Megaparsec as Mega
+import Prelude (String)
 
 say :: (MonadIO m) => Text -> m ()
 say = putStrLn
@@ -67,40 +71,96 @@ runFile target filepath = handleErr $ do
         Left e -> putErr e
         Right x -> pure x
 
+data ReplState = ReplState
+  { prog :: [Decl],
+    names :: Set String
+  }
+  deriving stock (Generic)
+
+newtype Repl a = Repl {runRepl :: InputT (StateT ReplState IO) a}
+  deriving newtype (Functor, Applicative, Monad, MonadIO)
+
+instance MonadState ReplState Repl where
+  state = Repl . lift . state
+
+{-
+repl :: IO ()
+repl = do
+  putStrLn greet
+  let compl :: (String, String) -> StateT ReplState IO (String, [Completion])
+      compl = completeWord Nothing "() \n" go
+        where
+          go :: String -> StateT ReplState IO [Completion]
+          go (toS -> prefix) = do
+            prodSt <- evalSt <$> get
+            let ks = filter (prefix `Text.isPrefixOf`) (renderDefault <$> Map.keys (productKeys prodSt))
+            pure (simpleCompletion . toS <$> ks)
+      setts :: Settings (StateT ReplState IO)
+      setts = setComplete compl (defaultSettings {historyFile = Just ".artificial-repl"})
+  initRepl Nothing >>= evalStateT (runInputT setts (runRepl loop))
+-}
+
 repl :: Maybe FilePath -> IO ()
 repl filepath_ = do
   prog_ <- load
   case prog_ of
     Left err -> putErr err
-    Right prog -> runInputT defaultSettings (loop prog)
+    Right st -> do
+      let compl :: (String, String) -> StateT ReplState IO (String, [Completion])
+          compl = completeWord Nothing " \n()[]{}" go
+            where
+              go :: String -> StateT ReplState IO [Completion]
+              go prefix = do
+                ws <- use #names
+                let ws' = Set.toList $ Set.filter (prefix `isPrefixOf`) ws
+                pure (simpleCompletion <$> ws')
+          setts :: Settings (StateT ReplState IO)
+          setts = setComplete compl (defaultSettings {historyFile = Just ".lawvere-repl"})
+      flip evalStateT st $ runInputT setts (runRepl loop)
   where
-    load :: (MonadIO m) => m (Either Text [Decl])
+    load :: (MonadIO m) => m (Either Text ReplState)
     load = case filepath_ of
-      Just filepath -> runExceptT (loadFile Hask filepath)
-      Nothing -> pure (Right [])
-    loop :: [Decl] -> InputT IO ()
-    loop prog = do
-      inp_ <- getInputLine "> "
+      Just filepath -> runExceptT $ do
+        prog <- loadFile Hask filepath
+        pure (ReplState prog (foldMap declNames prog))
+      Nothing -> pure (Right (ReplState [] mempty))
+    declNames :: Decl -> Set String
+    declNames = \case
+      DAr _ name _ _ _ -> Set.singleton (lc name)
+      DOb _ name _ -> Set.singleton (uc name)
+      DSketch Sketch {name, obs, ars} ->
+        Set.fromList $
+          [uc name]
+            <> ((\SketchAr {name = n} -> lc n) <$> ars)
+            <> (uc <$> obs)
+      DInterp name _ _ _ _ _ -> Set.singleton (lc name)
+      where
+        lc (LcIdent s) = toS s
+        uc (UcIdent s) = toS s
+    loop :: Repl ()
+    loop = do
+      inp_ <- Repl (getInputLine "> ")
       case inp_ of
         Nothing -> pure ()
         Just (':' : cmd) -> case cmd of
-          "q" -> outputStrLn "Bye!"
+          "q" -> Repl (outputStrLn "Bye!")
           "r" -> do
             prog'_ <- load
             case prog'_ of
-              Left err -> do
+              Left err -> Repl $ do
                 outputStrLn "Couldn't reload:"
                 outputStrLn (toS err)
-              Right prog' -> loop prog'
-          _ -> do outputStrLn ("Unrecognised command: ':" <> cmd <> "'")
+              Right st -> put st >> loop
+          _ -> Repl $ outputStrLn ("Unrecognised command: ':" <> cmd <> "'")
         Just inp -> do
           case Mega.parse (parsed <* Mega.eof) "input" (toS inp) of
-            Left err -> outputStrLn (toS (Mega.errorBundlePretty err))
+            Left err -> Repl . outputStrLn . toS . Mega.errorBundlePretty $ err
             Right expr -> do
-              let exec = render <$> eval (Rec mempty) prog expr
+              pr <- use #prog
+              let exec = render <$> eval (Rec mempty) pr expr
               res <- liftIO $ catch exec $ \(FatalError err) -> pure ("ERROR: " <> err)
-              outputStrLn (toS res)
-              loop prog
+              Repl $ outputStrLn (toS res)
+              loop
 
 data Mode = Batch | Interactive
 

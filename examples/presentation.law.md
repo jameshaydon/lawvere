@@ -195,14 +195,50 @@ ob Base Bool = [ true: {:}, false: {:}]
 ar Base foo : {:} --> Bool =
   43 > 40 + 2
 ```
+
+Assumes you want to compile to a category with "an `Int` object".
+
 ## Products
+
+If your target category has products:
 
 ```lawvere
 ob Base User = { name: String, points: Int }
 
+// A cone:
 ar Base newPlayer : String --> User =
   { name = , points = 0 }
 
+// Another cone:
+ar Base score : User --> User =
+  { name = .name, points = .points (+ 40) }
+
 ar Base isPowerPlayer : User --> Bool =
   .points >= 100
+```
+
+## Sums
+
+If your target category has sums:
+
+```lawvere
+// Already defined above:
+// ob Base Bool = [ true: {:}, false: {:}]
+
+ar Base worldIsFlat : {:} --> Bool = false.
+
+// A cocone:
+ar Base not : Bool --> Bool =
+  [ true  = false.,
+    false = true. ]
+```
+
+## Distributivity
+
+If your target category is distributive:
+
+```lawvere
+ar Base and : { x: Bool, y: Bool } --> Bool =
+  @x [ true  =  .y,
+       false = {=} false. ]
 ```

@@ -213,6 +213,10 @@ ar Base newPlayer : String --> User =
 ar Base score : User --> User =
   { name = .name, points = .points (+ 40) }
 
+// field punning:
+ar Base score' : User --> User =
+  { name, points = .points (+ 40) }
+
 ar Base isPowerPlayer : User --> Bool =
   .points >= 100
 ```
@@ -235,10 +239,50 @@ ar Base not : Bool --> Bool =
 
 ## Distributivity
 
-If your target category is distributive:
+If your target category is _distributive_:
 
 ```lawvere
 ar Base and : { x: Bool, y: Bool } --> Bool =
-  @x [ true  =  .y,
+  @x [ true  = .y,
        false = {=} false. ]
+```
+
+If the category is _extensive_, then could have case analysis at any morphism.
+
+But `Hask` isn't extensive, e.g. would need refinement types.
+
+## Data propagation
+
+is a bit tedious:
+
+```lawvere
+ar Base gameStatus : { userA: User, userB: User } --> String =
+  { users = ,
+    delta = .userA .points - .userB .points }
+  { users, delta,
+    sign = .delta (>= 0) }
+  { delta,
+    leader = @sign [ true  = .users .userA,
+                     false = .users .userB ] }
+  "Player {.leader .name} is winning by {.delta abs show} points!"
+```
+
+Have ideas to mitigate.
+
+## Effects!
+
+_Idea:_
+- Sketches (which can be combined) produce free Freyd categories.
+- These can be interpreted in various ways.
+
+_Syntax:_
+- `<..>`: canonical injection
+- `!label{..}`: Freyd "action" at a product component
+
+## Example
+
+```lawvere
+// Turn a question into an answer.
+ar Base[IO] ask : String --> String =
+  putLine getLine
 ```

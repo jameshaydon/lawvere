@@ -103,18 +103,23 @@ pWrapSep s l r pItem = wrapped l r (sepBy1 (lexeme pItem) (lexChar s))
 pCommaSep :: Char -> Char -> Parser a -> Parser [a]
 pCommaSep = pWrapSep ','
 
-pFields :: (Parsed a, Parsed k) => Char -> Char -> Char -> Parser [(k, a)]
-pFields l r s = ([] <$ symbol (toS [l, s, r])) <|> pCommaSep l r pField
+pFields :: (Parsed a, Parsed k) => Char -> Char -> Char -> Maybe (k -> a) -> Parser [(k, a)]
+pFields l r s punner_ = ([] <$ symbol (toS [l, s, r])) <|> pCommaSep l r pField
   where
-    pField = (,) <$> lexeme parsed <*> (lexChar s *> parsed)
+    pField = do
+      name <- lexeme parsed
+      val <- case punner_ of
+        Just punner -> fromMaybe (punner name) <$> optional (lexChar s *> parsed)
+        Nothing -> lexChar s *> parsed
+      pure (name, val)
 
 pTuple :: Parser a -> Parser [a]
 pTuple = pCommaSep '(' ')'
 
-pBracedFields :: (Parsed a, Parsed k) => Char -> Parser [(k, a)]
+pBracedFields :: (Parsed a, Parsed k) => Char -> Maybe (k -> a) -> Parser [(k, a)]
 pBracedFields = pFields '{' '}'
 
-pBracketedFields :: (Parsed a, Parsed k) => Char -> Parser [(k, a)]
+pBracketedFields :: (Parsed a, Parsed k) => Char -> Maybe (k -> a) -> Parser [(k, a)]
 pBracketedFields = pFields '[' ']'
 
 -- General util

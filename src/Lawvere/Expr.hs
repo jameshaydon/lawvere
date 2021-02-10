@@ -158,17 +158,23 @@ pAtom =
       pTupledOrParensed,
       -- TODO: try to get rid of the 'try' by committing on the first
       -- label/seperator pair encountered.
-      Cone <$> try (pBracedFields '='),
-      ELim <$> pBracedFields ':',
+      Cone <$> try (pBracedFields '=' conePunner),
+      ELim <$> pBracedFields ':' Nothing,
       -- TODO: try to get rid of the 'try' by committing on the first
       -- label/seperator pair encountered.
-      CoCone <$> try (pBracketedFields '='),
-      ECoLim <$> pBracketedFields ':',
+      CoCone <$> try (pBracketedFields '=' coconePunner),
+      ECoLim <$> pBracketedFields ':' Nothing,
       Distr <$> (single '@' *> parsed),
       EConst <$> kwCall kwConst,
       pCanInj,
       Object <$> parsed
     ]
+  where
+    conePunner :: Maybe (ConeComponent -> Expr)
+    conePunner = Just $ \case
+      ConeComponent Pure lab -> Proj lab
+      ConeComponent Eff lab -> CanonicalInj (Proj lab)
+    coconePunner = Just Inj
 
 operatorTable :: [[Operator Parser Expr]]
 operatorTable =

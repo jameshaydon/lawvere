@@ -78,8 +78,8 @@ pAtom = lexeme $ do
   unextended <-
     choice
       [ OTuple <$> pTuple (lexeme parsed) <?> "tuple",
-        Lim <$> pBracedFields ':' <?> "lim",
-        CoLim <$> pBracketedFields ':' <?> "colim",
+        Lim <$> pBracedFields ':' Nothing <?> "lim",
+        CoLim <$> pBracketedFields ':' Nothing <?> "colim",
         ONamed <$> parsed <?> "named object",
         pFunApp <?> "functor application"
       ]

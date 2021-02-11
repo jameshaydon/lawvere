@@ -54,11 +54,12 @@ instance Disp NumOp where
     OpMinus -> "-"
     OpTimes -> "*"
 
-data CompOp = OpLt | OpLte | OpGt | OpGte
+data CompOp = OpEq | OpLt | OpLte | OpGt | OpGte
   deriving stock (Show)
 
 instance Disp CompOp where
   disp = \case
+    OpEq -> "=="
     OpLt -> "<"
     OpLte -> "<="
     OpGt -> ">"
@@ -144,6 +145,23 @@ pTupledOrParensed = do
     [x] -> x
     _ -> Tuple xs
 
+pList :: Parser Expr
+pList = do
+  es <- between (chunk "#(") (single ')') (sepBy (lexeme parsed) (lexChar ','))
+  pure $
+    foldr
+      ( \hd tl ->
+          Comp
+            [ Cone
+                [ (ConeComponent Pure (LNam "head"), hd),
+                  (ConeComponent Pure (LNam "tail"), tl)
+                ],
+              Inj (LNam "cons")
+            ]
+      )
+      (Inj (LNam "empty"))
+      es
+
 pAtom :: Parser Expr
 pAtom =
   choice
@@ -155,6 +173,7 @@ pAtom =
       Proj <$> ("." *> parsed),
       try (Inj <$> (parsed <* ".")), -- we need to look ahead for the dot
       Top <$> parsed,
+      pList,
       pTupledOrParensed,
       -- TODO: try to get rid of the 'try' by committing on the first
       -- label/seperator pair encountered.
@@ -180,7 +199,7 @@ operatorTable :: [[Operator Parser Expr]]
 operatorTable =
   [ [numOp OpTimes "*"],
     [numOp OpMinus "-", numOp OpPlus "+"],
-    [compOp OpLte "<=", compOp OpLt "<", compOp OpGte ">=", compOp OpGt ">"]
+    [compOp OpEq "==", compOp OpLte "<=", compOp OpLt "<", compOp OpGte ">=", compOp OpGt ">"]
   ]
   where
     infixR o t = InfixR (BinOp o <$ symbol t)

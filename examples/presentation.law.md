@@ -251,12 +251,44 @@ If the category is _extensive_, then could have case analysis at any morphism.
 
 But `Hask` isn't extensive, e.g. would need refinement types.
 
+## Sum a list
+
+```lawvere
+ob Base ListInt = [ empty: {:}, cons: { head: Int, tail: ListInt }] 
+
+ar Base sum : ListInt --> Int =
+  [ empty = 0,
+    cons  = .head + .tail sum ]
+    
+ar Base exampleList : {:} --> ListInt =
+  empty.
+  { head = 3, tail = } cons.
+  { head = 2, tail = } cons.
+  { head = 1, tail = } cons.
+
+// List syntax
+ar Base exampleList2 : {:} --> ListInt =
+  #(1, 2, 3)
+
+ar Base sixIsSix : {:} --> Bool = exampleList sum == exampleList2 sum
+```
+
 ## Data propagation
 
 is a bit tedious:
 
 ```lawvere
-ar Base gameStatus : { userA: User, userB: User } --> String =
+  { userA, userB,
+    delta = .userA .points - .userB .points }
+  { winningBy = .delta abs,
+    leader    = if (.delta (>= 0))
+                  then .userA
+                  else .userB
+  } 
+```
+
+```lawvere
+ar Base gameHeadline : { userA: User, userB: User } --> String =
   { users = ,
     delta = .userA .points - .userB .points }
   { users, delta,

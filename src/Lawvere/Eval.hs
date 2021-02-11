@@ -167,6 +167,7 @@ evalAr tops = \case
     numOp OpTimes = (*)
     compOp o x y = toValBool (compa o x y)
     compa :: (Ord a) => CompOp -> a -> a -> Bool
+    compa OpEq = (==)
     compa OpLt = (<)
     compa OpLte = (<=)
     compa OpGt = (>)

@@ -267,21 +267,15 @@ ob Base ListI =
   ]
 ```
 
-In order to sum up the elements of a list we'll use the built-in function `plus`:
-
-``` lawvere
-plus : (Int, Int) --> Int
-```
-
 as follow:
 
 ``` lawvere
-ar Base sumList : ListI --> Int =
+ar Base sum : ListInt --> Int =
   [ empty = 0,
-    cons  = (.head, .tail sumList) plus ]
+    cons  = .head + .tail sum ]
 ```
 
-In words: If the list is `empty`, then return `0`. Otherwise take the `head`, and the `sumList` of the `.tail`, and `plus` them together.
+In words: If the list is `empty`, then return `0`. Otherwise take the `head`, and the `sum` of the `.tail`, and `+` them together.
 
 ### Effects
 

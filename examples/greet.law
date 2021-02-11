@@ -1,7 +1,9 @@
 ar Base[IO] hello : {:} --> String =
-  <"What is your name?"> putLine
+  i("What is your name?") putLine
   getLine
-  <"Hello {}!"> putLine
+  i("Hello {}!") putLine
 
 ar InputOutput main : {:} --> {:} =
   io(hello)
+
+  

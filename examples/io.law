@@ -2,10 +2,10 @@ ar Base[IO] ask : String --> String =
   putLine getLine
 
 ar Base[IO] greet : {:} --> {:} =
-  <{name = "What is your name?", hobby = "What is your favourite hobby?"}>
+  i({name = "What is your name?", hobby = "What is your favourite hobby?"})
   !name{ask}
   !hobby{ask}
-  <"Hello {.name}, I like {.hobby} too!"> putLine
+  i("Hello {.name}, I like {.hobby} too!") putLine
 
 ar InputOutput main : {:} --> {:} =
   io(greet)

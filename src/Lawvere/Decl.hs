@@ -6,7 +6,7 @@ import Lawvere.Expr
 import Lawvere.Ob
 import Lawvere.Parse
 import Prettyprinter
-import Protolude hiding (many, some)
+import Protolude hiding (many, some, try)
 import Text.Megaparsec
 
 data SketchAr = SketchAr
@@ -87,6 +87,9 @@ data Decl
 
 type Decls = [Decl]
 
+pCat :: Parser Ob
+pCat = fromMaybe (OPrim TBase) <$> optional parsed
+
 pObDecl :: Parser Decl
 pObDecl = do
   kwOb
@@ -99,7 +102,7 @@ pObDecl = do
 pArDecl :: Parser () -> (Ob -> LcIdent -> Ob -> Ob -> Expr -> Decl) -> Parser Decl
 pArDecl kw ctor = do
   kw
-  catName <- lexeme parsed
+  catName <- lexeme pCat
   name <- lexeme parsed
   lexChar ':'
   a <- lexeme parsed
@@ -130,8 +133,8 @@ instance Parsed Decl where
     choice
       [ pObDecl,
         pArDecl kwAr DAr,
-        pInterpDecl,
-        DSketch <$> parsed
+        DSketch <$> parsed,
+        pInterpDecl
       ]
 
 instance Disp Decl where

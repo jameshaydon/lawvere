@@ -121,11 +121,8 @@ pSide = do
   e <- wrapped '{' '}' parsed
   pure (Side lab e)
 
-pCanInj :: Parser Expr
-pCanInj = CanonicalInj <$> wrapped '<' '>' parsed
-
 pInterpolated :: Parser Expr
-pInterpolated = Char.char '"' *> (InterpolatedString <$> (manyTill (pE <|> try pRaw) (Char.char '"')))
+pInterpolated = Char.char '"' *> (InterpolatedString <$> manyTill (pE <|> try pRaw) (Char.char '"'))
   where
     pRaw = ISRaw . toS <$> escapedString
     pE = ISExpr <$> (Char.char '{' *> parsed <* Char.char '}')
@@ -195,6 +192,7 @@ pAtom =
       Proj <$> ("." *> parsed),
       try (Inj <$> (parsed <* ".")), -- we need to look ahead for the dot
       Top <$> parsed,
+      CanonicalInj <$> kwCall kwI,
       pList,
       pTupledOrParensed,
       -- TODO: try to get rid of the 'try' by committing on the first
@@ -207,7 +205,6 @@ pAtom =
       ECoLim <$> pBracketedFields ':' Nothing,
       Distr <$> (single '@' *> parsed),
       EConst <$> kwCall kwConst,
-      pCanInj,
       Object <$> parsed
     ]
   where

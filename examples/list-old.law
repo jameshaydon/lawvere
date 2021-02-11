@@ -13,28 +13,18 @@ ar Base map : (list(Int) => Int, list(list(Int))) --> list(Int) =
 
 ar Base length : list(Int) --> Int =
   [ empty = 0,
-    cons = ( 1, .tail length ) plus ]
+    cons  = 1 + .tail length ]
 
-ar Base mapLength : {:} --> list(Int) =
-  ( const(length),) map
-
-ar Base main : {:} --> list(Int)  =  listOfLists list(length)
-
+ar Base main : {:} --> list(Int) = listOfLists list(length)
 
 
 // Some lists follow
 
-ar Base cons1 : list(Int) --> list(Int) =
-  { head = 100, tail = } cons.
-
-ar Base cons2 : list(Int) --> list(Int) =
-  { head = 200, tail = } cons.
-
 ar Base list3 : {:} --> list(Int) =
-  empty. cons1 cons2 cons1
+  #(1, 3, 4)
 
 ar Base list2 : {:} --> list(Int) =
-  empty. cons2 cons1 cons1 cons1
+  #(200, 300)
 
 ar Base listOfLists : {:} --> list(list(Int)) =
-  empty. {head = list3, tail = } cons. {head = list2, tail = } cons.
+  #(list2, list3)

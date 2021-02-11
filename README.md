@@ -10,7 +10,7 @@ _Very work-in-progress_
 
 </div>
 
-``` lawvere
+```
 (.playerA .points - .playerB .points)
 { leader = (> 0) [ true = "A", false = "B"],
   delta  = abs show }
@@ -27,14 +27,14 @@ The Lawvere language (and the executable `bill`) is named after [William Lawvere
 
 ### REPL
 
-To start a Lawvere REPL, run `bill -i`:
+Once [installed](#buildinstallation), start a Lawvere REPL with `bill -i`:
 
 ```
 $ bill -i
 --------------
 Lawvere v0.0.0
 --------------
-> 42
+> 40 + 2
 42
 > "hello"
 "hello"
@@ -42,14 +42,14 @@ Lawvere v0.0.0
 
 (Or `cabal run bill -- -i` or `stack exec bill -- -i` if `bill` isn't install.)
 
-`bill` can also be executed on a file: `bill -i example.law`. By omitting the `-i` flag, the `main` morphism is executed directly and the REPL is not started. In the REPL, `:r` will reload the loaded file, and `:q` will terminate the session.
+`bill` can also be given a file: `bill -i example.law`. By omitting the `-i` flag, the `main` morphism is executed directly and the REPL is not started. In the REPL, `:r` will reload the loaded file, and `:q` will terminate the session.
 
 ### Basic types
 
 Basic scalar types are written as in other programming languages, e.g. `42` and `"hello world"`. Except that in Lawvere everything is a morphism, so these actually denote constant morphisms. For example `42` denotes the morphism which is constantly 42:
 
 ```lawvere
-ar Base someNumber : {:} --> Int = 42
+ar someNumber : {:} --> Int = 42
 ```
 
 The above code defines an morphisms using the `ar` keyword (standing for _arrow_) in the category `Base`. The arrow has source `{:}` (which is syntax for the unit type) and target `Int`.
@@ -65,16 +65,16 @@ The main way to build up larger programs from smaller ones is by using _composit
 To illustrate this we can use the built-in morphism `incr`, which increments an integer:
 
 ``` lawvere
-ar Base main : {:} --> Int = 42 incr incr incr
+ar main : {:} --> Int = 42 incr incr incr
 ```
 will output `45`.
 
 To run this, create a file with contents:
 
 ``` lawvere
-ar Base someNumber : {:} --> Int = 42
+ar someNumber : {:} --> Int = 42
 
-ar Base biggerNumber : {:} --> Int =
+ar biggerNumber : {:} --> Int =
   someNumber incr incr incr
 ```
 
@@ -125,7 +125,7 @@ The morphism which projects out the `x` component from `Point` is written `.x`. 
 To map _to_ a product we need to specify a [_cone_](https://ncatlab.org/nlab/show/limit#definition_in_terms_of_universal_cones). This specifies a morphism to each component of the product. For example,
 
 ``` lawvere
-ar Base somePoint : {:} --> Point =
+ar somePoint : {:} --> Point =
   { x = 2.3, y = 4.6 }
 ```
 
@@ -143,12 +143,12 @@ A complete program would be:
 ``` lawvere
 ob Base Point = { x: Float, y: Float }
 
-ar Base horizontal : Point --> Float = .x
+ar horizontal : Point --> Float = .x
 
-ar Base somePoint : {:} --> Point =
+ar somePoint : {:} --> Point =
   { x = 2.3, y = 4.6 }
 
-ar Base main : {:} --> Float =
+ar main : {:} --> Float =
   somePoint horizontal
 ```
 
@@ -161,12 +161,12 @@ By using parentheses instead of braces, the components are positional rather tha
 ``` lawvere
 ob Base Point = (Float, Float)
 
-ar Base horizontal : Point --> Float = .1
+ar horizontal : Point --> Float = .1
 
-ar Base somePoint : {:} --> Point =
+ar somePoint : {:} --> Point =
   ( 2.3, 4.6 )
 
-ar Base main : {:} --> Float =
+ar main : {:} --> Float =
   somePoint horizontal
 ```
 
@@ -176,7 +176,7 @@ A string can contain interpolated expressions. For example, `"Name: {f}, Age: {g
 
 The program:
 ``` lawvere
-ar Base main : {:} --> String =
+ar main : {:} --> String =
   { name= "James", hobby= "playing Go" } "{.name} likes {.hobby}."
 ```
 will print `"James likes playing Go."`
@@ -196,7 +196,7 @@ Sum types come equipped with canonical injections. The canonical injection into 
 In order to define some simple boolean functions, we'll need to learn how to map _from_ sums. This is done with a _cocone_, which specifies a morphism for each summand. This is exactly like a cone except using square brackets instead of braces. To illustrate this let's define the negation function:
 
 ``` lawvere
-ar Base not : Bool --> Bool
+ar not : Bool --> Bool
   = [ true  = false.,
       false = true. ]
 ```
@@ -219,7 +219,7 @@ where `f : A --> X`, `g : B --> X`, `h : C --> X`, etc.
 Continuing with boolean functions, let's try to define the `and` function:
 
 ``` lawvere
-ar Base and : {x: Bool, y: Bool} --> Bool = ?
+ar and : {x: Bool, y: Bool} --> Bool = ?
 ```
 
 This is a morphism _to_ a sum (`Bool`), so we can't use a cocone, and _from_ a product (`{x : Bool, y: Bool }`), so we can't use a cone---are we stuck? Intuitively we want to inspect one of the two arguments `(x` or `y`) in order to continue. For this we will use the _distributor_ `@x`. To understand what this does, first let's re-write `{x : Bool, y : Bool}` by expanding the definition of `Bool` at the `x` summand:
@@ -239,7 +239,7 @@ The morphism `@x` transforms the product into a sum; a sum with the same summand
 Using this we can define `and` as follows:
 
 ``` lawvere
-ar Base and : {x : Bool, y : Bool} --> Bool =
+ar and : {x : Bool, y : Bool} --> Bool =
   @x [ true  = .y,
        false = {=} false. ]
 ```
@@ -270,7 +270,7 @@ ob Base ListI =
 as follow:
 
 ``` lawvere
-ar Base sum : ListInt --> Int =
+ar sum : ListInt --> Int =
   [ empty = 0,
     cons  = .head + .tail sum ]
 ```
@@ -289,9 +289,9 @@ The `IO` effect is built-in. Here is an example of a morphism which performs I/O
 
 ``` lawvere
 ar Base[IO] hello : {:} --> String =
-  <"What is your name?"> putLine
+  i("What is your name?") putLine
   getLine
-  <"Hello {}"> putLine
+  i("Hello {}") putLine
 ```
 
 To run this, one must use the `io` functor:
@@ -312,10 +312,10 @@ ar Base[IO] ask : String --> String =
 
 // Ask some questions and then print a greeting.
 ar Base[IO] greet : {:} --> {:} =
-  <{name = "What is your name?", hobby = "What is your favourite hobby?"}>
+  i({name = "What is your name?", hobby = "What is your favourite hobby?"})
   !name{ask}
   !hobby{ask}
-  <"Hello {.name}, I like {.hobby} too!"> putLine
+  i("Hello {.name}, I like {.hobby} too!") putLine
 
 ar InputOutput main : {:} --> {:} =
   io(greet)
@@ -323,7 +323,7 @@ ar InputOutput main : {:} --> {:} =
 
 Effectful programming will be explained more in the next section. In practice the main points are:
 - Cones (`{..}`) are not permitted.
-- Pure computations must be wrapped in `<..>`.
+- Pure computations must be wrapped in `i(..)`.
 - To run an effect at a single component of a product, use `!label{..}` syntax.
 - To run effects you need to map to the `InputOutput` category with `io`.
 
@@ -344,11 +344,11 @@ We can then define morphisms in this abstract extension of `Base`. The following
 
 ``` lawvere
 ar Base[IntState] next : {:} --> Int =
-  get <{ current = , next = }> !next{ <incr> put } <.current>
+  get i({ current = , next = }) !next{ <incr> put } i(.current)
 ```
 
 There are two new pieces of syntax:
-- `<..>` denotes the canonical injection into the Freyd category. So this can be used for lifting any pure morphism. This performs the same role as the [`arr`](https://hackage.haskell.org/package/base-4.14.1.0/docs/Control-Arrow.html#v:arr) method of the [`Arrow`](https://hackage.haskell.org/package/base-4.14.1.0/docs/Control-Arrow.html#t:Arrow) type class in Haskell.
+- `i` denotes the canonical injection into the Freyd category. So this can be used for lifting any pure morphism. This performs the same role as the [`arr`](https://hackage.haskell.org/package/base-4.14.1.0/docs/Control-Arrow.html#v:arr) method of the [`Arrow`](https://hackage.haskell.org/package/base-4.14.1.0/docs/Control-Arrow.html#t:Arrow) type class in Haskell.
 - `!label{...}` (where `label` can  be any component name). Effect categories do not (necessarily) have products, so using the cone syntax is prohibited. The sequencing of effects is specified by using the categorical composition. The Freyd category does have the same objects as the pure category it extends however, and an effectful morphisms can be performed at one component of a product of the base category. If `f : B --> B'` is effectful morphism and `{a : A, b : B, c : C}` is a product in the pure category, then `!b{f} : {a : A, b : B, c : C} --> {a : A, b : B', c : C}` is another effectful morphism. In other words, `!b{f}` means "perform effect `f` at component `b`". This performs the same role as [`first`](https://hackage.haskell.org/package/base-4.14.1.0/docs/Control-Arrow.html#v:first) in [`Arrow`](https://hackage.haskell.org/package/base-4.14.1.0/docs/Control-Arrow.html#t:Arrow) except for any component.
 
 So `next` works as follows:
@@ -361,8 +361,8 @@ Next we'll specify how to map this function over a list. We can't reuse the `lis
 
 ``` lawvere
 ar Base[IntState] mapNext : list({:}) --> list(Int) =
-    [ empty = <empty.>,
-      cons  = !head{ next } !tail{ mapNext } <cons.> ]
+    [ empty = i(empty.),
+      cons  = !head{ next } !tail{ mapNext } i(cons.) ]
 ```
 
 We explicitly sequence the effects, using composition, on first the head and then the tail of the list.
@@ -401,7 +401,7 @@ This defines an interpretation of the `IntState` sketch.
 We can then execute this effect on an `exampleList`:
 
 ``` lawvere
-ar Base main : {:} --> Int =
+ar main : {:} --> Int =
   { state = 0, value = }           // set the initial state to 0
   pureState(<exampleList> mapNext) // use the freyd arrow `counting` interpreting it with `pureState` functor
   .value                           // we are jut interesting in the result, not the accumulated state

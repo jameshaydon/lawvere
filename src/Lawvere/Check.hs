@@ -207,13 +207,14 @@ resolveOb t = pure t
 
 applyFunctor :: Expr -> Ob -> Check Ob
 applyFunctor (Comp []) o = pure o
-applyFunctor (Comp [ELim fs]) o = do
+applyFunctor (Comp [f]) o = applyFunctor f o
+applyFunctor (ELim fs) o = do
   os <- (traverse . _2) (`applyFunctor` o) fs
   pure (Lim os)
-applyFunctor (Comp [ECoLim fs]) o = do
+applyFunctor (ECoLim fs) o = do
   os <- (traverse . _2) (`applyFunctor` o) fs
   pure (CoLim os)
-applyFunctor (Comp [Top name]) o =
+applyFunctor (Top name) o =
   pure (TFunApp name o)
 applyFunctor e o = throwError (CeCantApplyFunctor e o)
 
@@ -395,9 +396,9 @@ check (a, b) (Top name) = do
   ((a', b'), _) <- getNamedAr name
   unify a a'
   unify b b'
-check (a, b) (Comp [ELim fs]) =
+check (a, b) (ELim fs) =
   forM_ fs $ \(_, f) -> check (a, b) f
-check (a, b) (Comp [ECoLim fs]) =
+check (a, b) (ECoLim fs) =
   forM_ fs $ \(_, f) -> check (a, b) f
 check (_, b :=> c) (EConst f) = check (b, c) f
 check (_, b) (EConst f) = throwError (CeConstTargetNotArr b f)

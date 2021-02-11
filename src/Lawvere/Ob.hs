@@ -69,8 +69,9 @@ operatorTable = [[InfixR ((:=>) <$ symbol "=>")]]
 
 pFunApp :: Parser Ob
 pFunApp = do
-  f <- parsed
-  x <- wrapped '(' ')' parsed
+  f <- try $ parsed <* lexChar '('
+  x <- parsed
+  _ <- single ')'
   pure (TFunApp f x)
 
 pAtom :: Parser Ob

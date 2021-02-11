@@ -164,23 +164,23 @@ Easy transform good use of data-structures into a mess of variables and lambdas.
 Scalars are written as normal, but represent constant morphisms.
 
 ```lawvere
-ar Base favInt : {:} --> Int =
+ar favInt : {:} --> Int =
   42
 
-ar Base myName : {:} --> String =
+ar myName : {:} --> String =
   "James Haydon" 
 ```
 
 ## Composition
 
 ```lawvere
-ar Base plus2 : Int --> Int =
+ar plus2 : Int --> Int =
    incr incr
 
-ar Base plus4 : Int --> Int =
+ar plus4 : Int --> Int =
   plus2 plus2
 
-ar Base plus10 : Int --> Int =
+ar plus10 : Int --> Int =
   plus4 plus4 plus2
 ```
 
@@ -189,12 +189,12 @@ ar Base plus10 : Int --> Int =
 All operations operate at the morphism level:
 
 ```lawvere
-ar Base inc : Int --> Int = + 1
+ar inc : Int --> Int = + 1
 
 // Explained later
 ob Base Bool = [ true: {:}, false: {:}]
 
-ar Base foo : {:} --> Bool =
+ar foo : {:} --> Bool =
   43 > 40 + 2
 ```
 
@@ -208,18 +208,18 @@ If your target category has products:
 ob Base User = { name: String, points: Int }
 
 // A cone:
-ar Base newPlayer : String --> User =
+ar newPlayer : String --> User =
   { name = , points = 0 }
 
 // Another cone:
-ar Base score : User --> User =
+ar score : User --> User =
   { name = .name, points = .points (+ 40) }
 
 // field punning:
-ar Base score' : User --> User =
+ar score' : User --> User =
   { name, points = .points (+ 40) }
 
-ar Base isPowerPlayer : User --> Bool =
+ar isPowerPlayer : User --> Bool =
   .points >= 100
 ```
 
@@ -231,10 +231,10 @@ If your target category has sums:
 // Already defined above:
 // ob Base Bool = [ true: {:}, false: {:}]
 
-ar Base worldIsFlat : {:} --> Bool = false.
+ar worldIsFlat : {:} --> Bool = false.
 
 // A cocone:
-ar Base not : Bool --> Bool =
+ar not : Bool --> Bool =
   [ true  = false.,
     false = true. ]
 ```
@@ -244,7 +244,7 @@ ar Base not : Bool --> Bool =
 If your target category is _distributive_:
 
 ```lawvere
-ar Base and : { x: Bool, y: Bool } --> Bool =
+ar and : { x: Bool, y: Bool } --> Bool =
   @x [ true  = .y,
        false = {=} false. ]
 ```
@@ -256,7 +256,7 @@ But `Hask` isn't extensive, e.g. would need refinement types.
 ## If-then-else
 
 ```lawvere
-ar Base ifThenElse : { cond : Bool, tt : Int, ff : Int} --> Int =
+ar ifThenElse : { cond : Bool, tt : Int, ff : Int} --> Int =
   @cond [ true = .tt, false = .ff ]
 ```
 
@@ -266,27 +266,27 @@ ar Base ifThenElse : { cond : Bool, tt : Int, ff : Int} --> Int =
 ob Base ListInt =
   [ empty: {:}, cons: { head: Int, tail: ListInt }] 
 
-ar Base sum : ListInt --> Int =
+ar sum : ListInt --> Int =
   [ empty = 0,
     cons  = .head + .tail sum ]
     
-ar Base exampleList : {:} --> ListInt =
+ar exampleList : {:} --> ListInt =
   empty.
   { head = 3, tail = } cons.
   { head = 2, tail = } cons.
   { head = 1, tail = } cons.
 
-ar Base exampleList2 : {:} --> ListInt =
+ar exampleList2 : {:} --> ListInt =
   #(1, 2, 3) // sugar
 
-ar Base sixIsSix : {:} --> Bool =
+ar sixIsSix : {:} --> Bool =
   exampleList sum == exampleList2 sum
 ```
 
 ## Case splitting v1
 
 ```lawvere
-ar Base gameHeadline1 : { userA: User, userB: User } --> String =
+ar gameHeadline1 : { userA: User, userB: User } --> String =
   { users = ,
     delta = .userA .points - .userB .points }
   { users, delta,
@@ -305,7 +305,7 @@ ar Base gameHeadline1 : { userA: User, userB: User } --> String =
 But not really interested in `sign` per-se, just want to split on it:
 
 ```lawvere
-ar Base gameHeadline2 : { userA: User, userB: User } --> String =
+ar gameHeadline2 : { userA: User, userB: User } --> String =
   { userA, userB,
     delta = .userA .points - .userB .points }
   { winningBy = .delta abs show,
@@ -337,7 +337,7 @@ More generally, when `f` targets a sum `[a : A, b : B, ...]`
 Sugar for `Bool` case:
 
 ```lawvere
-ar Base gameHeadline3 : { userA: User, userB: User } --> String =
+ar gameHeadline3 : { userA: User, userB: User } --> String =
   { userA, userB,
     delta = .userA .points - .userB .points }
   { winningBy = .delta abs show,
@@ -353,7 +353,7 @@ Sugar for general case too?
 Not yet implemented. Note the `;`.
 
 ```
-ar Base gameHeadline4 : { userA: User, userB: User } --> String =
+ar gameHeadline4 : { userA: User, userB: User } --> String =
   { userA, userB,
     delta  = .userA .points - .userB .points;
     sign   = .delta (>= 0);
@@ -365,7 +365,7 @@ ar Base gameHeadline4 : { userA: User, userB: User } --> String =
 ## Case splitting v5
 
 ```
-ar Base gameHeadline3 : { userA: User, userB: User } --> String =
+ar gameHeadline3 : { userA: User, userB: User } --> String =
   { userA, userB,
     delta     = .userA .points - .userB .points;
     winningBy = .delta abs show,
@@ -394,4 +394,14 @@ _Syntax:_
 // Turn a question into an answer.
 ar Base[IO] ask : String --> String =
   putLine getLine
+```
+
+```lawvere
+ar Base[IO] hello : {:} --> String =
+  i("What is your name?") putLine
+  getLine
+  i("Hello {}!") putLine
+
+ar InputOutput main : {:} --> {:} =
+  io(hello)
 ```

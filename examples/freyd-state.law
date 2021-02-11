@@ -5,9 +5,9 @@ sketch IntState over Base = {
 
 ar Base[IntState] next : {:} --> Int =
   get
-  <{ current= , next= }>
-  !next{ <incr> put }
-  <.current>
+  i({ current= , next= })
+  !next{ i(incr) put }
+  i(.current)
 
 interp IntState pureState =
   over
@@ -32,16 +32,15 @@ interp IntState pureState =
 // make a function which maps `next` over a list of units:
 
 ar Base[IntState] mapNext : list({:}) --> list(Int) =
-    [ empty = <empty.>,
-      cons  = !head{ next } !tail{ mapNext } <cons.> ]
+    [ empty = i(empty.),
+      cons  = !head{ next } !tail{ mapNext } i(cons.) ]
 
 // apply it:
 
-ar Base main : {:} --> Int =
-  { state = 0, value = }           // set the initial state to 0
-  pureState(<exampleList> mapNext) // use the freyd arrow `counting` interpreting it with `pureState` functor
-  .value                           // we are jut interesting in the result, not the accumulated state
-
+ar main : {:} --> Int =
+  { state = 0, value = }            // set the initial state to 0
+  pureState(i(exampleList) mapNext) // use the freyd arrow `counting` interpreting it with `pureState` functor
+  .value                            // we are jut interesting in the result, not the accumulated state
 
 ////////////////
 // list stuff //
@@ -54,8 +53,8 @@ ar Cat list : Base --> Base =
     cons  : { head : ,
               tail : list } ]
 
-ar Base bump : list({:}) --> list({:}) =
+ar bump : list({:}) --> list({:}) =
   { head = {=}, tail = } cons.
 
-ar Base exampleList : {:} --> list({:}) =
+ar exampleList : {:} --> list({:}) =
   empty. bump bump bump

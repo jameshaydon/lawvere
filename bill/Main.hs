@@ -83,23 +83,6 @@ newtype Repl a = Repl {runRepl :: InputT (StateT ReplState IO) a}
 instance MonadState ReplState Repl where
   state = Repl . lift . state
 
-{-
-repl :: IO ()
-repl = do
-  putStrLn greet
-  let compl :: (String, String) -> StateT ReplState IO (String, [Completion])
-      compl = completeWord Nothing "() \n" go
-        where
-          go :: String -> StateT ReplState IO [Completion]
-          go (toS -> prefix) = do
-            prodSt <- evalSt <$> get
-            let ks = filter (prefix `Text.isPrefixOf`) (renderDefault <$> Map.keys (productKeys prodSt))
-            pure (simpleCompletion . toS <$> ks)
-      setts :: Settings (StateT ReplState IO)
-      setts = setComplete compl (defaultSettings {historyFile = Just ".artificial-repl"})
-  initRepl Nothing >>= evalStateT (runInputT setts (runRepl loop))
--}
-
 repl :: Maybe FilePath -> IO ()
 repl filepath_ = do
   prog_ <- load
@@ -151,7 +134,9 @@ repl filepath_ = do
                 outputStrLn "Couldn't reload:"
                 outputStrLn (toS err)
               Right st -> put st >> loop
-          _ -> Repl $ outputStrLn ("Unrecognised command: ':" <> cmd <> "'")
+          _ -> do
+            Repl $ outputStrLn ("Unrecognised command: ':" <> cmd <> "'")
+            loop
         Just inp -> do
           case Mega.parse (parsed <* Mega.eof) "input" (toS inp) of
             Left err -> Repl . outputStrLn . toS . Mega.errorBundlePretty $ err

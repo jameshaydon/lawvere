@@ -52,7 +52,7 @@ Basic scalar types are written as in other programming languages, e.g. `42` and 
 ar someNumber : {:} --> Int = 42
 ```
 
-The above code defines an morphisms using the `ar` keyword (standing for _arrow_) in the category `Base`. The arrow has source `{:}` (which is syntax for the unit type) and target `Int`.
+The above code defines a morphisms using the `ar` keyword (standing for _arrow_). The arrow has source `{:}` (which is syntax for the unit type) and target `Int`.
 
 When the REPL accepts an input, it actually executes it on the unit input. So for example inputting `incr` (which expects an `Int`) will result in an error.
 

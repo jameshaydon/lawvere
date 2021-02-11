@@ -4,7 +4,7 @@ ob Base Bool =
   [ true:  {:},
     false: {:} ]
 
-ar Base not : Bool --> Bool =
+ar not : Bool --> Bool =
   [ true = {=} false.,
     false = {=} true. ]
 
@@ -18,7 +18,7 @@ ob Base ListPoint =
     cons:  { head: Point, tail: ListPoint }
   ]
 
-ar Base zip : { xs : ListF, ys : ListF } --> ListPoint =
+ar zip : { xs : ListF, ys : ListF } --> ListPoint =
   @xs [ empty = {=} empty.,
         cons  = @ys [ empty = {=} empty.,
                       cons  = { head = { x = .xs .head,
@@ -27,13 +27,13 @@ ar Base zip : { xs : ListF, ys : ListF } --> ListPoint =
                                          ys = .ys .tail } zip
                               } cons. ] ]
 
-ar Base ex : {:} --> ListF =
+ar ex : {:} --> ListF =
   empty.
   { head = 0.0,   tail = } cons.
   { head = 1.2,   tail = } cons.
   { head = 100.0, tail = } cons.
 
-ar Base main : {:} --> ListPoint =
+ar main : {:} --> ListPoint =
   { xs = ex, ys = ex } zip
   
   

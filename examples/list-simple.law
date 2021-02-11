@@ -3,15 +3,15 @@ ob Base ListI =
     cons:  { head: Int, tail: ListI }
   ]
 
-ar Base sumList : ListI --> Int =
+ar sumList : ListI --> Int =
   [ empty = 0,
     cons  = (.head, .tail sumList) plus ] 
 
-ar Base example : {:} --> ListI =
+ar example : {:} --> ListI =
   empty.
   { head = 10, tail = } cons.
   { head = 20, tail = } cons.
   { head = 30, tail = } cons.
 
-ar Base main : {:} --> Int =
+ar main : {:} --> Int =
   example sumList

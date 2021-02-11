@@ -1,18 +1,18 @@
 ob Base Bool = [ true : {:}, false : {:} ]
 
-ar Base not : Bool --> Bool
+ar not : Bool --> Bool
   = [ true  = false.,
       false = true. ]
 
-ar Base and : {x : Bool, y : Bool} --> Bool =
+ar and : {x : Bool, y : Bool} --> Bool =
   @x [ true  = .y,
        false = {=} false. ]
 
-ar Base or : {x : Bool, y : Bool} --> Bool =
+ar or : {x : Bool, y : Bool} --> Bool =
   @x [ true  = {=} true.,
        false = .y ]
 
-ar Base main : {:} --> Bool =
+ar main : {:} --> Bool =
   { x = true.  not not,
     y = false. not }
   and

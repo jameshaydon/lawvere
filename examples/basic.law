@@ -2,11 +2,11 @@ ob Base Bool =
   [ true:  {:},
     false: {:} ]
 
-ar Base not : Bool --> Bool =
+ar not : Bool --> Bool =
   [ true = {=} false.,
     false = {=} true. ]
 
-ar Base and : (Bool, Bool) --> Bool =
+ar and : (Bool, Bool) --> Bool =
   @1 [ true = .2,
        false = {=} false. ]
 
@@ -15,7 +15,7 @@ ob Base ListInt =
     cons:  { head: Int, tail: ListInt }
   ]
 
-ar Base length : ListInt --> Int =
+ar length : ListInt --> Int =
   [ empty = 0,
     cons = ( 1, .tail length ) plus ]
 
@@ -24,7 +24,7 @@ ob Base ListListInt =
     cons: { head: ListInt, tail: ListListInt }
   ]
 
-ar Base map : (ListInt => Int, ListListInt) --> ListInt =
+ar map : (ListInt => Int, ListListInt) --> ListInt =
   { f = .1, xs = .2 }
   @xs
   [ empty = {=} empty.,
@@ -32,28 +32,28 @@ ar Base map : (ListInt => Int, ListListInt) --> ListInt =
              tail = ( .f, .xs .tail ) map }
            cons. ]
 
-ar Base mapLength : ListListInt --> ListInt =
+ar mapLength : ListListInt --> ListInt =
   (const(length), ) map
 
-ar Base main : {:} --> ListInt =
+ar main : {:} --> ListInt =
   listOfLists mapLength
 
 
 // Some lists follow
 
-ar Base cons1 : ListInt --> ListInt =
+ar cons1 : ListInt --> ListInt =
   { head = 100, tail = } cons.
 
-ar Base cons2 : ListInt --> ListInt =
+ar cons2 : ListInt --> ListInt =
   { head = 200, tail = } cons.
 
-ar Base list3 : {:} --> ListInt =
+ar list3 : {:} --> ListInt =
   empty. cons1 cons2 cons1
 
-ar Base list2 : {:} --> ListInt =
+ar list2 : {:} --> ListInt =
   empty. cons2 cons1 cons1 cons1
 
-ar Base listOfLists : {:} --> ListListInt =
+ar listOfLists : {:} --> ListListInt =
   empty.
   { head = {=} list3, tail = } cons.
   {head = {=} list2, tail = } cons.

@@ -42,7 +42,10 @@
               "handling"
               "freyd"
               "summing"
-              "side")))
+              "side"
+              "if"
+              "then"
+              "else")))
 
 (setq lawvere-builtins
       (-map #'kw-alone

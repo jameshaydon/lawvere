@@ -139,6 +139,8 @@ A programming language is a text-format.
 
 - "Concatenative" PLs already had this idea.
 
+- Clean/minimal semantics (e.g. for blockchain, "universal scripts", etc.)
+
 ## No λ, but lots of names
 
 An experiment.
@@ -251,10 +253,18 @@ If the category is _extensive_, then could have case analysis at any morphism.
 
 But `Hask` isn't extensive, e.g. would need refinement types.
 
+## If-then-else
+
+```lawvere
+ar Base ifThenElse : { cond : Bool, tt : Int, ff : Int} --> Int =
+  @cond [ true = .tt, false = .ff ]
+```
+
 ## Sum a list
 
 ```lawvere
-ob Base ListInt = [ empty: {:}, cons: { head: Int, tail: ListInt }] 
+ob Base ListInt =
+  [ empty: {:}, cons: { head: Int, tail: ListInt }] 
 
 ar Base sum : ListInt --> Int =
   [ empty = 0,
@@ -266,29 +276,17 @@ ar Base exampleList : {:} --> ListInt =
   { head = 2, tail = } cons.
   { head = 1, tail = } cons.
 
-// List syntax
 ar Base exampleList2 : {:} --> ListInt =
-  #(1, 2, 3)
+  #(1, 2, 3) // sugar
 
-ar Base sixIsSix : {:} --> Bool = exampleList sum == exampleList2 sum
+ar Base sixIsSix : {:} --> Bool =
+  exampleList sum == exampleList2 sum
 ```
 
-## Data propagation
-
-is a bit tedious:
+## Case splitting v1
 
 ```lawvere
-  { userA, userB,
-    delta = .userA .points - .userB .points }
-  { winningBy = .delta abs,
-    leader    = if (.delta (>= 0))
-                  then .userA
-                  else .userB
-  } 
-```
-
-```lawvere
-ar Base gameHeadline : { userA: User, userB: User } --> String =
+ar Base gameHeadline1 : { userA: User, userB: User } --> String =
   { users = ,
     delta = .userA .points - .userB .points }
   { users, delta,
@@ -299,7 +297,86 @@ ar Base gameHeadline : { userA: User, userB: User } --> String =
   "Player {.leader .name} is winning by {.delta abs show} points!"
 ```
 
-Have ideas to mitigate.
+3 cones because of data dependencies:
+`users -> delta -> sign -> leader`
+
+## Case splitting v2
+
+But not really interested in `sign` per-se, just want to split on it:
+
+```lawvere
+ar Base gameHeadline2 : { userA: User, userB: User } --> String =
+  { userA, userB,
+    delta = .userA .points - .userB .points }
+  { winningBy = .delta abs show,
+    leader    = {v = , case = .delta (>= 0)}
+                @case [ true  = .v .userA,
+                        false = .v .userB ]
+  }
+  "Player {.leader .name} is winning by {.winningBy} points!"
+```
+
+## Case on a projection
+
+This is a pattern:
+```
+{v = , case = .delta (>= 0)}
+@case [ true  = .v .userA,
+        false = .v .userB ]
+```
+
+More generally, when `f` targets a sum `[a : A, b : B, ...]`
+```
+{v = , case = f }
+@case [ a = ..., b = ..., ... ]
+```
+
+
+## Case splitting v3
+
+Sugar for `Bool` case:
+
+```lawvere
+ar Base gameHeadline3 : { userA: User, userB: User } --> String =
+  { userA, userB,
+    delta = .userA .points - .userB .points }
+  { winningBy = .delta abs show,
+    leader    = if .delta (>= 0) then .userA else .userB
+  }
+  "Player {.leader .name} is winning by {.winningBy} points!"
+```
+
+Sugar for general case too?
+
+## Case splitting v4
+
+Not yet implemented. Note the `;`.
+
+```
+ar Base gameHeadline4 : { userA: User, userB: User } --> String =
+  { userA, userB,
+    delta  = .userA .points - .userB .points;
+    sign   = .delta (>= 0);
+    leader = @sign [ true  = .users .userA,
+                     false = .users .userB ] }
+  "Player {.leader .name} is winning by {.delta abs show} points!"
+```
+
+## Case splitting v5
+
+```
+ar Base gameHeadline3 : { userA: User, userB: User } --> String =
+  { userA, userB,
+    delta     = .userA .points - .userB .points;
+    winningBy = .delta abs show,
+    leader    = if .delta (>= 0) then .userA else .userB
+  }
+  "Player {.leader .name} is winning by {.winningBy} points!"
+```
+
+## How to define if-then-else in the language?
+
+_draw some stuff_
 
 ## Effects!
 

@@ -162,11 +162,33 @@ pList = do
       (Inj (LNam "empty"))
       es
 
+pIfThenElse :: Parser Expr
+pIfThenElse = do
+  kwIf
+  cond <- parsed
+  kwThen
+  tt <- parsed
+  kwElse
+  ff <- parsed
+  pure $
+    Comp
+      [ Cone
+          [ (ConeComponent Pure (LNam "v"), Comp []),
+            (ConeComponent Pure (LNam "case"), cond)
+          ],
+        Distr (LNam "case"),
+        CoCone
+          [ (LNam "true", Comp [Proj (LNam "v"), tt]),
+            (LNam "false", Comp [Proj (LNam "v"), ff])
+          ]
+      ]
+
 pAtom :: Parser Expr
 pAtom =
   choice
     [ pSide,
       pCurry,
+      pIfThenElse,
       try pApp,
       pInterpolated,
       Lit <$> parsed,

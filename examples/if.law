@@ -1,0 +1,64 @@
+sketch AB = {
+  ob A
+  ob B
+}
+
+sketch AfB = {
+  ob A
+  ob B
+  ar f : A --> B
+}
+
+sketch If = {
+  ob A
+  ob B
+  ar condition : A --> Bool
+  ar ifTrue    : A --> B
+  ar ifFalse   : A --> B
+}
+
+ar Cat if : Mod(If,C) --> Mod(AfB,C) =
+  model {
+    ob A |-> 1
+    ob B |-> 2
+    ar f |-> 3
+  }
+
+ob(A) : Mod(If, C) --> C
+ob(B) : Mod(If, C) --> C
+ar(f) : ob(A) --> ob(B)
+
+
+sketch If = {
+  a, b, bool,
+  f : a --> b,
+  g : a --> b,
+  c : a --> bool
+  }
+
+sketch AfB = {a, b, f : a --> b }
+
+{If, Base | bool = Bool} --> {AfB, Base}
+
+{ a, b, bool, tt : a -> b, ff : a -> b, c : a -> bool }
+
+{ a = .a,
+  b = .b,
+  f = _ }
+
+
+if : { on : A, if : Bool, then : A => B, else : A => B } --> B
+
+
+if : ({ a, b, condi : a -> Bool, tt : a -> b, ff : a -> b } => Base) --> ({ a, b, f : a -> b } => Base) =
+{ a = .a,
+  b = .b,
+  f = { condi = .condi,
+        value = }
+      @condi
+      [ true  = .value .tt,
+        false = .value .ff ]
+}
+  
+if : 
+

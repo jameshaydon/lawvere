@@ -133,7 +133,7 @@ This works because, as mentioned above, `2.3` and `4.6` are morphisms of type `{
 
 In general, to specify a morphism `X --> { a: A, b: B, c: C, ... }`, one uses a cone:
 
-``` lawvere
+```
 { a = f, b = g, ... }
 ```
 where `f : X --> A`, `g : X --> B`, `h : X --> C`, etc.
@@ -159,15 +159,15 @@ When there are no components one still uses the separator symbol. So the empty p
 By using parentheses instead of braces, the components are positional rather than named. In this case the projections are `.1`, `.2`, etc. Using a positional product for `Point` the previous program would be:
 
 ``` lawvere
-ob Base Point = (Float, Float)
+ob Base PointPos = (Float, Float)
 
-ar horizontal : Point --> Float = .1
+ar horizontalPos : PointPos --> Float = .1
 
-ar somePoint : {:} --> Point =
+ar somePointPos : {:} --> PointPos =
   ( 2.3, 4.6 )
 
 ar main : {:} --> Float =
-  somePoint horizontal
+  somePointPos horizontalPos
 ```
 
 ### String interpolation
@@ -205,11 +205,11 @@ In words, we split the morphism into two cases. In the first case (on the `true`
 
 In general, to specify a morphism
 
-``` lawvere
+```
 [ a: A, b: B, c: C, ... ] --> X 
 ```
 one uses a cocone
-``` lawvere
+```
 [ a = f, b = g, c = h, ... ]
 ```
 where `f : A --> X`, `g : B --> X`, `h : C --> X`, etc.
@@ -218,19 +218,19 @@ where `f : A --> X`, `g : B --> X`, `h : C --> X`, etc.
 
 Continuing with boolean functions, let's try to define the `and` function:
 
-``` lawvere
+```
 ar and : {x: Bool, y: Bool} --> Bool = ?
 ```
 
 This is a morphism _to_ a sum (`Bool`), so we can't use a cocone, and _from_ a product (`{x : Bool, y: Bool }`), so we can't use a cone---are we stuck? Intuitively we want to inspect one of the two arguments `(x` or `y`) in order to continue. For this we will use the _distributor_ `@x`. To understand what this does, first let's re-write `{x : Bool, y : Bool}` by expanding the definition of `Bool` at the `x` summand:
 
-``` lawvere
+```
 { x: [ true: {:}, false: {:}], y: Bool }
 ```
 
 The type of `@x` is:
 
-``` lawvere
+```
 @x : { x: [ true: {:}, false: {:}], y: Bool } --> [ true: { x: {:}, y: Bool}, false: { x: {:}, y: Bool } ] 
 ```
 
@@ -270,7 +270,7 @@ ob Base ListI =
 as follow:
 
 ``` lawvere
-ar sum : ListInt --> Int =
+ar sum : ListI --> Int =
   [ empty = 0,
     cons  = .head + .tail sum ]
 ```

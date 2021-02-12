@@ -3,7 +3,28 @@
 # For more information, please see the documentation at:
 #   https://docs.haskellstack.org/en/stable/lock_files
 
-packages: []
+packages:
+- completed:
+    hackage: commonmark-0.1.1.3@sha256:e3af411216448fe61cc36d2d5dbffd85c9f714761f1a47ae0a9c611babf72ea7,3278
+    pantry-tree:
+      size: 1346
+      sha256: e44a0ad499cddb3556f4cc83c030085b763c87ecab91c744a515cd8d9f721779
+  original:
+    hackage: commonmark-0.1.1.3@sha256:e3af411216448fe61cc36d2d5dbffd85c9f714761f1a47ae0a9c611babf72ea7,3278
+- completed:
+    hackage: commonmark-pandoc-0.2.0.1@sha256:529c6e2c6cabf61558b66a28123eafc1d90d3324be29819f59f024e430312c1f,1105
+    pantry-tree:
+      size: 326
+      sha256: d9954a15f73c8fe55a5097e1cc0957fa626d340ef36e2beefb8caae66008c3dc
+  original:
+    hackage: commonmark-pandoc-0.2.0.1@sha256:529c6e2c6cabf61558b66a28123eafc1d90d3324be29819f59f024e430312c1f,1105
+- completed:
+    hackage: commonmark-extensions-0.2.0.4@sha256:6a437bcfa3c757af4262b71336513619990eafb5cfdc33e57a499c93ad225608,3184
+    pantry-tree:
+      size: 2928
+      sha256: ac8993e356edabc65a40d6c6909696c5f2dfe2a5298089da820c29ca75852360
+  original:
+    hackage: commonmark-extensions-0.2.0.4@sha256:6a437bcfa3c757af4262b71336513619990eafb5cfdc33e57a499c93ad225608,3184
 snapshots:
 - completed:
     size: 565469

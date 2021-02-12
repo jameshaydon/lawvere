@@ -44,22 +44,38 @@ let toLawBool = function (b){
 };
 
 let binOp = (op, f, g) => function(x) {
-    switch(op) {
-        case "plus": return f(x) + g(x);
-        case "mult": return f(x) * g(x);
-        case "minus": return f(x) - g(x);
-        case "equal": return toLawBool(f(x) === g(x));
-        case "less_than": return toLawBool(f(x) < g(x));
-        case "less_than_equal": return toLawBool(f(x) <= g(x));
-        default:
-            console.log("Missing binOp!", op);
-    }
-  };
-
-tops["plus"] = (x) => x["1"] + x["2"];
-tops["print"] = (x) => {
-  console.log("PRINT", x);
-  return {};
+  switch(op) {
+    case "plus": return f(x) + g(x);
+    case "mult": return f(x) * g(x);
+    case "minus": return f(x) - g(x);
+    case "equal": return toLawBool(f(x) === g(x));
+    case "less_than": return toLawBool(f(x) < g(x));
+    case "less_than_equal": return toLawBool(f(x) <= g(x));
+    case "greater_than": return toLawBool(f(x) > g(x));
+    case "greater_than_equal": return toLawBool(f(x) >= g(x));
+    default:
+      console.log("Missing binOp!", op);
+  }
 };
-tops["incr"] = (x) => x + 1;
-tops["app"] = (x) => x["1"](x["2"]);
+
+let prim = function (p) {
+  switch(p) {
+    case "plus": return (x) => x["1"] + x["2"];
+    case "mult": return (x) => x["1"] * x["2"];
+    case "minus": return (x) => x["1"] - x["2"];
+    case "equal": return (x) => toLawBool(x["1"] === x["2"]);
+    case "less_than": return (x) => toLawBool(x["1"] < x["2"]);
+    case "less_than_equal": return (x) => toLawBool(x["1"] <= x["2"]);
+    case "greater_than": return (x) => toLawBool(x["1"] > x["2"]);
+    case "greater_than_equal": return (x) => toLawBool(x["1"] >= x["2"]);
+    case "app": return (x) => x["1"](x["2"]);
+    case "identity": return (x) => x;
+    case "incr": return (x) => x + 1;
+    case "abs": return (x) => Math.abs(x);
+    case "show": return (x) => "" + x;
+    default:
+      console.log("Missing prim!", p);
+  }
+};
+
+

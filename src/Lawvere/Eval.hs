@@ -308,7 +308,8 @@ evalJS = \case
   Cone xs -> jsCall1 "cone" $ jsCone [(componentLabel label, evalJS e) | (label, e) <- xs]
   CoCone xs -> jsCall1 "cocone" $ jsCone [(label, evalJS e) | (label, e) <- xs]
   BinOp o f g -> jsCall "binOp" [show (render (PrimOp o)), evalJS f, evalJS g]
-  e -> panic $ "TODO JS: " <> render e
+  EPrim prim -> jsCall1 "prim" (show (render prim))
+  _ -> panic "JS TODO"
   where
     labCombi f p = jsCall1 f (jsLabel p)
 

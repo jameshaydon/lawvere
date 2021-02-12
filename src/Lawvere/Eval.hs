@@ -12,6 +12,7 @@ import Lawvere.Disp
 import Lawvere.Expr
 import Lawvere.Ob
 import Lawvere.Scalar
+import Paths_lawvere
 import Prettyprinter
 import Protolude
 
@@ -53,7 +54,7 @@ type Tops = Map LcIdent Top
 
 evalAr :: Tops -> Expr -> Fun
 evalAr tops = \case
-  EPrim _ -> panic "TODO prim"
+  EPrim prim -> evalPrim prim
   ELim limOfFunctors -> functor
     where
       functor :: Val -> IO Val
@@ -146,7 +147,7 @@ evalAr tops = \case
           v -> panic $ "bad efunapp: " <> render v
       Just (TInterp Interp {..}) ->
         evalAr ((TFun <$> iHandlers) <> Map.fromList [(LcIdent "i", TFun iInj), (LcIdent "sumPreserver", TFun iSum), (LcIdent "side", TExpr iSide)] <> tops) e
-      _ -> panic "bad efunapp"
+      _ -> panic $ "bad efunapp: " <> render name
   Curry _ _ -> panic "curry"
   Object _ -> const (pure (VFun pure))
   CanonicalInj e -> evalAr tops (EFunApp (LcIdent "i") e)
@@ -158,8 +159,6 @@ evalAr tops = \case
       (Sca a, Sca b) -> pure (binOp Sca toValBool o a b)
       _ -> panic "bad binop"
   where
-    toValBool True = Tag (LNam "true") (Rec mempty)
-    toValBool False = Tag (LNam "false") (Rec mempty)
     lawPutLine = \case
       Sca (Str s) -> do
         putStrLn s
@@ -216,56 +215,37 @@ evalAr tops = \case
 lkp :: Label -> Map Label a -> Maybe a
 lkp = Map.lookup
 
-primTops :: Tops
-primTops =
-  Map.fromList
-    [ "plus"
-        |-> \case
-          Rec r
-            | Just (Sca (Int x)) <- lkp (LPos 1) r,
-              Just (Sca (Int y)) <- lkp (LPos 2) r ->
-              pure (Sca (Int (x + y)))
-          _ -> panic "bad plus",
-      "print"
-        |-> \case
-          v -> do
-            putStrLn ("PRINT" :: Text)
-            putStrLn (render v)
-            pure (Rec mempty),
-      "concat"
-        |-> \case
-          Rec r
-            | Just (Sca (Str x)) <- lkp (LPos 1) r,
-              Just (Sca (Str y)) <- lkp (LPos 2) r ->
-              pure (Sca (Str (x <> y)))
-          _ -> panic "bad concat",
-      "identity" |-> pure,
-      "incr"
-        |-> \case
-          Sca (Int x) -> pure (Sca (Int (x + 1)))
-          _ -> panic "bad incr",
-      "abs"
-        |-> \case
-          Sca (Int x) -> pure (Sca (Int (abs x)))
-          Sca (Float x) -> pure (Sca (Float (abs x)))
-          _ -> panic "bad abs",
-      "show" |-> (pure . Sca . Str . render),
-      "app"
-        |-> \case
-          Rec r
-            | Just (VFun ff) <- lkp (LPos 1) r,
-              Just aa <- lkp (LPos 2) r ->
-              ff aa
-          v -> panic ("bad app: " <> render v),
-      -- The base interp:
-      "i" |-> pure,
-      "sumPreserver" |-> pure
-    ]
-  where
-    x |-> y = (LcIdent x, TFun y)
+toValBool :: Bool -> Val
+toValBool True = Tag (LNam "true") (Rec mempty)
+toValBool False = Tag (LNam "false") (Rec mempty)
 
-(=:) :: a -> b -> (a, b)
-(=:) = (,)
+evalPrim :: Prim -> Fun
+evalPrim = \case
+  PrimOp o ->
+    \case
+      Rec r
+        | Just (Sca a) <- lkp (LPos 1) r,
+          Just (Sca b) <- lkp (LPos 2) r ->
+          pure (binOp Sca toValBool o a b)
+      _ -> panic "bad plus"
+  PrimIdentity -> pure
+  PrimIncr ->
+    \case
+      Sca (Int x) -> pure (Sca (Int (x + 1)))
+      _ -> panic "bad incr"
+  PrimAbs ->
+    \case
+      Sca (Int x) -> pure (Sca (Int (abs x)))
+      Sca (Float x) -> pure (Sca (Float (abs x)))
+      _ -> panic "bad abs"
+  PrimShow -> (pure . Sca . Str . render)
+  PrimApp ->
+    \case
+      Rec r
+        | Just (VFun ff) <- lkp (LPos 1) r,
+          Just aa <- lkp (LPos 2) r ->
+          ff aa
+      v -> panic ("bad app: " <> render v)
 
 evalInterp :: Tops -> Expr -> SketchInterp -> Expr -> Expr -> Interp
 evalInterp tops iInj iHandlers iSum iSide =
@@ -289,22 +269,22 @@ evalMain v ds = eval v ds (Top (LcIdent "main"))
 
 eval :: Val -> Decls -> Expr -> IO Val
 eval v ds expr =
-  let tops = primTops <> Map.fromList [bind | d <- ds, bind <- evalDecl tops d]
+  let tops =
+        Map.fromList $
+          [ ("sumPreserver", TFun pure),
+            ("i", TFun pure)
+          ]
+            ++ [bind | d <- ds, bind <- evalDecl tops d]
    in evalAr tops expr v
 
-primsJS :: [(Text, Text)]
-primsJS =
-  [ "plus" =: "x => x[\"1\"] + x[\"2\"];",
-    "print" =: "x => {console.log('PRINT', x);return {};}",
-    "incr" =: "x => x+1;",
-    "app" =: "x => x[\"1\"](x[\"2\"])"
-  ]
+jsCall :: Text -> [Text] -> Text
+jsCall f xs = f <> "(" <> Text.intercalate "," xs <> ")"
 
 jsCall1 :: Text -> Text -> Text
-jsCall1 f x = f <> "(" <> x <> ")"
+jsCall1 f x = jsCall f [x]
 
 jsCall2 :: Text -> Text -> Text -> Text
-jsCall2 f x y = f <> "(" <> x <> "," <> y <> ")"
+jsCall2 f x y = jsCall f [x, y]
 
 jsCone :: [(Label, Text)] -> Text
 jsCone xs = "{" <> Text.intercalate "," [jsLabel lab <> ":" <> f | (lab, f) <- xs] <> "}"
@@ -327,21 +307,18 @@ evalJS = \case
       go x e = jsCall2 "comp" x (evalJS e)
   Cone xs -> jsCall1 "cone" $ jsCone [(componentLabel label, evalJS e) | (label, e) <- xs]
   CoCone xs -> jsCall1 "cocone" $ jsCone [(label, evalJS e) | (label, e) <- xs]
-  _ -> panic "TODO"
+  BinOp o f g -> jsCall "binOp" [show (render (PrimOp o)), evalJS f, evalJS g]
+  e -> panic $ "TODO JS: " <> render e
   where
     labCombi f p = jsCall1 f (jsLabel p)
 
-mkJS :: Decls -> Text
-mkJS decls =
-  "console.log(" <> jsPriv prelude "tops" <> ".main({}));"
+mkJS :: Decls -> IO Text
+mkJS decls = do
+  jsPreludePath <- getDataFileName "js/lawvere.js"
+  jsPrelude <- readFile jsPreludePath
+  pure $ "console.log(" <> jsPriv (jsPrelude <> " " <> prelude) "tops" <> ".main({}));"
   where
-    prelude =
-      jsClone
-        <> "var tops = {};\n"
-        <> statements
-          ["let " <> name <> " = " <> body | (name, body) <- jsCombis]
-        <> statements (uncurry addTop <$> primsJS)
-        <> statements (mkDecl <$> decls)
+    prelude = statements (mkDecl <$> decls)
     mkDecl (DAr _ (LcIdent name) _ _ e) = addTop name (evalJS e)
     mkDecl DOb {} = ""
     mkDecl DSketch {} = ""
@@ -350,24 +327,3 @@ mkJS decls =
     statements xs = Text.intercalate "\n" ((<> ";") <$> xs)
     jsPriv :: Text -> Text -> Text
     jsPriv x r = "(function(){\n" <> x <> " return " <> r <> ";})()"
-    jsCombis :: [(Text, Text)] =
-      [ "identity" =: "x => x",
-        "mkConst" =: "function(v){return function(_){ return v;};}",
-        "comp" =: "function(f1, f2){ return function(x){ return f2(f1(x)); } }",
-        "top" =: "i => { return function(x){ return tops[i](x); };}",
-        "proj" =: "i => function(x){ return x[i];}",
-        "inj" =: "i => function(x){ return {tag: i, val: x};}",
-        "distr"
-          =: "l =>\
-             \ function(r){\
-             \   let new_r = clone(r);\
-             \   new_r[l] = r[l].val;\
-             \   return {tag: r[l].tag, val: new_r};\
-             \}",
-        "cone"
-          =: "c => function(x){return Object.fromEntries(Object.entries(c).map(([k,f]) => [k,f(x)]));}",
-        "cocone" =: "(c) => function(x){return (c[x.tag])(x.val);}"
-      ]
-
-jsClone :: Text
-jsClone = "function clone(e){if(null===e||\"object\"!=typeof e||\"isActiveClone\"in e)return e;if(e instanceof Date)var n=new e.constructor;else n=e.constructor();for(var t in e)Object.prototype.hasOwnProperty.call(e,t)&&(e.isActiveClone=null,n[t]=clone(e[t]),delete e.isActiveClone);return n}"

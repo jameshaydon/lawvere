@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 5235e7ec2378eee5d3d2780ffce9e33d99418ac80d48ac1d7096a73f9d50e1ec
+-- hash: a5438b4974715fac11506352a20a8eab8b9fc72c71d65285c12c59c38eac09f6
 
 name:           lawvere
 version:        0.1.0.0
@@ -19,6 +19,8 @@ license-file:   LICENSE
 build-type:     Simple
 extra-source-files:
     README.md
+data-files:
+    js/lawvere.js
 
 source-repository head
   type: git
@@ -37,7 +39,6 @@ library
       Lawvere.Literate
       Lawvere.Ob
       Lawvere.Parse
-      Lawvere.Prim
       Lawvere.Scalar
       Lawvere.Sketch
   other-modules:

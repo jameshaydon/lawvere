@@ -13,7 +13,7 @@ import qualified Text.Megaparsec.Char as Char
 import qualified Text.Megaparsec.Char.Lexer as L
 
 data Prim = PrimIdentity | PrimApp | PrimIncr | PrimAbs | PrimShow | PrimOp BinOp
-  deriving stock (Show)
+  deriving stock (Eq, Ord, Show)
 
 instance Fin Prim where
   enumerate = [PrimIdentity, PrimApp, PrimIncr, PrimAbs, PrimShow] ++ (PrimOp <$> enumerate)
@@ -62,7 +62,7 @@ data ISPart = ISRaw Text | ISExpr Expr
   deriving stock (Show)
 
 data NumOp = OpPlus | OpMinus | OpTimes
-  deriving stock (Show, Bounded, Enum)
+  deriving stock (Eq, Ord, Show, Bounded, Enum)
 
 instance Disp NumOp where
   disp = \case
@@ -76,7 +76,7 @@ evNumOp OpMinus = (-)
 evNumOp OpTimes = (*)
 
 data CompOp = OpEq | OpLt | OpLte | OpGt | OpGte
-  deriving stock (Show, Bounded, Enum)
+  deriving stock (Eq, Ord, Show, Bounded, Enum)
 
 instance Disp CompOp where
   disp = \case
@@ -87,7 +87,7 @@ instance Disp CompOp where
     OpGte -> ">="
 
 data BinOp = NumOp NumOp | CompOp CompOp
-  deriving stock (Show)
+  deriving stock (Eq, Ord, Show)
 
 instance Fin BinOp where
   enumerate = (NumOp <$> enumerate) ++ (CompOp <$> enumerate)

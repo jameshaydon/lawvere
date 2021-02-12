@@ -67,7 +67,7 @@ runFile target filepath = handleErr $ do
       say ""
       say "output:"
       say ("  " <> render v)
-    JS -> say (mkJS prog)
+    JS -> liftIO (mkJS prog) >>= say
     VmCode -> say (render (Machine.compileProg prog))
     Vm -> do
       say "Running on categorical machine.."

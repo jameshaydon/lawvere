@@ -6,6 +6,9 @@ author: "James Henri Haydon"
 maintainer: "james.haydon@gmail.com"
 copyright: "2020 James Henri Haydon"
 
+data-files:
+  - js/lawvere.js
+
 extra-source-files:
   - README.md
 

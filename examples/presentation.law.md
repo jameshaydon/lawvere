@@ -147,13 +147,10 @@ An experiment.
 
 data <-> code
 
-> Bad programmers worry about the code. Good programmers worry about data
-> structures and their relationships.
+> Bad programmers worry about the code. Good programmers worry about data structures and their relationships.
 Linus Torvalds
 
-> Data dominates. If you've chosen the right data structures and organized
-> things well, the algorithms will almost always be self-evident. Data
-> structures, not algorithms, are central to programming.
+> Data dominates. If you've chosen the right data structures and organized things well, the algorithms will almost always be self-evident. Data structures, not algorithms, are central to programming.
 Rob Pike
 
 _Church encoding of data:_
@@ -196,6 +193,12 @@ ob Base Bool = [ true: {:}, false: {:}]
 
 ar foo : {:} --> Bool =
   43 > 40 + 2
+
+ar bar : Int --> Int =
+  2 * * + 1
+
+ar baz : { x : Int, y : Int } --> Int =
+  2 * .x + 3 * .y + 6
 ```
 
 Assumes you want to compile to a category with "an `Int` object".

@@ -31,6 +31,7 @@ prims decls =
         Map.fromList $
           [ ("plus", (Scheme [] (OTuple [OPrim TInt, OPrim TInt], ONamed "Int"), EPrim PrimPlus)),
             ("incr", (Scheme [] (OPrim TInt, OPrim TInt), EPrim PrimIncr)),
+            ("identity", (Scheme [va] (ta, ta), Comp [])),
             ("app", (Scheme [va, vb] (OTuple [ta :=> tb, ta], tb), EPrim PrimApp)),
             ("abs", (Scheme [va] (ta, ta), EPrim PrimAbs)),
             ("show", (Scheme [va] (ta, OPrim TString), EPrim PrimShow))

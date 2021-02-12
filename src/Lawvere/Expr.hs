@@ -144,7 +144,7 @@ pTupledOrParensed = do
 
 pList :: Parser Expr
 pList = do
-  es <- between (chunk "#(") (single ')') (sepBy (lexeme parsed) (lexChar ','))
+  es <- between (symbol "#(") (single ')') (sepBy (lexeme parsed) (lexChar ','))
   pure $
     foldr
       ( \hd tl ->

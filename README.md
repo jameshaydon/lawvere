@@ -42,21 +42,28 @@ Lawvere v0.0.0
 
 (Or `cabal run bill -- -i` or `stack exec bill -- -i` if `bill` isn't install.)
 
-`bill` can also be given a file: `bill -i example.law`. By omitting the `-i` flag, the `main` morphism is executed directly and the REPL is not started. In the REPL, `:r` will reload the loaded file, and `:q` will terminate the session.
+`bill` can also be given a file: `bill -i example.law`. By omitting the `-i` flag, the `main` morphism is executed directly and the REPL is not started. In the REPL, `:r` will reload the loaded file, and `:q` will terminate the session. This README file is a literal Lawvere script, so you can load it and try out the examples:
+
+```
+$ bill -i README.md
+Check OK!
+> answer + 1
+43
+```
 
 ### Basic types
 
 Basic scalar types are written as in other programming languages, e.g. `42` and `"hello world"`. Except that in Lawvere everything is a morphism, so these actually denote constant morphisms. For example `42` denotes the morphism which is constantly 42:
 
 ```lawvere
-ar someNumber : {:} --> Int = 42
+ar answer : {:} --> Int = 42
 ```
 
 The above code defines a morphisms using the `ar` keyword (standing for _arrow_). The arrow has source `{:}` (which is syntax for the unit type) and target `Int`.
 
 When the REPL accepts an input, it actually executes it on the unit input. So for example inputting `incr` (which expects an `Int`) will result in an error.
 
-Lawvere also has support for basic arithmetic and comparisons. These are operations on morphisms, for example `f + g` forms the pointwise addition of morphisms `f` and `g`.
+Lawvere also has support for basic arithmetic and comparisons. These are operations on morphisms, for example `f + g` forms the pointwise addition of morphisms `f` and `g`. Here are some examples:
 
 ### Composition
 
@@ -65,13 +72,13 @@ The main way to build up larger programs from smaller ones is by using _composit
 To illustrate this we can use the built-in morphism `incr`, which increments an integer:
 
 ``` lawvere
-ar main : {:} --> Int = 42 incr incr incr
+ar fourtyFive : {:} --> Int = 42 incr incr incr
 ```
 will output `45`.
 
 To run this, create a file with contents:
 
-``` lawvere
+```lawvere
 ar someNumber : {:} --> Int = 42
 
 ar biggerNumber : {:} --> Int =
@@ -95,22 +102,19 @@ Check OK!
 
 _Note:_ The checker is a work-in-progress and is far from complete.
 
-### Compiling to JavaScript
+The identity morphism is called `identity`, but you can also write it with nothing at all (whitespace), so for example the  mathematical function [x ↦ x * x + 1] can be written `identity * identity + 1`, or simply `* + 1`:
 
-To compile to JavaScript, use the `--target js` option:
+``` lawvere
+ar squarePlusOne : Int --> Int = identity * identity + 1
 
-```
-$ bill --target js test.law
-```
-
-This will output a JavaScript program that logs the output. You can pipe this directly to `node`:
-
-```
-$ bill --js test.law | node
-45
+ar squarePlusOne' : Int --> Int = * + 1
 ```
 
-The JavaScript compiler isn't well maintained and will just error out on the anything but the most basic language features.
+```
+$ bill -i test.law
+> 2 squarePlusOne'
+5
+```
 
 ### Products
 
@@ -121,6 +125,12 @@ ob Base Point = { x: Float, y: Float }
 ```
 
 The morphism which projects out the `x` component from `Point` is written `.x`. This is supposed to remind one of the `foo.x` notation that is usual in other programming languages, except without anything preceding the dot.
+
+```
+$ bill -i
+> { user = { name = "Mina", age = 2 }, req = { format = "json" } } .user .name
+"Mina"
+```
 
 To map _to_ a product we need to specify a [_cone_](https://ncatlab.org/nlab/show/limit#definition_in_terms_of_universal_cones). This specifies a morphism to each component of the product. For example,
 
@@ -143,16 +153,13 @@ A complete program would be:
 ``` lawvere
 ob Base Point = { x: Float, y: Float }
 
-ar horizontal : Point --> Float = .x
+ar linFun : Point --> Float = 2.0 * .x + 3.0 * .y
 
-ar somePoint : {:} --> Point =
-  { x = 2.3, y = 4.6 }
-
-ar main : {:} --> Float =
-  somePoint horizontal
+ar someNum : {:} --> Float =
+  { x = 2.3, y = 4.6 } linFun
 ```
 
-whose result is `2.3`.
+whose result is `18.4`.
 
 When there are no components one still uses the separator symbol. So the empty product object (the terminal object) is denoted `{:}`, and the unique morphism to is it denoted `{=}`.
 
@@ -161,13 +168,10 @@ By using parentheses instead of braces, the components are positional rather tha
 ``` lawvere
 ob Base PointPos = (Float, Float)
 
-ar horizontalPos : PointPos --> Float = .1
+ar linFunPos : PointPos --> Float = 2.0 * .1 + 3.0 * .2
 
-ar somePointPos : {:} --> PointPos =
-  ( 2.3, 4.6 )
-
-ar main : {:} --> Float =
-  somePointPos horizontalPos
+ar someNumPos : {:} --> Float =
+  (2.3, 4.6) linFunPos
 ```
 
 ### String interpolation
@@ -176,10 +180,10 @@ A string can contain interpolated expressions. For example, `"Name: {f}, Age: {g
 
 The program:
 ``` lawvere
-ar main : {:} --> String =
+ar james : {:} --> String =
   { name= "James", hobby= "playing Go" } "{.name} likes {.hobby}."
 ```
-will print `"James likes playing Go."`
+will result in `"James likes playing Go."`
 
 ### Sums
 
@@ -267,7 +271,24 @@ ob Base ListI =
   ]
 ```
 
-as follow:
+An example list can be built up by composing morphisms together:
+
+``` lawvere
+ar aFewPrimes : {:} --> ListI =
+  empty.
+  { head = 2, tail = } cons.
+  { head = 3, tail = } cons.
+  { head = 5, tail = } cons.
+```
+
+Like Haskell, Lawvere has some syntactic sugar for list-building:
+
+``` lawvere
+ar morePrimes : {:} --> ListI =
+  #(2, 3, 5, 7, 11)
+```
+
+We can sum over a list using a cocone:
 
 ``` lawvere
 ar sum : ListI --> Int =
@@ -276,6 +297,11 @@ ar sum : ListI --> Int =
 ```
 
 In words: If the list is `empty`, then return `0`. Otherwise take the `head`, and the `sum` of the `.tail`, and `+` them together.
+
+```
+> morePrimes sum
+28
+```
 
 ### Effects
 
@@ -344,7 +370,7 @@ We can then define morphisms in this abstract extension of `Base`. The following
 
 ``` lawvere
 ar Base[IntState] next : {:} --> Int =
-  get i({ current = , next = }) !next{ <incr> put } i(.current)
+  get i({ current = , next = }) !next{ i(incr) put } i(.current)
 ```
 
 There are two new pieces of syntax:
@@ -401,13 +427,30 @@ This defines an interpretation of the `IntState` sketch.
 We can then execute this effect on an `exampleList`:
 
 ``` lawvere
-ar main : {:} --> Int =
-  { state = 0, value = }           // set the initial state to 0
-  pureState(<exampleList> mapNext) // use the freyd arrow `counting` interpreting it with `pureState` functor
-  .value                           // we are jut interesting in the result, not the accumulated state
+ar count : {:} --> Int =
+  { state = 0, value = }                  // set the initial state to 0
+  pureState(i(#( {=}, {=}, {=})) mapNext) // use the freyd arrow `counting` interpreting it with `pureState` functor
+  .value                                  // we are jut interesting in the result, not the accumulated state
 ```
 
 Checkout the [full example](/examples/freyd-state.law).
+
+### Compiling to JavaScript
+
+To compile to JavaScript, use the `--target js` option:
+
+```
+$ bill --target js test.law
+```
+
+This will output a JavaScript program that logs the output. You can pipe this directly to `node`:
+
+```
+$ bill --target js test.law | node
+45
+```
+
+The JavaScript compiler isn't well maintained and will just error out on the anything but the most basic language features.
 
 ## Build/Installation
 

@@ -107,7 +107,7 @@ evalAr tops = \case
         Tag t z -> pure (Tag t (Rec (Map.insert l z r)))
         _ -> panic $ "bad distr: " <> render l <> " - " <> render y
       Nothing -> panic "bad2"
-    _ -> panic "bad 3"
+    v -> panic $ "bad distr 3: " <> render v
   Proj l -> \case
     v@(Rec xs) -> case Map.lookup l xs of
       Just y -> pure y
@@ -253,6 +253,7 @@ primTops =
               Just (Sca (Str y)) <- lkp (LPos 2) r ->
               pure (Sca (Str (x <> y)))
           _ -> panic "bad concat",
+      "identity" |-> pure,
       "incr"
         |-> \case
           Sca (Int x) -> pure (Sca (Int (x + 1)))

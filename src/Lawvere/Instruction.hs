@@ -14,12 +14,12 @@ import Prelude (lookup)
 
 data Addr
   = AddrTop LcIdent
-  | Addr Int
+  | AddrSub LcIdent Int
   deriving stock (Eq, Ord, Show)
 
 instance Disp Addr where
-  disp (Addr i) = "#" <> pretty i
   disp (AddrTop label) = "#" <> disp label
+  disp (AddrSub label i) = "#" <> disp label <> "_" <> pretty i
 
 data Instr
   = IConeFinish [Label]
@@ -52,14 +52,6 @@ instance Disp Instr where
       IProj lab -> "." <> disp lab
       IPutFun addr -> "put" <+> disp addr
 
--- prims :: Code
--- prims =
---   Map.fromList
---     []
-
---(AddrTop (LcIdent "plus"), [IPlus]),
--- (AddrTop (LcIdent "app"), [IApp])
-
 type Code = Map Addr [Instr]
 
 instance Disp [Instr] where
@@ -88,14 +80,15 @@ initCompilerState =
       code = mempty
     }
 
-type Comp a = State CompilerState a
+type Comp a = ReaderT LcIdent (State CompilerState) a
 
 storeCode :: [Instr] -> Comp Addr
 storeCode code = do
+  top <- ask
   a <- gets nextAddr
   #nextAddr .= a + 1
-  #code %= Map.insert (Addr a) code
-  pure (Addr a)
+  #code %= Map.insert (AddrSub top a) code
+  pure (AddrSub top a)
 
 noEffects :: [(ConeComponent, Expr)] -> Comp [(Label, Expr)]
 noEffects = traverse go
@@ -137,7 +130,7 @@ compile = \case
     compStore = compile >=> storeCode
 
 compileDecl :: Decl -> Comp ()
-compileDecl (DAr _ name _ _ e) = do
+compileDecl (DAr _ name _ _ e) = local (const name) $ do
   code <- compile e
   #code %= Map.insert (AddrTop name) code
 compileDecl DOb {} = pure ()
@@ -145,7 +138,7 @@ compileDecl DSketch {} = pure ()
 compileDecl _ = panic "TODO 6"
 
 compileProg :: Decls -> Code
-compileProg ds = view #code (execState (traverse_ compileDecl ds) initCompilerState) -- <> prims
+compileProg ds = view #code $ flip execState initCompilerState $ flip runReaderT (LcIdent "main") (traverse_ compileDecl ds)
 
 -- * Machine
 

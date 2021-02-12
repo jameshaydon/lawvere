@@ -5,4 +5,4 @@ ar sum : ListI --> Int =
     cons  = 1 + .tail sum ]
 
 ar main : {:} --> Int =
-  #( 1, 2, 3 ) sum
+  empty. sum

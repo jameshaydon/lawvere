@@ -17,7 +17,8 @@ _Very work-in-progress_
 "Player {.leader} is winning by {.delta} points!"
 ```
 
-- Compile to any category. Target any category that has structures corresponding to the programming features you use ([cartesian closed](https://ncatlab.org/nlab/show/cartesian+closed+category), [distributive](https://ncatlab.org/nlab/show/distributive+category), etc.). Comes with is an evaluator in Haskell and a compiler to JavaScript.
+- Compile to any category. Target any category that has structures corresponding to the programming features you use ([cartesian closed](https://ncatlab.org/nlab/show/cartesian+closed+category), [distributive](https://ncatlab.org/nlab/show/distributive+category), etc.).
+- Comes with is an evaluator in Haskell, a [compiler to JavaScript](#compiling-to-javascript), and a "bytecode" compiler to a [categorical abstract machine](#the-categorical-abstract-machine).
 - Effect system based on freely generated effect categories.
 - Point free functional programming (no lambdas); a categorical take on concatenative programming.
 
@@ -434,6 +435,48 @@ ar count : {:} --> Int =
 ```
 
 Checkout the [full example](/examples/freyd-state.law).
+
+### The Categorical Abstract Machine
+
+Lawvere has a compiler to an categorical virtual machine. Again not all features are supported yet.
+
+Compiling the `sum` function above (called on an empty list) produces:
+
+```
+$ bill --target vmcode examples/sum.law
+#main:
+  empty.
+  call #sum
+#sum:
+  cocone empty:#sum_0 cons:#sum_1
+#sum_0:
+  scal 0
+#sum_1:
+  push
+  scal 1
+  push_cone
+  pop
+  push
+  .tail
+  call #sum
+  push_cone
+  pop
+  end_cone 1 2
+  prim plus
+```
+
+And you can execute the code on the virtual machine with:
+
+```
+bill --target vm examples/sum.law
+--------------
+Lawvere v0.0.0
+--------------
+Checking..
+Check OK!
+Running on categorical machine..
+Result: 0
+```
 
 ### Compiling to JavaScript
 

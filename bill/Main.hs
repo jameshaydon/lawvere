@@ -9,6 +9,7 @@ import Lawvere.Core
 import Lawvere.Decl
 import Lawvere.Disp
 import Lawvere.Eval
+import qualified Lawvere.Instruction as Machine
 import Lawvere.Literate
 import Lawvere.Parse hiding (Parser)
 import Options.Applicative
@@ -26,6 +27,8 @@ putErr = liftIO . hPutStrLn stderr
 data Target
   = JS
   | Hask
+  | VmCode
+  | Vm
   deriving stock (Eq, Show)
 
 loadFile :: (MonadIO m) => Target -> FilePath -> ExceptT Text m [Decl]
@@ -52,7 +55,7 @@ loadFile target filepath = do
     sayi = sayHask target
 
 sayHask :: (MonadIO m) => Target -> Text -> m ()
-sayHask target t = when (target == Hask) (say t)
+sayHask target t = when (target `elem` [Hask, Vm]) (say t)
 
 runFile :: Target -> FilePath -> IO ()
 runFile target filepath = handleErr $ do
@@ -64,7 +67,11 @@ runFile target filepath = handleErr $ do
       say ""
       say "output:"
       say ("  " <> render v)
-    JS -> putStrLn (mkJS prog)
+    JS -> say (mkJS prog)
+    VmCode -> say (render (Machine.compileProg prog))
+    Vm -> do
+      say "Running on categorical machine.."
+      say $ "Result: " <> render (Machine.runProg (Machine.MRec mempty) prog)
   where
     handleErr m =
       runExceptT m >>= \case
@@ -185,6 +192,8 @@ optsParser =
       "javascript" -> Just JS
       "hs" -> Just Hask
       "hask" -> Just Hask
+      "vmcode" -> Just VmCode
+      "vm" -> Just Vm
       _ -> Nothing
 
 main :: IO ()

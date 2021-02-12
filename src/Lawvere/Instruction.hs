@@ -33,18 +33,47 @@ data Instr
   | IPutFun Addr
   | IPushCurrentToConeStack
   | IPopValStackToCurrent
-  | IPlus
-  | IApp
+  | IPrim Prim
   deriving stock (Show)
 
-prims :: Code
-prims =
-  Map.fromList
-    [ (AddrTop (LcIdent "plus"), [IPlus]),
-      (AddrTop (LcIdent "app"), [IApp])
-    ]
+instance Disp Instr where
+  disp =
+    \case
+      IPrim p -> "prim" <+> disp p
+      ICall addr -> "call" <+> disp addr
+      ISca s -> "scal" <+> disp s
+      IDistr lab -> "distr" <+> disp lab
+      ICoCone cases -> "cocone" <+> hsep [disp lab <> ":" <> disp addr | (lab, addr) <- cases]
+      IPushCurrentToValStack -> "push"
+      IPushCurrentToConeStack -> "push_cone"
+      IPopValStackToCurrent -> "pop"
+      IConeFinish labs -> "end_cone" <+> hsep (disp <$> labs)
+      IInj lab -> disp lab <> "."
+      IProj lab -> "." <> disp lab
+      IPutFun addr -> "put" <+> disp addr
+
+-- prims :: Code
+-- prims =
+--   Map.fromList
+--     []
+
+--(AddrTop (LcIdent "plus"), [IPlus]),
+-- (AddrTop (LcIdent "app"), [IApp])
 
 type Code = Map Addr [Instr]
+
+instance Disp [Instr] where
+  disp is = vsep (disp <$> is)
+
+instance Disp Code where
+  disp codes =
+    vsep
+      [ vsep
+          [ disp addr <> colon,
+            indent 2 (disp code)
+          ]
+        | (addr, code) <- Map.toList codes
+      ]
 
 data CompilerState = CompilerState
   { nextAddr :: Int,
@@ -69,14 +98,17 @@ storeCode code = do
   pure (Addr a)
 
 noEffects :: [(ConeComponent, Expr)] -> Comp [(Label, Expr)]
-noEffects = panic "TODO"
+noEffects = traverse go
+  where
+    go (ConeComponent Pure lab, e) = pure (lab, e)
+    go _ = panic "can't compile to VM effects yet"
 
 compile :: Expr -> Comp [Instr]
 compile = \case
-  EFunApp _ _ -> panic "TODO"
-  EPrim _ -> panic "TODO"
-  ELim _ -> panic "TODO"
-  ECoLim _ -> panic "TODO"
+  EFunApp _ _ -> panic "TODO 2"
+  EPrim prim -> pure [IPrim prim]
+  ELim _ -> panic "TODO 4"
+  ECoLim _ -> panic "TODO 5"
   Cone ps -> do
     ps' <- noEffects ps
     codes <- traverse (_2 compile) ps'
@@ -99,7 +131,8 @@ compile = \case
     a <- compStore e
     pure [IPutFun a]
   Comp es -> concat <$> traverse compile es
-  _ -> panic "can't compile to vm code"
+  BinOp o f g -> compile (Comp [Cone [(ConeComponent Pure (LPos 1), f), (ConeComponent Pure (LPos 2), g)], EPrim (PrimOp o)])
+  e -> panic $ "can't compile to vm code: " <> render e
   where
     compStore = compile >=> storeCode
 
@@ -109,10 +142,10 @@ compileDecl (DAr _ name _ _ e) = do
   #code %= Map.insert (AddrTop name) code
 compileDecl DOb {} = pure ()
 compileDecl DSketch {} = pure ()
-compileDecl _ = panic "TODO"
+compileDecl _ = panic "TODO 6"
 
 compileProg :: Decls -> Code
-compileProg ds = prims <> view #code (execState (traverse_ compileDecl ds) initCompilerState)
+compileProg ds = view #code (execState (traverse_ compileDecl ds) initCompilerState) -- <> prims
 
 -- * Machine
 
@@ -187,24 +220,42 @@ exec instr = case instr of
   IPopValStackToCurrent -> do
     x <- popSomeStack "value" #valueStack
     #current .= x
-  IPlus -> do
-    x <- use #current
-    case x of
-      MRec r
-        | Just (MSca (Int a)) <- lkp (LPos 1) r,
-          Just (MSca (Int b)) <- lkp (LPos 2) r ->
-          #current .= MSca (Int (a + b))
-      _ -> panic "bad plus"
-  IApp -> do
-    x <- use #current
-    case x of
-      MRec r
-        | Just (MFun ff) <- lkp (LPos 1) r,
-          Just aa <- lkp (LPos 2) r -> do
-          #current .= aa
-          call ff
-      v -> panic ("bad app: " <> show v)
+  IPrim p ->
+    case p of
+      PrimIdentity -> pure ()
+      PrimApp -> do
+        x <- use #current
+        case x of
+          MRec r
+            | Just (MFun ff) <- lkp (LPos 1) r,
+              Just aa <- lkp (LPos 2) r -> do
+              #current .= aa
+              call ff
+          v -> panic ("bad app: " <> show v)
+      PrimIncr -> do
+        x <- use #current
+        case x of
+          MSca (Int x') -> #current .= MSca (Int (x' + 1))
+          _ -> panic "bad incr"
+      PrimAbs -> do
+        x <- use #current
+        case x of
+          MSca (Int x') -> #current .= MSca (Int (abs x'))
+          MSca (Float x') -> #current .= MSca (Float (abs x'))
+          _ -> panic "bad abs"
+      PrimShow -> #current %= MSca . Str . render
+      PrimOp o -> do
+        x <- use #current
+        case x of
+          MRec r
+            | Just (MSca a) <- lkp (LPos 1) r,
+              Just (MSca b) <- lkp (LPos 2) r ->
+              #current .= binOp MSca boolToVal o a b
+          _ -> panic "bad binop"
   where
+    boolToVal True = MTag (LNam "true") (MRec mempty)
+    boolToVal False = MTag (LNam "false") (MRec mempty)
+
     call a = do
       pushToCallStack
       #jump .= Just (a, 0)
@@ -263,18 +314,23 @@ steps maxSteps = do
 
 -- * Run program
 
+initMach :: Val -> Code -> MachState
+initMach v code =
+  MachState
+    { idx = (AddrTop (LcIdent "main"), 0),
+      jump = Nothing,
+      callStack = [],
+      current = v,
+      valueStack = [],
+      coneStack = [],
+      finished = False,
+      code
+    }
+
+runCode :: Val -> Code -> Val
+runCode v code = execState (steps 4000) (initMach v code) ^. #current
+
 runProg :: Val -> Decls -> Val
 runProg v ds =
   let code = compileProg ds
-      initMach =
-        MachState
-          { idx = (AddrTop (LcIdent "main"), 0),
-            jump = Nothing,
-            callStack = [],
-            current = v,
-            valueStack = [],
-            coneStack = [],
-            finished = False,
-            code
-          }
-   in execState (steps 2000) initMach ^. #current
+   in runCode v code

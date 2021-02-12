@@ -1,3 +1,5 @@
+{-# LANGUAGE UndecidableInstances #-}
+
 module Lawvere.Core where
 
 import qualified Data.Char as Char
@@ -21,7 +23,7 @@ reserved :: Text -> Parser ()
 reserved name = lexeme $
   try $ do
     _ <- chunk name
-    notFollowedBy (satisfy isAlphaNum <|> oneOf identSpecials) <?> "end of " ++ toS name
+    notFollowedBy (satisfy nonFirstIdentChar) <?> "end of " ++ toS name
 
 keywords :: Set Text
 keywords = Set.fromList ["ob", "ar", "interp", "const", "sketch", "over", "handling", "curry", "summing", "side", "if", "then", "else", "i"]
@@ -42,13 +44,15 @@ kwThen = reserved "then"
 kwElse = reserved "else"
 kwI = reserved "i"
 
+nonFirstIdentChar :: Char -> Bool
+nonFirstIdentChar c = Char.isAlphaNum c || c `elem` identSpecials
+
 identParser :: (Char -> Bool) -> Parser Text
 identParser firstCond = toS <$> ((:) <$> char0 <*> charRest)
   where
     char0 = satisfy isFirst
-    charRest = many (satisfy isRest)
+    charRest = many (satisfy nonFirstIdentChar)
     isFirst c = (Char.isAlpha c && firstCond c) || c `elem` identSpecials
-    isRest c = Char.isAlphaNum c || c `elem` identSpecials
 
 newtype LcIdent = LcIdent {getLcIdent :: Text}
   deriving stock (Show, Generic)
@@ -160,3 +164,9 @@ pairwise ((k, a) : as') bs = do
   rest <- pairwise as' bs'
   pure $ (k, (a, b)) : rest
 pairwise [] ((k, b) : _) = Left (k, Left b)
+
+class Fin a where
+  enumerate :: [a]
+
+instance {-# OVERLAPPABLE #-} (Enum a, Bounded a) => Fin a where
+  enumerate = [minBound .. maxBound]

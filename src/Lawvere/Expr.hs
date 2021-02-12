@@ -12,17 +12,33 @@ import Text.Megaparsec
 import qualified Text.Megaparsec.Char as Char
 import qualified Text.Megaparsec.Char.Lexer as L
 
-data Prim = PrimPlus | PrimApp | PrimIncr | PrimAbs | PrimShow
+data Prim = PrimIdentity | PrimApp | PrimIncr | PrimAbs | PrimShow | PrimOp BinOp
   deriving stock (Show)
 
+instance Fin Prim where
+  enumerate = [PrimIdentity, PrimApp, PrimIncr, PrimAbs, PrimShow] ++ (PrimOp <$> enumerate)
+
 instance Disp Prim where
-  disp =
-    ("#prim_" <>) . \case
-      PrimPlus -> "plus"
-      PrimApp -> "app"
-      PrimIncr -> "incr"
-      PrimAbs -> "abs"
-      PrimShow -> "show"
+  disp = \case
+    PrimIdentity -> "identity"
+    PrimApp -> "app"
+    PrimIncr -> "incr"
+    PrimAbs -> "abs"
+    PrimShow -> "show"
+    PrimOp o -> case o of
+      NumOp no -> case no of
+        OpPlus -> "plus"
+        OpMinus -> "minus"
+        OpTimes -> "mult"
+      CompOp co -> case co of
+        OpEq -> "equal"
+        OpLt -> "less_than"
+        OpLte -> "less_than_equal"
+        OpGt -> "greater_than"
+        OpGte -> "greater_than_equal"
+
+instance Parsed Prim where
+  parsed = choice [p <$ try (chunk (render p) >> notFollowedBy (satisfy nonFirstIdentChar)) | p <- enumerate]
 
 data ComponentDecorator = Eff | Pure
   deriving stock (Show)
@@ -46,7 +62,7 @@ data ISPart = ISRaw Text | ISExpr Expr
   deriving stock (Show)
 
 data NumOp = OpPlus | OpMinus | OpTimes
-  deriving stock (Show)
+  deriving stock (Show, Bounded, Enum)
 
 instance Disp NumOp where
   disp = \case
@@ -54,8 +70,13 @@ instance Disp NumOp where
     OpMinus -> "-"
     OpTimes -> "*"
 
+evNumOp :: (Num a) => NumOp -> a -> a -> a
+evNumOp OpPlus = (+)
+evNumOp OpMinus = (-)
+evNumOp OpTimes = (*)
+
 data CompOp = OpEq | OpLt | OpLte | OpGt | OpGte
-  deriving stock (Show)
+  deriving stock (Show, Bounded, Enum)
 
 instance Disp CompOp where
   disp = \case
@@ -68,9 +89,26 @@ instance Disp CompOp where
 data BinOp = NumOp NumOp | CompOp CompOp
   deriving stock (Show)
 
+instance Fin BinOp where
+  enumerate = (NumOp <$> enumerate) ++ (CompOp <$> enumerate)
+
 instance Disp BinOp where
   disp (NumOp o) = disp o
   disp (CompOp o) = disp o
+
+binOp :: (Sca -> p) -> (Bool -> p) -> BinOp -> Sca -> Sca -> p
+binOp sca _ (NumOp o) (Int x) (Int y) = sca (Int (evNumOp o x y))
+binOp sca _ (NumOp o) (Float x) (Float y) = sca (Float (evNumOp o x y))
+binOp _ tf (CompOp o) (Int x) (Int y) = tf $ compa o x y
+binOp _ tf (CompOp o) (Float x) (Float y) = tf $ compa o x y
+binOp _ _ _ _ _ = panic "bad binop"
+
+compa :: (Ord a) => CompOp -> a -> a -> Bool
+compa OpEq = (==)
+compa OpLt = (<)
+compa OpLte = (<=)
+compa OpGt = (>)
+compa OpGte = (>=)
 
 data Expr
   = Cone [(ConeComponent, Expr)]
@@ -188,6 +226,7 @@ pAtom =
       pIfThenElse,
       try pApp,
       pInterpolated,
+      EPrim <$> parsed,
       Lit <$> parsed,
       Proj <$> ("." *> parsed),
       try (Inj <$> (parsed <* ".")), -- we need to look ahead for the dot

@@ -154,24 +154,10 @@ evalAr tops = \case
   BinOp o f g -> \v -> do
     x <- evalAr tops f v
     y <- evalAr tops g v
-    pure (binOp o x y)
+    case (x, y) of
+      (Sca a, Sca b) -> pure (binOp Sca toValBool o a b)
+      _ -> panic "bad binop"
   where
-    binOp (NumOp o) (Sca (Int x)) (Sca (Int y)) = Sca (Int (numOp o x y))
-    binOp (NumOp o) (Sca (Float x)) (Sca (Float y)) = Sca (Float (numOp o x y))
-    binOp (CompOp o) (Sca (Int x)) (Sca (Int y)) = compOp o x y
-    binOp (CompOp o) (Sca (Float x)) (Sca (Float y)) = compOp o x y
-    binOp _ _ _ = panic "bad binop"
-    numOp :: (Num a) => NumOp -> a -> a -> a
-    numOp OpPlus = (+)
-    numOp OpMinus = (-)
-    numOp OpTimes = (*)
-    compOp o x y = toValBool (compa o x y)
-    compa :: (Ord a) => CompOp -> a -> a -> Bool
-    compa OpEq = (==)
-    compa OpLt = (<)
-    compa OpLte = (<=)
-    compa OpGt = (>)
-    compa OpGte = (>=)
     toValBool True = Tag (LNam "true") (Rec mempty)
     toValBool False = Tag (LNam "false") (Rec mempty)
     lawPutLine = \case

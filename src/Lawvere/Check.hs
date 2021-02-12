@@ -27,22 +27,28 @@ prims decls =
             ("String", OPrim TString)
           ]
             ++ [(name, ob) | DOb _ name ob <- decls],
-      ars =
-        Map.fromList $
-          [ ("plus", (Scheme [] (OTuple [OPrim TInt, OPrim TInt], ONamed "Int"), EPrim PrimPlus)),
-            ("incr", (Scheme [] (OPrim TInt, OPrim TInt), EPrim PrimIncr)),
-            ("identity", (Scheme [va] (ta, ta), Comp [])),
-            ("app", (Scheme [va, vb] (OTuple [ta :=> tb, ta], tb), EPrim PrimApp)),
-            ("abs", (Scheme [va] (ta, ta), EPrim PrimAbs)),
-            ("show", (Scheme [va] (ta, OPrim TString), EPrim PrimShow))
-          ]
-            ++ [(name, (Scheme [] (a, b), e)) | DAr _ name a b e <- decls]
+      ars = Map.fromList [(name, (Scheme [] (a, b), e)) | DAr _ name a b e <- decls]
     }
+
+primScheme :: Prim -> Scheme
+primScheme = \case
+  PrimIdentity -> [va] .: (ta, tb)
+  PrimApp -> [va, vb] .: (OTuple [ta :=> tb, ta], tb)
+  PrimIncr -> [] .: (OPrim TInt, OPrim TInt)
+  PrimAbs -> [va] .: (ta, ta)
+  PrimShow -> [va] .: (ta, OPrim TString)
+  PrimOp o -> case o of
+    CompOp _ -> [va] .: (ta, tBool)
+    NumOp _ -> [va] .: (OTuple [ta, ta], ta)
   where
+    vs .: (a, b) = Scheme vs (a, b)
     va = MkVar 0
     vb = MkVar 1
     ta = OVar va
     tb = OVar vb
+
+inferPrim :: Prim -> Check (Ob, Ob)
+inferPrim = refresh . primScheme
 
 checkProg :: Decls -> (Either Err (), [Text])
 checkProg decls = runCheck (prims decls) initState (checkDecls decls)
@@ -236,6 +242,10 @@ tBool :: Ob
 tBool = CoLim [(LNam "true", Lim []), (LNam "false", Lim [])]
 
 inferTarget :: Ob -> Expr -> Check Ob
+inferTarget a (EPrim p) = do
+  (a', b') <- inferPrim p
+  unify a a'
+  pure b'
 inferTarget a (BinOp (NumOp _) f g) = do
   b <- inferTarget a f
   b' <- inferTarget a g
@@ -370,6 +380,10 @@ inferDistrTarget label (Lim theLim) = do
 inferDistrTarget label source = throwError (CeDistrSourceNotLim label source)
 
 check :: (Ob, Ob) -> Expr -> Check ()
+check (a, b) (EPrim p) = do
+  (a', b') <- inferPrim p
+  unify a a'
+  unify b b'
 check (a, b) (BinOp (NumOp _) f g) = do
   warning "Not checking Num instance."
   check (a, b) f

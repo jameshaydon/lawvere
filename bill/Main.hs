@@ -174,9 +174,9 @@ optsParser =
         )
     <*> option
       (maybeReader parseTarget)
-      ( long "target"
-          <> help "Which compiler to target"
-          <> showDefault
+      ( short 't'
+          <> long "target"
+          <> help "Which compiler ('hs', 'js', 'vmcode' or 'vm') to target, defaults to 'hs'"
           <> value Hask
           <> metavar "TARGET"
       )

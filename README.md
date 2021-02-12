@@ -438,7 +438,7 @@ Checkout the [full example](/examples/freyd-state.law).
 
 ### The Categorical Abstract Machine
 
-Lawvere has a compiler to an categorical virtual machine. Again not all features are supported yet.
+Lawvere has a compiler to a [Categorical Abstract Machine](https://www.sciencedirect.com/science/article/pii/0167642387900207). Again not all features are supported yet.
 
 Compiling the `sum` function above (called on an empty list) produces:
 

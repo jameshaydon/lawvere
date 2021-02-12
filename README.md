@@ -28,7 +28,7 @@ The Lawvere language (and the executable `bill`) is named after [William Lawvere
 
 ### REPL
 
-Once [installed](#buildinstallation), start a Lawvere REPL with `bill -i`:
+Once [installed](#buildinstallation), start a Lawvere REPL (Read-Eval-Print-Loop) with `bill -i`:
 
 ```
 $ bill -i
@@ -503,6 +503,8 @@ You can build the project with stack or nix.
 
 First install stack (`curl -sSL https://get.haskellstack.org/ | sh
 `) and then use `stack build`. To install the `bill` executable (to `~/.local/bin`) run `stack install`.
+
+On linux you may also need to install `tinfo`, e.g. `sudo apt-get install libtinfo-dev` on Ubuntu.
 
 ### Nix
 

@@ -6,7 +6,7 @@ ar Cat list : Base --> Base =
 ar map : (list(Int) => Int, list(list(Int))) --> list(Int) =
   { f = .1, xs = .2 }
   @xs
-  [ empty = {=} empty.,
+  [ empty = {} empty.,
     cons = { head = ( .f, .xs .head ) app,
              tail = ( .f, .xs .tail ) map }
            cons. ]
@@ -15,16 +15,16 @@ ar length : list(Int) --> Int =
   [ empty = 0,
     cons  = 1 + .tail length ]
 
-ar main : {:} --> list(Int) = listOfLists list(length)
+ar main : {} --> list(Int) = listOfLists list(length)
 
 
 // Some lists follow
 
-ar list3 : {:} --> list(Int) =
+ar list3 : {} --> list(Int) =
   #(1, 3, 4)
 
-ar list2 : {:} --> list(Int) =
+ar list2 : {} --> list(Int) =
   #(200, 300)
 
-ar listOfLists : {:} --> list(list(Int)) =
+ar listOfLists : {} --> list(list(Int)) =
   #(list2, list3)

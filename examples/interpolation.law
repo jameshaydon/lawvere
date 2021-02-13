@@ -1,10 +1,10 @@
 ob Base Person = { name: String, hobby: String }
 
-ar james : {:} --> Person =
+ar james : {} --> Person =
   { name= "James", hobby= "playing Go" }
 
 ar description : Person --> String =
   "{.name} likes {.hobby}."
 
-ar main : {:} --> String =
+ar main : {} --> String =
  james description

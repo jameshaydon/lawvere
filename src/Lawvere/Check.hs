@@ -32,7 +32,7 @@ prims decls =
 
 primScheme :: Prim -> Scheme
 primScheme = \case
-  PrimIdentity -> [va] .: (ta, tb)
+  PrimIdentity -> [va] .: (ta, ta)
   PrimApp -> [va, vb] .: (OTuple [ta :=> tb, ta], tb)
   PrimIncr -> [] .: (OPrim TInt, OPrim TInt)
   PrimAbs -> [va] .: (ta, ta)
@@ -142,7 +142,7 @@ fresh = do
 freshT :: Check Ob
 freshT = OVar <$> fresh
 
-data Scheme = Scheme (Set MetaVar) (Ob, Ob)
+data Scheme = Scheme (Set MetaVar) (Ob, Ob) deriving stock (Show)
 
 instance Disp Scheme where
   disp (Scheme vars (source, target)) =

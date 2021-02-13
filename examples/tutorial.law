@@ -1,39 +1,37 @@
-ob Base Point = { x : Float, y : Float }
+ob Base Point = { x: Float, y: Float }
 
-ob Base Bool =
-  [ true:  {:},
-    false: {:} ]
+ob Base Bool = [ true: {}, false: {} ]
 
 ar not : Bool --> Bool =
-  [ true = {=} false.,
-    false = {=} true. ]
+  [ true  = {} false.,
+    false = {} true. ]
 
 ob Base ListF =
-  [ empty: {:},
+  [ empty: {},
     cons:  { head: Float, tail: ListF }
   ]
 
 ob Base ListPoint =
-  [ empty: {:},
+  [ empty: {},
     cons:  { head: Point, tail: ListPoint }
   ]
 
-ar zip : { xs : ListF, ys : ListF } --> ListPoint =
-  @xs [ empty = {=} empty.,
-        cons  = @ys [ empty = {=} empty.,
+ar zip : { xs: ListF, ys: ListF } --> ListPoint =
+  @xs [ empty = {} empty.,
+        cons  = @ys [ empty = {} empty.,
                       cons  = { head = { x = .xs .head,
                                          y = .ys .head },
                                 tail = { xs = .xs .tail,
                                          ys = .ys .tail } zip
                               } cons. ] ]
 
-ar ex : {:} --> ListF =
+ar ex : {} --> ListF =
   empty.
   { head = 0.0,   tail = } cons.
   { head = 1.2,   tail = } cons.
   { head = 100.0, tail = } cons.
 
-ar main : {:} --> ListPoint =
+ar main : {} --> ListPoint =
   { xs = ex, ys = ex } zip
   
   

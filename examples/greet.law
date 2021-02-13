@@ -1,9 +1,9 @@
-ar Base[IO] hello : {:} --> String =
+ar Base[IO] hello : {} --> String =
   i("What is your name?") putLine
   getLine
   i("Hello {}!") putLine
 
-ar InputOutput main : {:} --> {:} =
+ar InputOutput main : {} --> {} =
   io(hello)
 
   

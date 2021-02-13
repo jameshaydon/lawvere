@@ -1,9 +1,9 @@
-ob Base Point = { x : Float, y : Float }
+ob Base Point = { x: Float, y: Float }
 
 ar horizontal : Point --> Float = .x 
 
-ar somePoint : {:} --> Point =
+ar somePoint : {} --> Point =
   { x = 2.3, y = 4.6 }
 
-ar main : {:} --> Float =
+ar main : {} --> Float =
   somePoint horizontal

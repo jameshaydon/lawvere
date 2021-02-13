@@ -2,8 +2,8 @@ ob Base Point = (Float, Float)
 
 ar horizontal : Point --> Float = .1
 
-ar somePoint : {:} --> Point =
+ar somePoint : {} --> Point =
   ( 2.3, 4.6 )
 
-ar main : {:} --> Float =
+ar main : {} --> Float =
   somePoint horizontal

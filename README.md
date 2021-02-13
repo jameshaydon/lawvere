@@ -57,10 +57,10 @@ Check OK!
 Basic scalar types are written as in other programming languages, e.g. `42` and `"hello world"`. Except that in Lawvere everything is a morphism, so these actually denote constant morphisms. For example `42` denotes the morphism which is constantly 42:
 
 ```lawvere
-ar answer : {:} --> Int = 42
+ar answer : {} --> Int = 42
 ```
 
-The above code defines a morphisms using the `ar` keyword (standing for _arrow_). The arrow has source `{:}` (which is syntax for the unit type) and target `Int`.
+The above code defines a morphisms using the `ar` keyword (standing for _arrow_). The arrow has source `{}` (which is syntax for the unit type) and target `Int`.
 
 When the REPL accepts an input, it actually executes it on the unit input. So for example inputting `incr` (which expects an `Int`) will result in an error.
 
@@ -73,16 +73,16 @@ The main way to build up larger programs from smaller ones is by using _composit
 To illustrate this we can use the built-in morphism `incr`, which increments an integer:
 
 ``` lawvere
-ar fourtyFive : {:} --> Int = 42 incr incr incr
+ar fourtyFive : {} --> Int = 42 incr incr incr
 ```
 will output `45`.
 
 To run this, create a file with contents:
 
 ```lawvere
-ar someNumber : {:} --> Int = 42
+ar someNumber : {} --> Int = 42
 
-ar biggerNumber : {:} --> Int =
+ar biggerNumber : {} --> Int =
   someNumber incr incr incr
 ```
 
@@ -136,11 +136,11 @@ $ bill -i
 To map _to_ a product we need to specify a [_cone_](https://ncatlab.org/nlab/show/limit#definition_in_terms_of_universal_cones). This specifies a morphism to each component of the product. For example,
 
 ``` lawvere
-ar somePoint : {:} --> Point =
+ar somePoint : {} --> Point =
   { x = 2.3, y = 4.6 }
 ```
 
-This works because, as mentioned above, `2.3` and `4.6` are morphisms of type `{:} --> Float`.
+This works because, as mentioned above, `2.3` and `4.6` are morphisms of type `{} --> Float`.
 
 In general, to specify a morphism `X --> { a: A, b: B, c: C, ... }`, one uses a cone:
 
@@ -156,13 +156,13 @@ ob Base Point = { x: Float, y: Float }
 
 ar linFun : Point --> Float = 2.0 * .x + 3.0 * .y
 
-ar someNum : {:} --> Float =
+ar someNum : {} --> Float =
   { x = 2.3, y = 4.6 } linFun
 ```
 
 whose result is `18.4`.
 
-When there are no components one still uses the separator symbol. So the empty product object (the terminal object) is denoted `{:}`, and the unique morphism to is it denoted `{=}`.
+So the empty product object (the terminal object) is denoted `{}`, and the unique morphism to is it denoted `{}`. If there is any ambiguity (which occurs when defining functors) then you can use `{:}` and `{=}`.
 
 By using parentheses instead of braces, the components are positional rather than named. In this case the projections are `.1`, `.2`, etc. Using a positional product for `Point` the previous program would be:
 
@@ -171,7 +171,7 @@ ob Base PointPos = (Float, Float)
 
 ar linFunPos : PointPos --> Float = 2.0 * .1 + 3.0 * .2
 
-ar someNumPos : {:} --> Float =
+ar someNumPos : {} --> Float =
   (2.3, 4.6) linFunPos
 ```
 
@@ -181,7 +181,7 @@ A string can contain interpolated expressions. For example, `"Name: {f}, Age: {g
 
 The program:
 ``` lawvere
-ar james : {:} --> String =
+ar james : {} --> String =
   { name= "James", hobby= "playing Go" } "{.name} likes {.hobby}."
 ```
 will result in `"James likes playing Go."`
@@ -191,10 +191,10 @@ will result in `"James likes playing Go."`
 We can define sum-types too. Let's define the booleans:
 
 ``` lawvere
-ob Base Bool = [ true: {:}, false: {:} ]
+ob Base Bool = [ true: {}, false: {} ]
 ```
 
-Using square brackets we define a sum type with two summands, `true` and `false`, each with the terminal object `{:}` as payload.
+Using square brackets we define a sum type with two summands, `true` and `false`, each with the terminal object `{}` as payload.
 
 Sum types come equipped with canonical injections. The canonical injection into the component with name `foo` is denoted `foo.`, simply mirroring the notation for canonical projections.
 
@@ -230,23 +230,23 @@ ar and : {x: Bool, y: Bool} --> Bool = ?
 This is a morphism _to_ a sum (`Bool`), so we can't use a cocone, and _from_ a product (`{x : Bool, y: Bool }`), so we can't use a cone---are we stuck? Intuitively we want to inspect one of the two arguments `(x` or `y`) in order to continue. For this we will use the _distributor_ `@x`. To understand what this does, first let's re-write `{x : Bool, y : Bool}` by expanding the definition of `Bool` at the `x` summand:
 
 ```
-{ x: [ true: {:}, false: {:}], y: Bool }
+{ x: [ true: {}, false: {}], y: Bool }
 ```
 
 The type of `@x` is:
 
 ```
-@x : { x: [ true: {:}, false: {:}], y: Bool } --> [ true: { x: {:}, y: Bool}, false: { x: {:}, y: Bool } ] 
+@x : { x: [ true: {}, false: {}], y: Bool } --> [ true: { x: {}, y: Bool}, false: { x: {}, y: Bool } ] 
 ```
 
-The morphism `@x` transforms the product into a sum; a sum with the same summand names as the sum in the component it targets. So in this case we end up with a sum with summands `true` and `false`, and the `x` component contains the unwrapped payload for the original sum at `x` (in this case they are both `{:}`).
+The morphism `@x` transforms the product into a sum; a sum with the same summand names as the sum in the component it targets. So in this case we end up with a sum with summands `true` and `false`, and the `x` component contains the unwrapped payload for the original sum at `x` (in this case they are both `{}`).
 
 Using this we can define `and` as follows:
 
 ``` lawvere
 ar and : {x : Bool, y : Bool} --> Bool =
   @x [ true  = .y,
-       false = {=} false. ]
+       false = {} false. ]
 ```
 
 In words: "Perform a case analysis on `x`, if `x` is true, then return `y`, otherwise return `false`". Note the similarity with the equivalent Elm program (Haskell doesn't have anonymous records, making the comparison less clear), even though Lawvere has no variables or λs:
@@ -267,7 +267,7 @@ First we'll define lists of `Int`s (we'll learn how to define the list _functor_
 
 ``` lawvere
 ob Base ListI =
-  [ empty: {:},
+  [ empty: {},
     cons:  { head: Int, tail: ListI }
   ]
 ```
@@ -275,7 +275,7 @@ ob Base ListI =
 An example list can be built up by composing morphisms together:
 
 ``` lawvere
-ar aFewPrimes : {:} --> ListI =
+ar aFewPrimes : {} --> ListI =
   empty.
   { head = 2, tail = } cons.
   { head = 3, tail = } cons.
@@ -285,7 +285,7 @@ ar aFewPrimes : {:} --> ListI =
 Like Haskell, Lawvere has some syntactic sugar for list-building:
 
 ``` lawvere
-ar morePrimes : {:} --> ListI =
+ar morePrimes : {} --> ListI =
   #(2, 3, 5, 7, 11)
 ```
 
@@ -315,7 +315,7 @@ Lawvere is is a pure language but allows programming with effects using free [Fr
 The `IO` effect is built-in. Here is an example of a morphism which performs I/O:
 
 ``` lawvere
-ar Base[IO] hello : {:} --> String =
+ar Base[IO] hello : {} --> String =
   i("What is your name?") putLine
   getLine
   i("Hello {}") putLine
@@ -324,7 +324,7 @@ ar Base[IO] hello : {:} --> String =
 To run this, one must use the `io` functor:
 
 ``` lawvere
-ar InputOutput main : {:} --> {:} =
+ar InputOutput main : {} --> {} =
   io(hello)
 ```
 
@@ -338,13 +338,13 @@ ar Base[IO] ask : String --> String =
   putLine getLine
 
 // Ask some questions and then print a greeting.
-ar Base[IO] greet : {:} --> {:} =
+ar Base[IO] greet : {} --> {} =
   i({name = "What is your name?", hobby = "What is your favourite hobby?"})
   !name{ask}
   !hobby{ask}
   i("Hello {.name}, I like {.hobby} too!") putLine
 
-ar InputOutput main : {:} --> {:} =
+ar InputOutput main : {} --> {} =
   io(greet)
 ```
 
@@ -360,8 +360,8 @@ As an example we define a new effect sketch for some integer state (see [here](/
 
 ``` lawvere
 sketch IntState over Base = {
-  ar get : {:} --> Int,
-  ar put : Int --> {:}
+  ar get : {} --> Int,
+  ar put : Int --> {}
 }
 ```
 
@@ -370,7 +370,7 @@ This defines a theory for extending the `Base` category with two distinguished m
 We can then define morphisms in this abstract extension of `Base`. The following morphisms increments the state while returning the original value:
 
 ``` lawvere
-ar Base[IntState] next : {:} --> Int =
+ar Base[IntState] next : {} --> Int =
   get i({ current = , next = }) !next{ i(incr) put } i(.current)
 ```
 
@@ -387,7 +387,7 @@ So `next` works as follows:
 Next we'll specify how to map this function over a list. We can't reuse the `list` functor because that doesn't specify how to sequence the effects: should the effect be performed first on the head or the tail of the list?
 
 ``` lawvere
-ar Base[IntState] mapNext : list({:}) --> list(Int) =
+ar Base[IntState] mapNext : list({}) --> list(Int) =
     [ empty = i(empty.),
       cons  = !head{ next } !tail{ mapNext } i(cons.) ]
 ```
@@ -402,7 +402,7 @@ interp IntState pureState =
     { state : Int, value : }
   handling
     { ar get  |->  {state = .state, value = .state},
-      ar put  |->  {state = .value, value = {=}}
+      ar put  |->  {state = .value, value = {}}
     }
   summing
     @value
@@ -421,17 +421,17 @@ interp IntState pureState =
 This defines an interpretation of the `IntState` sketch.
 
 - First one specifies how the interpretation acts on the pure morphisms: it maps them using the functor `{state: Int, value: }`, in other words what used to be an object `X` is now interpreted as `{state: Int, value: X}`, the same object but bundled with `Int`.
-- Next we specify how to handle the two generators `get` and `put`. `get` simply copies the state to the value component: `{state = .state, value = .state}`, while `put` copies the value component to the state one (while setting the state to unit): `{state = .value, value = {=}}`.
+- Next we specify how to handle the two generators `get` and `put`. `get` simply copies the state to the value component: `{state = .state, value = .state}`, while `put` copies the value component to the state one (while setting the state to unit): `{state = .value, value = {}}`.
 - The Freyd category does have sums, and the interpretation functor should preserve them, that's what `@value` does.
 - Finally we need to specify how effectful morphisms are lifted into products, in this case `!eff{...}`, lifting some effectful morphism `A --> B` into a product `{ pur: P, eff: A } --> { pur: P, eff: B }`.
 
 We can then execute this effect on an `exampleList`:
 
 ``` lawvere
-ar count : {:} --> Int =
-  { state = 0, value = }                  // set the initial state to 0
-  pureState(i(#( {=}, {=}, {=})) mapNext) // use the freyd arrow `counting` interpreting it with `pureState` functor
-  .value                                  // we are jut interesting in the result, not the accumulated state
+ar count : {} --> Int =
+  { state = 0, value = }               // set the initial state to 0
+  pureState(i(#( {}, {}, {})) mapNext) // use the freyd arrow `counting` interpreting it with `pureState` functor
+  .value                               // we are jut interesting in the result, not the accumulated state
 ```
 
 Checkout the [full example](/examples/freyd-state.law).

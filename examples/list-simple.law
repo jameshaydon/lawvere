@@ -1,5 +1,5 @@
 ob Base ListI =
-  [ empty: {:},
+  [ empty: {},
     cons:  { head: Int, tail: ListI }
   ]
 
@@ -7,11 +7,11 @@ ar sumList : ListI --> Int =
   [ empty = 0,
     cons  = (.head, .tail sumList) plus ] 
 
-ar example : {:} --> ListI =
+ar example : {} --> ListI =
   empty.
   { head = 10, tail = } cons.
   { head = 20, tail = } cons.
   { head = 30, tail = } cons.
 
-ar main : {:} --> Int =
+ar main : {} --> Int =
   example sumList

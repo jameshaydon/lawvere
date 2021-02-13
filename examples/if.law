@@ -47,7 +47,10 @@ sketch AfB = {a, b, f : a --> b }
   f = _ }
 
 
-if : { on : A, if : Bool, then : A => B, else : A => B } --> B
+ifTheElse : { cond : Bool, tt : A, ff : A } --> A =
+  @cond [ true = .tt, false = .ff ]
+
+ifThenElse : { on : A, if : Bool, then : A => B, else : A => B } --> B
 
 
 if : ({ a, b, condi : a -> Bool, tt : a -> b, ff : a -> b } => Base) --> ({ a, b, f : a -> b } => Base) =

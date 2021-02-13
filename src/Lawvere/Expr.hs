@@ -1,4 +1,3 @@
--- |
 module Lawvere.Expr where
 
 import Control.Monad.Combinators.Expr
@@ -150,8 +149,7 @@ pCurry :: Parser Expr
 pCurry = do
   kwCurry
   lab <- lexeme parsed
-  body <- parsed
-  pure (Curry lab body)
+  Curry lab <$> parsed
 
 pSide :: Parser Expr
 pSide = do

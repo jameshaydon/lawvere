@@ -96,8 +96,7 @@ pObDecl = do
   catName <- lexeme parsed
   name <- lexeme parsed
   lexChar '='
-  ob <- parsed
-  pure (DOb catName name ob)
+  DOb catName name <$> parsed
 
 pArDecl :: Parser () -> (Ob -> LcIdent -> Ob -> Ob -> Expr -> Decl) -> Parser Decl
 pArDecl kw ctor = do
@@ -109,8 +108,7 @@ pArDecl kw ctor = do
   _ <- symbol "-->"
   b <- lexeme parsed
   lexChar '='
-  body <- parsed
-  pure (ctor catName name a b body)
+  ctor catName name a b <$> parsed
 
 pInterpDecl :: Parser Decl
 pInterpDecl = do
@@ -125,8 +123,7 @@ pInterpDecl = do
   kwSumming
   summing <- parsed
   kwSide
-  side <- parsed
-  pure (DInterp interpName sketchName overThis theInterp summing side)
+  DInterp interpName sketchName overThis theInterp summing <$> parsed
 
 instance Parsed Decl where
   parsed =

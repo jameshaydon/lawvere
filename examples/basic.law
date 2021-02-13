@@ -1,17 +1,15 @@
-ob Base Bool =
-  [ true:  {:},
-    false: {:} ]
+ob Base Bool = [ true:  {}, false: {} ]
 
 ar not : Bool --> Bool =
-  [ true = {=} false.,
-    false = {=} true. ]
+  [ true  = {} false.,
+    false = {} true. ]
 
 ar and : (Bool, Bool) --> Bool =
-  @1 [ true = .2,
-       false = {=} false. ]
+  @1 [ true  = .2,
+       false = {} false. ]
 
 ob Base ListInt =
-  [ empty: {:},
+  [ empty: {},
     cons:  { head: Int, tail: ListInt }
   ]
 
@@ -20,7 +18,7 @@ ar length : ListInt --> Int =
     cons = ( 1, .tail length ) plus ]
 
 ob Base ListListInt =
-  [ empty: {:},
+  [ empty: {},
     cons: { head: ListInt, tail: ListListInt }
   ]
 
@@ -35,7 +33,7 @@ ar map : (ListInt => Int, ListListInt) --> ListInt =
 ar mapLength : ListListInt --> ListInt =
   (const(length), ) map
 
-ar main : {:} --> ListInt =
+ar main : {} --> ListInt =
   listOfLists mapLength
 
 
@@ -47,13 +45,13 @@ ar cons1 : ListInt --> ListInt =
 ar cons2 : ListInt --> ListInt =
   { head = 200, tail = } cons.
 
-ar list3 : {:} --> ListInt =
+ar list3 : {} --> ListInt =
   empty. cons1 cons2 cons1
 
-ar list2 : {:} --> ListInt =
+ar list2 : {} --> ListInt =
   empty. cons2 cons1 cons1 cons1
 
-ar listOfLists : {:} --> ListListInt =
+ar listOfLists : {} --> ListListInt =
   empty.
-  { head = {=} list3, tail = } cons.
-  {head = {=} list2, tail = } cons.
+  { head = {} list3, tail = } cons.
+  {head = {} list2, tail = } cons.

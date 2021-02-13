@@ -1,8 +1,8 @@
-ob Base ListI = [ empty: {:}, cons: { head: Int, tail: ListI}]
+ob Base ListI = [ empty: {}, cons: { head: Int, tail: ListI}]
 
 ar sum : ListI --> Int =
   [ empty = 0,
     cons  = 1 + .tail sum ]
 
-ar main : {:} --> Int =
+ar main : {} --> Int =
   empty. sum

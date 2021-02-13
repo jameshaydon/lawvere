@@ -112,7 +112,7 @@ pCommaSep :: Char -> Char -> Parser a -> Parser [a]
 pCommaSep = pWrapSep ','
 
 pFields :: (Parsed a, Parsed k) => Char -> Char -> Char -> Maybe (k -> a) -> Parser [(k, a)]
-pFields l r s punner_ = ([] <$ symbol (toS [l, s, r])) <|> pCommaSep l r pField
+pFields l r s punner_ = ([] <$ (chunk (toS [l, r]) <|> chunk (toS [l, s, r]))) <|> pCommaSep l r pField
   where
     pField = do
       name <- lexeme parsed

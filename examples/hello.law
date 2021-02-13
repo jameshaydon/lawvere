@@ -1,4 +1,4 @@
-ar someNumber : {:} --> Int = 42
+ar someNumber : {} --> Int = 42
 
-ar main : {:} --> Int =
+ar main : {} --> Int =
   someNumber incr incr incr

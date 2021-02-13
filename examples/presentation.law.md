@@ -161,10 +161,10 @@ Easy transform good use of data-structures into a mess of variables and lambdas.
 Scalars are written as normal, but represent constant morphisms.
 
 ```lawvere
-ar favInt : {:} --> Int =
+ar favInt : {} --> Int =
   42
 
-ar myName : {:} --> String =
+ar myName : {} --> String =
   "James Haydon" 
 ```
 
@@ -189,15 +189,15 @@ All operations operate at the morphism level:
 ar inc : Int --> Int = + 1
 
 // Explained later
-ob Base Bool = [ true: {:}, false: {:}]
+ob Base Bool = [ true: {}, false: {}]
 
-ar foo : {:} --> Bool =
+ar foo : {} --> Bool =
   43 > 40 + 2
 
 ar bar : Int --> Int =
   2 * * + 1
 
-ar baz : { x : Int, y : Int } --> Int =
+ar baz : { x: Int, y: Int } --> Int =
   2 * .x + 3 * .y + 6
 ```
 
@@ -232,9 +232,9 @@ If your target category has sums:
 
 ```lawvere
 // Already defined above:
-// ob Base Bool = [ true: {:}, false: {:}]
+// ob Base Bool = [ true: {}, false: {}]
 
-ar worldIsFlat : {:} --> Bool = false.
+ar worldIsFlat : {} --> Bool = false.
 
 // A cocone:
 ar not : Bool --> Bool =
@@ -249,7 +249,7 @@ If your target category is _distributive_:
 ```lawvere
 ar and : { x: Bool, y: Bool } --> Bool =
   @x [ true  = .y,
-       false = {=} false. ]
+       false = {} false. ]
 ```
 
 If the category is _extensive_, then could have case analysis at any morphism.
@@ -259,30 +259,32 @@ But `Hask` isn't extensive, e.g. would need refinement types.
 ## If-then-else
 
 ```lawvere
-ar ifThenElse : { cond : Bool, tt : Int, ff : Int} --> Int =
+ar ifThenElse : { cond: Bool, tt: Int, ff: Int} --> Int =
   @cond [ true = .tt, false = .ff ]
 ```
+
+Is not useful.
 
 ## Sum a list
 
 ```lawvere
 ob Base ListInt =
-  [ empty: {:}, cons: { head: Int, tail: ListInt }] 
+  [ empty: {}, cons: { head: Int, tail: ListInt }] 
 
 ar sum : ListInt --> Int =
   [ empty = 0,
     cons  = .head + .tail sum ]
     
-ar exampleList : {:} --> ListInt =
+ar exampleList : {} --> ListInt =
   empty.
   { head = 3, tail = } cons.
   { head = 2, tail = } cons.
   { head = 1, tail = } cons.
 
-ar exampleList2 : {:} --> ListInt =
+ar exampleList2 : {} --> ListInt =
   #(1, 2, 3) // sugar
 
-ar sixIsSix : {:} --> Bool =
+ar sixIsSix : {} --> Bool =
   exampleList sum == exampleList2 sum
 ```
 
@@ -358,22 +360,9 @@ Not yet implemented. Note the `;`.
 ```
 ar gameHeadline4 : { userA: User, userB: User } --> String =
   { userA, userB,
-    delta  = .userA .points - .userB .points;
-    sign   = .delta (>= 0);
-    leader = @sign [ true  = .users .userA,
-                     false = .users .userB ] }
-  "Player {.leader .name} is winning by {.delta abs show} points!"
-```
-
-## Case splitting v5
-
-```
-ar gameHeadline3 : { userA: User, userB: User } --> String =
-  { userA, userB,
     delta     = .userA .points - .userB .points;
     winningBy = .delta abs show,
-    leader    = if .delta (>= 0) then .userA else .userB
-  }
+    leader    = if .delta (>= 0) then .userA else .userB }
   "Player {.leader .name} is winning by {.winningBy} points!"
 ```
 
@@ -388,7 +377,7 @@ _Idea:_
 - These can be interpreted in various ways.
 
 _Syntax:_
-- `<..>`: canonical injection
+- `i(..)`: canonical injection
 - `!label{..}`: Freyd "action" at a product component
 
 ## Example
@@ -400,11 +389,43 @@ ar Base[IO] ask : String --> String =
 ```
 
 ```lawvere
-ar Base[IO] hello : {:} --> String =
+ar Base[IO] hello : {} --> String =
   i("What is your name?") putLine
   getLine
   i("Hello {}!") putLine
 
-ar InputOutput main : {:} --> {:} =
+ar InputOutput helloIO : {} --> {} =
   io(hello)
 ```
+
+## The action
+
+```lawvere
+ar Base[IO] twoQuestions : {} --> { name: String, hobby: String } =
+  i({ name = "What is your name?", hobby = "What's your hobby?" })
+  !name{ask}
+  !hobby{ask}
+```
+
+Proposed sugar:
+
+```
+{ name  = "What is your name?",
+  hobby = "What's your hobby?";
+  name  =! ask;
+  name  = "You name is: {.name}";
+  hobby =! ask;
+  hobby = "Your hobby is: {.hobby}" }
+```
+
+Desugars:
+
+```
+i({ name  = "What is your name?",
+    hobby = "What's your hobby?" })
+!name{ask}
+i({ hobby, name = "Your name is: {.name}" })
+!hobby{ask}
+i({ name, hobby = "Your hobby is: {.hobby}" })
+```
+

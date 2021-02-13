@@ -1,4 +1,4 @@
-ar main : {:} --> String =
+ar main : {} --> String =
   { playerA = { points = 10},
     playerB = { points = 20} }
   (.playerA .points - .playerB .points)

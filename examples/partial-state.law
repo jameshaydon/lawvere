@@ -1,0 +1,62 @@
+// Practice for defining categories..
+cat Two = {
+  ob = [ start: {}, end: {} ],
+  ar = [ idStart: {}, idEnd: {}, go: {} ],
+  src = ...,
+  tgt = ...,
+  id  = ...,
+  comp = @f [ idStart = .g,
+              idEnd   = .g,
+              go      = go.]
+}
+
+// "Builtin":
+cat Base = {
+  ob = BOb,
+  ar = BHom,
+  src = bSrc,
+  tgt = bTgt,
+  id = bId,
+  comp = bComp
+}
+
+
+// We start by defining the hom object for Partial, it is a limit in Base:
+ob Base PartialHom =
+  { a : BOb,
+    b : BOb,
+    pb : BOb,
+    k : BHom,
+    pSrc : k -> a  : bSrc,
+    pTgt : k -> pb : bTgt,
+    part : b -> pb : [ err: {}, suc: ]
+  }
+
+// what the composition limit for hom object H (over O) looks like:
+{ a : O,
+  b : O,
+  c : O,
+  f : H,
+  g : H,
+  srcF : f -> a : src,
+  tgtF : f -> b : tgt,
+  srcG : g -> b : src,
+  tgtG : g -> c : tgt
+  }
+
+cat Partial = {
+  ob = Ob,
+  ar = PartialHom,
+  src = .pSrc,
+  tgt = .pTgt,
+  id = ...,  // TODO
+  comp = { a = .a,
+           b = .c,
+           pb = _,
+           k = { f = .f .k,
+                 g = [ err = err.,
+                       suc = .g .k] }
+               pComp,
+           
+         },
+}

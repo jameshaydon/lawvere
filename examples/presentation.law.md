@@ -429,3 +429,20 @@ i({ hobby, name = "Your name is: {.name}" })
 i({ name, hobby = "Your hobby is: {.hobby}" })
 ```
 
+## State
+
+```lawvere
+ar Base[IntState] next : {} --> Int =
+  get
+  i({ current = , next = })
+  !next{ i(incr) put }
+  i(.current)
+```
+
+```
+get
+{ current = ,
+  next = ;
+  next =! i(incr) put }
+i(.current)
+```

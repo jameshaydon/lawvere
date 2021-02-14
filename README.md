@@ -43,7 +43,7 @@ Lawvere v0.0.0
 
 (Or `cabal run bill -- -i` or `stack exec bill -- -i` if `bill` isn't install.)
 
-`bill` can also be given a file: `bill -i example.law`. By omitting the `-i` flag, the `main` morphism is executed directly and the REPL is not started. In the REPL, `:r` will reload the loaded file, and `:q` will terminate the session. This README file is a literal Lawvere script, so you can load it and try out the examples:
+`bill` can also be given a file: `bill -i example.law`. By omitting the `-i` flag, the `main` arrow is executed directly and the REPL is not started. In the REPL, `:r` will reload the loaded file, and `:q` will terminate the session. This README file is a literal Lawvere script, so you can load it and try out the examples:
 
 ```
 $ bill -i README.md
@@ -54,21 +54,24 @@ Check OK!
 
 ### Basic types
 
-Basic scalar types are written as in other programming languages, e.g. `42` and `"hello world"`. Except that in Lawvere everything is a morphism, so these actually denote constant morphisms. For example `42` denotes the morphism which is constantly 42:
+Values of basic types are written as in other programming languages, e.g. `42` and `"hello world"`. But in Lawvere, everything is an arrow (Lawvere's equivalent of a function), so that these actually denote the constant arrow. For example, `42` denotes the arrow which is constantly 42:
 
 ```lawvere
 ar answer : {} --> Int = 42
 ```
 
-The above code defines a morphisms using the `ar` keyword (standing for _arrow_). The arrow has source `{}` (which is syntax for the unit type) and target `Int`.
+The above code defines an arrow using the `ar` keyword. The arrow has source `{}` (which is the syntax for the unit type) and target `Int`.
 
 When the REPL accepts an input, it actually executes it on the unit input. So for example inputting `incr` (which expects an `Int`) will result in an error.
 
-Lawvere also has support for basic arithmetic and comparisons. These are operations on morphisms, for example `f + g` forms the pointwise addition of morphisms `f` and `g`. Here are some examples:
+Lawvere also has support for basic arithmetic and comparisons. These are operations on arrows, for example `f + g` forms the pointwise addition of arrows `f` and `g`. Here are some examples:
 
 ### Composition
 
-The main way to build up larger programs from smaller ones is by using _composition_. The syntax for this is very lightweight, simply whitespace: `f g` denotes the composition of `f` and `g`. If you are coming from Haskell, note that this is _not_ `.`, it's `>>>`, that is, `f` comes first, then `g`. The identity morphism is written with no characters at all: ` `.
+The main way to build up larger programs from smaller ones is by using _composition_. The syntax for this is very lightweight - it's simply whitespace! That is, `f g` denotes the composition of `f` and `g`. If you are coming from Haskell, note that this does _not_ correspond to `.`, but to `>>>`, that is, `f` comes first, then `g`.
+
+(If you know Forth composition and literals as constant functions will feel familiar.)
+
 
 To illustrate this we can use the built-in morphism `incr`, which increments an integer:
 
@@ -103,7 +106,7 @@ Check OK!
 
 _Note:_ The checker is a work-in-progress and is far from complete.
 
-The identity morphism is called `identity`, but you can also write it with nothing at all (whitespace), so for example the  mathematical function [x ↦ x * x + 1] can be written `identity * identity + 1`, or simply `* + 1`:
+The identity arrow is called `identity`, but you can also write it with nothing at all (or whitespace). So the  mathematical function [x ↦ x * x + 1] can be written `identity * identity + 1`, or simply `* + 1`:
 
 ``` lawvere
 ar squarePlusOne : Int --> Int = identity * identity + 1
@@ -119,13 +122,13 @@ $ bill -i test.law
 
 ### Products
 
-We define a new object `Point` with the keyword `ob`, and specify a product using braces:
+Datatypes in `lawvere` are called _objects_ (since they correspond to objects in category theory -- as arrows, as you might have guessed, correspond to morphisms).  We define a new object `Point` with the keyword `ob`. If the object is a product type (or struct, or record), specify it using braces:
 
 ``` lawvere
 ob Base Point = { x: Float, y: Float }
 ```
 
-The morphism which projects out the `x` component from `Point` is written `.x`. This is supposed to remind one of the `foo.x` notation that is usual in other programming languages, except without anything preceding the dot.
+The arrow which projects out the `x` component from `Point` is written `.x`. (Think of the `foo.x` notation that is usual in other programming languages, except without anything preceding the dot.)
 
 ```
 $ bill -i
@@ -133,23 +136,25 @@ $ bill -i
 "Mina"
 ```
 
-To map _to_ a product we need to specify a [_cone_](https://ncatlab.org/nlab/show/limit#definition_in_terms_of_universal_cones). This specifies a morphism to each component of the product. For example,
+To map _to_ a product we need to specify a [_cone_](https://ncatlab.org/nlab/show/limit#definition_in_terms_of_universal_cones).
+
+To create arrow _to_ a product, we specify, again using braces, arrows to each component of the product (in categorical terms, a [_cone_](https://ncatlab.org/nlab/show/limit#definition_in_terms_of_universal_cones)) . For example,
 
 ``` lawvere
 ar somePoint : {} --> Point =
   { x = 2.3, y = 4.6 }
 ```
 
-This works because, as mentioned above, `2.3` and `4.6` are morphisms of type `{} --> Float`.
+This works because `2.3` and `4.6` are arrows of type `{} --> Float`, and the braces syntax passes the same argument to all arrows in the product.
 
-In general, to specify a morphism `X --> { a: A, b: B, c: C, ... }`, one uses a cone:
+In general, arrows of type `X --> { a: A, b: B, c: C, ... }` can be written as
 
 ```
 { a = f, b = g, ... }
 ```
-where `f : X --> A`, `g : X --> B`, `h : X --> C`, etc.
+if `f : X --> A`, `g : X --> B`, `h : X --> C`, etc.
 
-A complete program would be:
+Here's a fuller example of using products:
 
 ``` lawvere
 ob Base Point = { x: Float, y: Float }
@@ -160,9 +165,9 @@ ar someNum : {} --> Float =
   { x = 2.3, y = 4.6 } linFun
 ```
 
-whose result is `18.4`.
+`someNum` is then `18.4`.
 
-So the empty product object (the terminal object) is denoted `{}`, and the unique morphism to is it denoted `{}`. If there is any ambiguity (which occurs when defining functors) then you can use `{:}` and `{=}`.
+The empty product object (in categorical terms, the terminal object) is written as `{}`, and the unique arrow to it is also `{}`. If there is any ambiguity (which occurs when defining functors) then you can use `{:}` and `{=}`.
 
 By using parentheses instead of braces, the components are positional rather than named. In this case the projections are `.1`, `.2`, etc. Using a positional product for `Point` the previous program would be:
 
@@ -177,7 +182,7 @@ ar someNumPos : {} --> Float =
 
 ### String interpolation
 
-A string can contain interpolated expressions. For example, `"Name: {f}, Age: {g}"` denotes a morphism `A --> String` as long as both `f` and `g` are also morphisms `A --> String`.
+A string can contain interpolated expressions. For example, `"Name: {f}, Age: {g}"` denotes an arrow `A --> String` as long as both `f` and `g` are also morphisms `A --> String`.
 
 The program:
 ``` lawvere
@@ -188,17 +193,17 @@ will result in `"James likes playing Go."`
 
 ### Sums
 
-We can define sum-types too. Let's define the booleans:
+We can define sum types too. For instance, booleans:
 
 ``` lawvere
 ob Base Bool = [ true: {}, false: {} ]
 ```
 
-Using square brackets we define a sum type with two summands, `true` and `false`, each with the terminal object `{}` as payload.
+Using square brackets we define a sum type with two summands, `true` and `false`, each with `{}` as payload.
 
-Sum types come equipped with canonical injections. The canonical injection into the component with name `foo` is denoted `foo.`, simply mirroring the notation for canonical projections.
+Sum types come equipped with constructors (injection). The constructor into the component with name `foo` is denoted `foo.`, simply mirroring the notation for projections.
 
-In order to define some simple boolean functions, we'll need to learn how to map _from_ sums. This is done with a _cocone_, which specifies a morphism for each summand. This is exactly like a cone except using square brackets instead of braces. To illustrate this let's define the negation function:
+In order to define some simple boolean functions, we'll need to learn how to map _from_ sums. This is like pattern matching, specifying an arrow for each summand (and thus, in categorical language, a cocone). This is like constructing products, except using square brackets instead of braces. To illustrate this let's define the negation function:
 
 ``` lawvere
 ar not : Bool --> Bool
@@ -206,12 +211,12 @@ ar not : Bool --> Bool
       false = true. ]
 ```
 
-In words, we split the morphism into two cases. In the first case (on the `true` component) we use the canonical injection `false.`, on the other component we use `true.`.
+In words, we split the arrow into two cases. In the first case (on the `true` component) we use `false.` constructor, on the other component we use `true.`.
 
-In general, to specify a morphism
+In general, to specify an arrow:
 
 ```
-[ a: A, b: B, c: C, ... ] --> X 
+[ a: A, b: B, c: C, ... ] --> X
 ```
 one uses a cocone
 ```
@@ -227,7 +232,7 @@ Continuing with boolean functions, let's try to define the `and` function:
 ar and : {x: Bool, y: Bool} --> Bool = ?
 ```
 
-This is a morphism _to_ a sum (`Bool`), so we can't use a cocone, and _from_ a product (`{x : Bool, y: Bool }`), so we can't use a cone---are we stuck? Intuitively we want to inspect one of the two arguments `(x` or `y`) in order to continue. For this we will use the _distributor_ `@x`. To understand what this does, first let's re-write `{x : Bool, y : Bool}` by expanding the definition of `Bool` at the `x` summand:
+This is an arrow _to_ a sum (`Bool`), so we can't use a cocone, and _from_ a product (`{x : Bool, y: Bool }`), so we can't use a cone---are we stuck? Intuitively we want to inspect one of the two arguments `(x` or `y`) in order to continue. For this we will use the _distributor_ `@x`. To understand what this does, first let's re-write `{x : Bool, y : Bool}` by expanding the definition of `Bool` at the `x` summand:
 
 ```
 { x: [ true: {}, false: {}], y: Bool }
@@ -236,7 +241,7 @@ This is a morphism _to_ a sum (`Bool`), so we can't use a cocone, and _from_ a p
 The type of `@x` is:
 
 ```
-@x : { x: [ true: {}, false: {}], y: Bool } --> [ true: { x: {}, y: Bool}, false: { x: {}, y: Bool } ] 
+@x : { x: [ true: {}, false: {}], y: Bool } --> [ true: { x: {}, y: Bool}, false: { x: {}, y: Bool } ]
 ```
 
 The morphism `@x` transforms the product into a sum; a sum with the same summand names as the sum in the component it targets. So in this case we end up with a sum with summands `true` and `false`, and the `x` component contains the unwrapped payload for the original sum at `x` (in this case they are both `{}`).
@@ -256,7 +261,7 @@ and : { x : Bool, y : Bool } -> Bool
 and input =
   case input.x of
     True  -> input.y
-    False -> False 
+    False -> False
 ```
 
 ### Summing over a list

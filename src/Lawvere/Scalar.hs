@@ -16,10 +16,10 @@ data Sca
 
 instance Disp Sca where
   disp = \case
-    Int i -> pretty i
-    Float d -> pretty d
+    Int i -> annotate AnNum (pretty i)
+    Float d -> annotate AnNum (pretty d)
     -- Prints escape sequences just like Haskell.
-    Str s -> pretty (show s :: Text)
+    Str s -> annotate AnStr (pretty (show s :: Text))
 
 pNum :: Parser Sca
 pNum = do

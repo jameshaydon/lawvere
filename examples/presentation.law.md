@@ -264,16 +264,7 @@ ar and : { x: Bool, y: Bool } --> Bool =
 
 If the category is _extensive_, then could have case analysis at any morphism.
 
-But `Hask` isn't extensive, e.g. would need refinement types.
-
-## If-then-else
-
-```lawvere
-ar ifThenElse : { cond: Bool, tt: Int, ff: Int} --> Int =
-  @cond [ true = .tt, false = .ff ]
-```
-
-Is not useful.
+But `Hask` isn't extensive (no refinement types).
 
 ## Sum a list
 
@@ -281,24 +272,20 @@ Is not useful.
 ob Base ListInt =
   [ empty: {}, cons: { head: Int, tail: ListInt }] 
 
-ar sum : ListInt --> Int =
-  [ empty = 0,
-    cons  = .head + .tail sum ]
-    
 ar exampleList : {} --> ListInt =
   empty.
-  { head = 3, tail = } cons.
   { head = 2, tail = } cons.
   { head = 1, tail = } cons.
 
 ar exampleList2 : {} --> ListInt =
   #(1, 2, 3) // sugar
 
-ar sixIsSix : {} --> Bool =
-  exampleList sum == exampleList2 sum
+ar sum : ListInt --> Int =
+  [ empty = 0,
+    cons  = .head + .tail sum ]
 ```
 
-## Case splitting v1
+## Case splitting
 
 ```lawvere
 ar gameHeadline1 : { userA: User, userB: User } --> String =
@@ -383,7 +370,7 @@ _draw some stuff_
 ## Effects!
 
 _Idea:_
-- Sketches (which can be combined) produce free Freyd categories.
+- Sketches over a base category, which can be combined, produce free Freyd categories.
 - These can be interpreted in various ways.
 
 _Syntax:_
@@ -393,15 +380,20 @@ _Syntax:_
 ## Example
 
 ```lawvere
-// Turn a question into an answer.
+effect IO over Base {
+  putLine : String --> {},
+  getLine : {} --> String
+}
+```
+
+```lawvere
 ar Base[IO] ask : String --> String =
   putLine getLine
 ```
 
 ```lawvere
 ar Base[IO] hello : {} --> String =
-  ~"What is your name?" putLine
-  getLine
+  ~"What is your name?" ask
   ~"Hello {}!" putLine
 
 ar InputOutput helloIO : {} --> {} =
@@ -417,34 +409,92 @@ ar Base[IO] twoQuestions : {} --> { name: String, hobby: String } =
   !hobby(ask)
 ```
 
-Proposed sugar:
-
-```
-{ name  = "What is your name?",
-  hobby = "What's your hobby?";
-  name  =! ask;
-  name  = "You name is: {.name}";
-  hobby =! ask;
-  hobby = "Your hobby is: {.hobby}" }
-```
-
-Desugars:
-
-```
-~{ name  = "What is your name?",
-   hobby = "What's your hobby?" }
-!name(ask)
-~{ hobby, name = "Your name is: {.name}" }
-!hobby(ask)
-~{ name, hobby = "Your hobby is: {.hobby}" }
-```
-
 ## State
 
 ```lawvere
+effect IntState over Base {
+  get : {} --> Int,
+  put : Int --> {}
+}
+
 ar Base[IntState] next : {} --> Int =
-  get
-  ~{ current = , next = }
-  !next(~incr put)
-  ~.current
+  get ~{ current = , next = incr}
+  !next(put) ~.current
+```
+
+## Errors
+
+```lawvere
+effect Err over Base {
+  err : String --> []
+}
+
+ar Base[IntState, Err] nextSub3 : {} --> Int =
+  next
+  ~( { sub3 = < 3, ok = } @sub3 )
+  [ true  = ~.ok,
+    false = ~"Was not under 3!" err [] ]
+```
+
+## Map effects over a list
+
+```lawvere
+ar Base[IntState, Err] mapNextSub3 : list({}) --> list(Int) =
+  [ empty = ~empty.,
+    cons  = !head(nextSub3)
+            !tail(mapNextSub3)
+            ~cons. ]
+
+ar ErrIntState count : {} --> Int =
+  { state = 0, value = #({}, {}, {}) }
+  pureErrIntState(mapNextSub3)
+```
+
+What is `pureErrIntState`?
+
+## A new category
+
+```lawvere
+category ErrIntState {
+  ob = ob Base,
+  ar A --> B = ar Base :
+    { state: Int, value: A } -->
+    [ err: String,
+      suc: { state: Int, value: B } ],
+  identity = suc.,
+  f g = f [ err = err., suc = g ],
+  SumOb(idx) = SumOb(idx),
+  sumInj(label) =
+    { state, value = .value sumInj(label) } suc.,
+  sumUni(cocone) = @value sumUni(cocone)
+}
+```
+
+## An effect category
+
+```lawvere
+effect_category pureErrIntState ErrIntState over Base {
+  ~f      = { state, value = .value f } suc.,
+  side(f) =
+    { runeff = { state = .state,
+                 value = .value .eff } f,
+      onside = .value .pur }
+    @runeff
+    [ err = .runeff err.,
+      suc = { state = .runeff .state,
+              value = { eff = .runeff .value,
+                        pur = .onside } } suc. ]
+}
+```
+
+## Interpretations
+
+```lawvere
+interpret Err in ErrIntState
+  { err = .value err. }
+
+interpret IntState in ErrIntState
+  { get = { state, value = .state      } suc.,
+    put = { state = .value, value = {} } suc.
+  }
 ```

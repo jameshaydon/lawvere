@@ -77,6 +77,7 @@
         ("\"\\(\\(\\\\\"\\)\\|[^\"]\\)*\"" . font-lock-string-face)
         (,(s-join "\\|" lawvere-keywords) . font-lock-keyword-face)
         (,(s-join "\\|" lawvere-builtins) . font-lock-builtin-face)
+        ("[a-z][A-Za-z0-9]*\\." . font-lock-constant-face)
         ("\\<\\*?\\[?[A-Z][A-Za-z]*\\]?\\>" . font-lock-type-face)
         ("\\w\\(#\\w+\\)" . (1 font-lock-builtin-face))))
 

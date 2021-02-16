@@ -66,8 +66,7 @@ runFile warnings target filepath = handleErr $ do
     Hask -> do
       v <- liftIO $ evalMain inp prog
       say ""
-      say "output:"
-      say ("  " <> render v)
+      liftIO (renderTerm v) >>= say
     JS -> liftIO (mkJS prog) >>= say
     VmCode -> say (render (Machine.compileProg prog))
     Vm -> do
@@ -154,9 +153,13 @@ repl warnings filepath_ = do
             Left err -> Repl . outputStrLn . toS . Mega.errorBundlePretty $ err
             Right expr -> do
               pr <- use #prog
-              let exec = render <$> eval (Rec mempty) pr expr
-              res <- liftIO $ catch exec $ \(FatalError err) -> pure ("ERROR: " <> err)
-              Repl $ outputStrLn (toS res)
+              let exec = Right <$> eval (Rec mempty) pr expr
+              res <- liftIO $ catch exec $ \(FatalError err) -> pure (Left ("ERROR: " <> err))
+              case res of
+                Right v -> do
+                  out <- liftIO (renderTerm v)
+                  Repl $ outputStrLn (toS out)
+                Left err -> Repl $ outputStrLn (toS err)
               loop
 
 data Mode = Batch | Interactive

@@ -4,7 +4,7 @@
 
 I will present and demo some of the features of the language.
 
-But the talk is also "aspirational" (i.e. not implemented yet).
+But much is "aspirational" ~> not implemented yet.
 
 ## λ-calculus interpreter
 
@@ -58,11 +58,11 @@ eval' = eval . desugar
 sketch Lam where
   ob Expr
   ar Lit    : Scalar         -> Expr
-  ar Lambda : (Expr ~> Expr) -> Expr
+  ar Lambda : (Expr => Expr) -> Expr
   ar App    : (Expr, Expr)   -> Expr
 
 sketch Let extends Lam where
-  ar Let : (Expr, Expr ~> Expr) -> Expr
+  ar Let : (Expr, Expr => Expr) -> Expr
 ```
 
 ## Theories of sketches
@@ -102,7 +102,10 @@ Assume `d : T(Let) -> T(Lam)`, `d(Expr) = Expr`:
 *Goal:* `d : T(Let) -> T(Lam)`
 
 - Retract of `i`  ~~> `d(Expr) = Expr` + 🗑
+  (recall: `i : T(Lam) -> T(Let)`)
 - Cartesian ~~>
+
+(recall: `Let : (Expr, Expr => Expr) -> Expr`)
 
 ```
 d(Let) :
@@ -114,12 +117,14 @@ d( (Expr,    Expr  =>   Expr)) -> d(Expr)
 
 `(v, bind) |-> App (Lambda bind, v)` _what we wanted to write_
 
+> Syntax desugarings are cartesian retracts
+
 ## Dream
 
 ```
 desugar : T(Let) --> T(Lam) =
   generators {
-    Let |-> ((v, bind) |-> App (Lambda bind, v))
+    Let |-> (π_2, Lambda . π_1) . App 
   }
   using (cartesian, retracts i)
 ```
@@ -128,18 +133,22 @@ desugar : T(Let) --> T(Lam) =
 
 ## Other design considerations
 
-A programming language is a text-format.
+- A programming language is a text-format: `String`
+- Compilation is to a sequences of machine instructions: `[Instr]`.
 
-- `print : Prog   --> String`
-  `parse : String --> Maybe Prog`
+- `denot : String --> Prog`
+  `compi : Prog   --> [Instr]`
 
-- `String` ~ free monoid on `Char`.
+- `String`  ~ free monoid on `Char`
+  `[Instr]` ~ free monoid on `Instr`
 
-- If `Prog` is a category, `print` should be a functor.
+- If `Prog` is a category, `denot`/`compi` should be functors
+  * identity: `""`
+  * composition `G . F` written: `"F G"`
 
-- "Concatenative" PLs already had this idea.
+- "Concatenative" PLs already had this idea (not very categorically though)
 
-- Clean/minimal semantics (e.g. for blockchain, "universal scripts", etc.)
+- Clean/minimal semantics.
 
 ## No λ, but lots of names
 
@@ -158,7 +167,7 @@ Easy transform good use of data-structures into a mess of variables and lambdas.
 
 ## Scalars
 
-Scalars are written as normal, but represent constant morphisms.
+Scalars are written as normal, but represent points:
 
 ```lawvere
 ar favInt : {} --> Int =
@@ -194,6 +203,7 @@ ob Base Bool = [ true: {}, false: {}]
 ar foo : {} --> Bool =
   43 > 40 + 2
 
+// x -> 2 x^2 + 1
 ar bar : Int --> Int =
   2 * * + 1
 
@@ -232,7 +242,7 @@ If your target category has sums:
 
 ```lawvere
 // Already defined above:
-// ob Base Bool = [ true: {}, false: {}]
+//ob Base Bool = [ true: {}, false: {}]
 
 ar worldIsFlat : {} --> Bool = false.
 

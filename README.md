@@ -136,8 +136,6 @@ $ bill -i
 "Mina"
 ```
 
-To map _to_ a product we need to specify a [_cone_](https://ncatlab.org/nlab/show/limit#definition_in_terms_of_universal_cones).
-
 To create arrow _to_ a product, we specify, again using braces, arrows to each component of the product (in categorical terms, a [_cone_](https://ncatlab.org/nlab/show/limit#definition_in_terms_of_universal_cones)) . For example,
 
 ``` lawvere
@@ -145,7 +143,7 @@ ar somePoint : {} --> Point =
   { x = 2.3, y = 4.6 }
 ```
 
-This works because `2.3` and `4.6` are arrows of type `{} --> Float`, and the braces syntax passes the same argument to all arrows in the product.
+This works because `2.3` and `4.6` are arrows of type `{} --> Float`, and the braces syntax uses arrows which all have the same source.
 
 In general, arrows of type `X --> { a: A, b: B, c: C, ... }` can be written as
 

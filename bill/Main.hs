@@ -31,8 +31,8 @@ data Target
   | Vm
   deriving stock (Eq, Show)
 
-loadFile :: (MonadIO m) => Target -> FilePath -> ExceptT Text m [Decl]
-loadFile target filepath = do
+loadFile :: (MonadIO m) => Bool -> Target -> FilePath -> ExceptT Text m [Decl]
+loadFile warnings target filepath = do
   sayi . toS $ "Loading " <> filepath <> ".."
   t <- liftIO (readFile filepath)
   source <-
@@ -44,7 +44,7 @@ loadFile target filepath = do
   prog :: [Decl] <- except (first (toS . Mega.errorBundlePretty) (Mega.parse (parsed <* Mega.eof) filepath source))
   sayi "Checking.."
   let (res, nub -> warns) = checkProg prog
-  forM_ warns (sayi . ("WARN: " <>))
+  when warnings $ forM_ warns (sayi . ("WARN: " <>))
   case res of
     Right _ -> sayi "Check OK!"
     Left err -> do
@@ -58,9 +58,9 @@ loadFile target filepath = do
 sayHask :: (MonadIO m) => Target -> Text -> m ()
 sayHask target t = when (target `elem` [Hask, Vm]) (say t)
 
-runFile :: Target -> FilePath -> IO ()
-runFile target filepath = handleErr $ do
-  prog <- loadFile target filepath
+runFile :: Bool -> Target -> FilePath -> IO ()
+runFile warnings target filepath = handleErr $ do
+  prog <- loadFile warnings target filepath
   let inp = Rec mempty
   case target of
     Hask -> do
@@ -91,8 +91,8 @@ newtype Repl a = Repl {runRepl :: InputT (StateT ReplState IO) a}
 instance MonadState ReplState Repl where
   state = Repl . lift . state
 
-repl :: Maybe FilePath -> IO ()
-repl filepath_ = do
+repl :: Bool -> Maybe FilePath -> IO ()
+repl warnings filepath_ = do
   prog_ <- load
   case prog_ of
     Left err -> putErr err
@@ -112,7 +112,7 @@ repl filepath_ = do
     load :: (MonadIO m) => m (Either Text ReplState)
     load = case filepath_ of
       Just filepath -> runExceptT $ do
-        prog <- loadFile Hask filepath
+        prog <- loadFile warnings Hask filepath
         pure (ReplState prog (foldMap declNames prog))
       Nothing -> pure (Right (ReplState [] mempty))
     declNames :: Decl -> Set String
@@ -164,7 +164,8 @@ data Mode = Batch | Interactive
 data Opts = Opts
   { mode :: Mode,
     target :: Target,
-    file :: Maybe FilePath
+    file :: Maybe FilePath,
+    warnings :: Bool
   }
 
 optsParser :: Parser Opts
@@ -191,6 +192,13 @@ optsParser =
               <> metavar "FILE"
           )
       )
+    <*> ( not
+            <$> switch
+              ( long "no-warnings"
+                  <> short 'w'
+                  <> help "Turn off warnings"
+              )
+        )
   where
     parseTarget (map toLower -> t) = case t of
       "js" -> Just JS
@@ -211,8 +219,8 @@ main = do
   case mode of
     Batch -> case file of
       Nothing -> putErr "A file must be specified when not in interactive mode."
-      Just filepath -> runFile target filepath
-    Interactive -> repl file
+      Just filepath -> runFile warnings target filepath
+    Interactive -> repl warnings file
   where
     opts =
       info
@@ -224,13 +232,13 @@ main = do
 
 dev' :: IO ()
 dev' = do
-  runFile Hask "examples/product.law"
-  runFile Hask "examples/tutorial.law"
-  runFile Hask "examples/io.law"
-  runFile Hask "examples/basic.law"
-  runFile Hask "examples/list.law"
+  runFile False Hask "examples/product.law"
+  runFile False Hask "examples/tutorial.law"
+  runFile False Hask "examples/io.law"
+  runFile False Hask "examples/basic.law"
+  runFile False Hask "examples/list.law"
   -- runFile Hask "examples/freyd-state.law"
-  runFile Hask "examples/partial-state.law"
+  runFile False Hask "examples/partial-state.law"
 
 dev :: IO ()
 dev = dev' `catch` (\(FatalError err) -> putStrLn err)

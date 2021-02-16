@@ -1,4 +1,6 @@
---command "cabal repl" \
+--command "stack repl" \
+--test dev
+--restart=examples/partial-state.law
 --restart=examples/tutorial.law
 --restart=examples/basic.law
 --restart=examples/list.law

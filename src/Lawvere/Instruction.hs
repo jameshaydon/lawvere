@@ -130,7 +130,7 @@ compile = \case
     compStore = compile >=> storeCode
 
 compileDecl :: Decl -> Comp ()
-compileDecl (DAr _ name _ _ e) = local (const name) $ do
+compileDecl (DAr _ name _ e) = local (const name) $ do
   code <- compile e
   #code %= Map.insert (AddrTop name) code
 compileDecl DOb {} = pure ()

@@ -1,6 +1,8 @@
 module Lawvere.Expr where
 
+import Control.Lens
 import Control.Monad.Combinators.Expr
+import Data.Generics.Labels ()
 import Lawvere.Core
 import Lawvere.Disp
 import Lawvere.Parse
@@ -58,7 +60,7 @@ componentLabel :: ConeComponent -> Label
 componentLabel (ConeComponent _ lab) = lab
 
 data ISPart = ISRaw Text | ISExpr Expr
-  deriving stock (Show)
+  deriving stock (Show, Generic)
 
 data NumOp = OpPlus | OpMinus | OpTimes
   deriving stock (Eq, Ord, Show, Bounded, Enum)
@@ -125,12 +127,41 @@ data Expr
   | EConst Expr
   | EPrim Prim
   | EFunApp LcIdent Expr
-  | Curry LcIdent Expr
-  | Object UcIdent
+  | -- | Curry LcIdent Expr
+    Object UcIdent
   | CanonicalInj Expr
   | Side LcIdent Expr
+  | SidePrep Label
+  | SideUnprep Label
   | BinOp BinOp Expr Expr
+  | SumInjLabelVar LcIdent
+  | SumUniCoconeVar LcIdent
   deriving stock (Show)
+
+instance Plated Expr where
+  plate f (Cone cone) = Cone <$> (each . _2) f cone
+  plate f (ELim diag) = ELim <$> (each . _2) f diag
+  plate f (Tuple as) = Tuple <$> each f as
+  plate f (CoCone cocone) = CoCone <$> (each . _2) f cocone
+  plate f (ECoLim diag) = ECoLim <$> (each . _2) f diag
+  plate f (InterpolatedString fs) = InterpolatedString <$> (each . #_ISExpr) f fs
+  plate _ l@(Lit _) = pure l
+  plate _ p@(Proj _) = pure p
+  plate _ i@(Inj _) = pure i
+  plate f (Comp fs) = Comp <$> each f fs
+  plate _ t@(Top _) = pure t
+  plate _ d@(Distr _) = pure d
+  plate f (EConst e) = f e
+  plate _ p@(EPrim _) = pure p
+  plate f (EFunApp name e) = EFunApp name <$> f e
+  plate _ o@(Object _) = pure o
+  plate f (CanonicalInj e) = CanonicalInj <$> f e
+  plate f (Side lab e) = Side lab <$> f e
+  plate f (BinOp o x y) = BinOp o <$> f x <*> f y
+  plate _ lv@(SumInjLabelVar _) = pure lv
+  plate _ cv@(SumUniCoconeVar _) = pure cv
+  plate _ sp@(SidePrep _) = pure sp
+  plate _ su@(SideUnprep _) = pure su
 
 -- Tuples are just shorthand for records.
 tupleToCone :: [Expr] -> Expr
@@ -145,11 +176,11 @@ pApp = do
   e <- wrapped '(' ')' parsed
   pure (EFunApp f e)
 
-pCurry :: Parser Expr
-pCurry = do
-  kwCurry
-  lab <- lexeme parsed
-  Curry lab <$> parsed
+-- pCurry :: Parser Expr
+-- pCurry = do
+--   kwCurry
+--   lab <- lexeme parsed
+--   Curry lab <$> parsed
 
 pSide :: Parser Expr
 pSide = do
@@ -220,7 +251,7 @@ pAtom :: Parser Expr
 pAtom =
   choice
     [ pSide,
-      pCurry,
+      -- pCurry,
       pIfThenElse,
       try pApp,
       pInterpolated,
@@ -230,6 +261,7 @@ pAtom =
       try (Inj <$> (parsed <* ".")), -- we need to look ahead for the dot
       Top <$> parsed,
       CanonicalInj <$> kwCall kwI,
+      SumUniCoconeVar <$> kwCall kwSumUni,
       pList,
       pTupledOrParensed,
       -- TODO: try to get rid of the 'try' by committing on the first
@@ -276,7 +308,7 @@ instance Parsed Expr where
 instance Disp Expr where
   disp = \case
     Object o -> disp o
-    CanonicalInj e -> angles (disp e)
+    CanonicalInj e -> "i" <> parens (disp e)
     EFunApp f e -> disp f <> parens (disp e)
     EPrim p -> disp p
     EConst e -> "const" <> parens (disp e)
@@ -286,15 +318,16 @@ instance Disp Expr where
     Distr l -> "@" <> disp l
     Top t -> disp t
     Comp fs -> align $ sep (disp <$> fs)
-    Cone parts -> commaBrace '=' parts
-    ELim parts -> commaBrace ':' parts
-    CoCone parts -> commaBracket '=' parts
-    ECoLim parts -> commaBracket ':' parts
-    Tuple parts -> dispTup parts
-    Curry lab f -> "curry" <+> disp lab <+> disp f
+    Cone ps -> commaBrace '=' ps
+    ELim ps -> commaBrace ':' ps
+    CoCone ps -> commaBracket '=' ps
+    ECoLim ps -> commaBracket ':' ps
+    Tuple ps -> dispTup ps
+    -- Curry lab f -> "curry" <+> disp lab <+> disp f
     Side lab f -> "!" <> disp lab <> braces (disp f)
     InterpolatedString ps -> dquotes (foldMap go ps)
       where
         go (ISRaw t) = pretty t
         go (ISExpr e) = braces (disp e)
-    BinOp op x y -> parens (disp x <+> disp op <+> disp y)
+    BinOp o x y -> parens (disp x <+> disp o <+> disp y)
+    _ -> "TODO"

@@ -1,62 +1,77 @@
-// Practice for defining categories..
-cat Two = {
-  ob = [ start: {}, end: {} ],
-  ar = [ idStart: {}, idEnd: {}, go: {} ],
-  src = ...,
-  tgt = ...,
-  id  = ...,
-  comp = @f [ idStart = .g,
-              idEnd   = .g,
-              go      = go.]
+// Define a new category
+cat ErrIntState {
+  ob         = ob Base,
+  ar A --> B = ar Base : { state: Int, value: A } --> [ err: String, suc: { state: Int, value: B } ],
+  id         = suc.,
+  comp(f, g) = f [ err = err., suc = g ],
+  SumOb(idx) = SumOb(idx),
+  sumInj(label) = { state, value = .value sumInj(label) } suc.,
+  sumUni(cocone) = @value sumUni(cocone)
 }
 
-// "Builtin":
-cat Base = {
-  ob = BOb,
-  ar = BHom,
-  src = bSrc,
-  tgt = bTgt,
-  id = bId,
-  comp = bComp
+// Give `ErrIntState` the structure of an effect category over Base
+effcat pureErrIntState ErrIntState over Base {
+  i(f)    = { state, value = .value f } suc.,
+  side(f) =
+    { runeff = { state = .state,
+                   value = .value .eff
+                 } f,
+        tagalong = .value .pur
+    }
+    @runeff
+    [ err = .runeff err.,
+      suc = { state = .runeff .state,
+              value = { eff = .runeff .value,
+                        pur = .tagalong
+                      }
+            } suc.
+    ]
 }
 
+effect IntState over Base {
+  get : {} --> Int,
+  put : Int --> {}
+}
 
-// We start by defining the hom object for Partial, it is a limit in Base:
-ob Base PartialHom =
-  { a : BOb,
-    b : BOb,
-    pb : BOb,
-    k : BHom,
-    pSrc : k -> a  : bSrc,
-    pTgt : k -> pb : bTgt,
-    part : b -> pb : [ err: {}, suc: ]
+effect Err over Base {
+  err : String --> []
+}
+
+// ar (Base[Err] => Base[Err]) throw : String -> = err [] 
+
+// Provide an interpretation of IntState:
+effInterp IntState in ErrIntState
+  { get = { state = .state, value = .state} suc.,
+    put = { state = .value, value = {}    } suc.
   }
 
-// what the composition limit for hom object H (over O) looks like:
-{ a : O,
-  b : O,
-  c : O,
-  f : H,
-  g : H,
-  srcF : f -> a : src,
-  tgtF : f -> b : tgt,
-  srcG : g -> b : src,
-  tgtG : g -> c : tgt
-  }
+// An an interpretation of Err:
+effInterp Err in ErrIntState
+  { err = .value err. }
 
-cat Partial = {
-  ob = Ob,
-  ar = PartialHom,
-  src = .pSrc,
-  tgt = .pTgt,
-  id = ...,  // TODO
-  comp = { a = .a,
-           b = .c,
-           pb = _,
-           k = { f = .f .k,
-                 g = [ err = err.,
-                       suc = .g .k] }
-               pComp,
-           
-         },
-}
+ar Base[IntState] next : {} --> Int =
+  get
+  i({ current= , next= })
+  !next{ i(incr) put }
+  i(.current)
+
+ar Base[IntState, Err] nextSub3 : {} --> Int =
+  next
+  i( { sub3 = < 3, ok = } @sub3 )
+  [ true = i(.ok),
+    false = i("Was not under 3!") err]
+
+// get
+  // i({ pos = > 0, current =})
+  // !pos{ [true = , false = err [] ] }
+  // i({ current, next = .current })
+  // !next{ i(incr) put }
+  // i(.current)
+
+ar Base[IntState] mapNextSub3 : list({}) --> list(Int) =
+    [ empty = i(empty.),
+      cons  = !head{ nextSub3 } !tail{ mapNextSub3 } i(cons.) ]
+
+ar ErrIntState main : {} --> Int =
+  { state = 0, value = #({}, {}, {}, {}) }
+  pureErrIntState(mapNextSub3)

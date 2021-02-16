@@ -3,7 +3,7 @@ module Lawvere.Eval where
 import Control.Lens
 import Data.Bifunctor
 import Data.Generics.Labels ()
-import Data.List (lookup)
+import Data.List (foldr1, lookup)
 import qualified Data.Map.Strict as Map
 import qualified Data.Text as Text
 import Lawvere.Core
@@ -49,8 +49,11 @@ data Top
   | TExpr Expr
   | TInterp Interp
   | TFreyd Expr
+  | TEffInterp EffInterp
+  | TEffCat EffCat
+  | TCat Category
 
-type Tops = Map LcIdent Top
+type Tops = Map Ident Top
 
 evalAr :: Tops -> Expr -> Fun
 evalAr tops = \case
@@ -87,7 +90,7 @@ evalAr tops = \case
             Nothing -> panic "bad EColim"
           g _ = panic "bad EColim"
   EConst e -> const (pure (VFun (evalAr tops e)))
-  Top i -> \v -> case Map.lookup i tops of
+  Top i -> \v -> case Map.lookup (Lc i) tops of
     Just (TFun f) -> f v
     Just (TFreyd e) -> evalAr tops e v
     _ -> panic $ "undefined: " <> render i
@@ -113,7 +116,7 @@ evalAr tops = \case
     v@(Rec xs) -> case Map.lookup l xs of
       Just y -> pure y
       Nothing -> panic ("bad record projection, no key: " <> render l <> " in " <> render v)
-    _ -> panic ("bad record projection, not record: " <> show l)
+    v -> panic ("bad record projection, not record: " <> render l <> "-\n-" <> render v)
   Comp fs -> foldr' comp pure fs
     where
       comp e cur = evalAr tops e >=> cur
@@ -123,9 +126,9 @@ evalAr tops = \case
   EFunApp "io" e ->
     evalAr
       ( Map.fromList
-          [ (LcIdent "putLine", TFun lawPutLine),
-            (LcIdent "getLine", TFun (const (Sca . Str <$> getLine))),
-            ( LcIdent "side",
+          [ (Lc "putLine", TFun lawPutLine),
+            (Lc "getLine", TFun (const (Sca . Str <$> getLine))),
+            ( Lc "side",
               TExpr
                 ( Cone
                     [ (ConeComponent Pure (LNam (LcIdent "pur")), Proj (LNam (LcIdent "pur"))),
@@ -138,7 +141,7 @@ evalAr tops = \case
       )
       e
   EFunApp name e ->
-    case Map.lookup name tops of
+    case Map.lookup (Lc name) tops of
       Just (TFun ff) -> \x -> do
         let f = VFun (evalAr tops e)
         g <- ff f
@@ -146,18 +149,27 @@ evalAr tops = \case
           VFun g' -> g' x
           v -> panic $ "bad efunapp: " <> render v
       Just (TInterp Interp {..}) ->
-        evalAr ((TFun <$> iHandlers) <> Map.fromList [(LcIdent "i", TFun iInj), (LcIdent "sumPreserver", TFun iSum), (LcIdent "side", TExpr iSide)] <> tops) e
+        evalAr (Map.mapKeys Lc (TFun <$> iHandlers) <> Map.fromList [(Lc "i", TFun iInj), (Lc "sumPreserver", TFun iSum), (Lc "side", TExpr iSide)] <> tops) e
+      Just (TEffCat effcat) -> case Map.lookup (Uc (effcat ^. #effCatName)) tops of
+        Just (TCat c) ->
+          let e' = evalEffCat tops c effcat e
+           in evalAr tops e'
+        _ -> panic $ "bad efunapp"
       _ -> panic $ "bad efunapp: " <> render name
-  Curry _ _ -> panic "curry"
+  -- Curry _ _ -> panic "curry"
   Object _ -> const (pure (VFun pure))
   CanonicalInj e -> evalAr tops (EFunApp (LcIdent "i") e)
-  Side lab e -> tr "before sidecar" >=> applyInj (sidePrep (LNam lab)) >=> tr "after prep" >=> sidecar e >=> tr "after side" >=> applyInj (sideUnprep (LNam lab))
+  Side lab e -> tr ("before sidecar: " <> render lab) >=> applyInj (sidePrep (LNam lab)) >=> tr "after prep" >=> sidecar e >=> tr "after side" >=> applyInj (sideUnprep (LNam lab))
   BinOp o f g -> \v -> do
     x <- evalAr tops f v
     y <- evalAr tops g v
     case (x, y) of
       (Sca a, Sca b) -> pure (binOp Sca toValBool o a b)
       _ -> panic "bad binop"
+  SumInjLabelVar _ -> panic "label var remains"
+  SumUniCoconeVar _ -> panic "cocone var remains"
+  SidePrep lab -> sidePrep lab
+  SideUnprep lab -> sideUnprep lab
   where
     lawPutLine = \case
       Sca (Str s) -> do
@@ -166,19 +178,19 @@ evalAr tops = \case
       _ -> panic "bad putLine"
     tr :: Text -> Fun
     tr _t v = do
-      -- putStrLn $ "=> TRACE: " <> t
-      -- putStrLn (render v)
-      -- putStrLn ("--------" :: Text)
+      --putStrLn $ "=> TRACE: " <> t
+      --putStrLn (render v)
+      --putStrLn ("--------" :: Text)
       pure v
     sidecar e = case getTop "side" of
-      TExpr sideE -> evalAr (Map.insert (LcIdent "eff") (TFun (evalAr tops e)) tops) sideE
+      TExpr sideE -> evalAr (Map.insert (Lc "eff") (TFun (evalAr tops e)) tops) sideE
       TFun f -> \v -> do
         g <- f (VFun (evalAr tops e))
         case g of
           VFun g' -> g' v
           _ -> panic "bad sidecar"
       _ -> panic "bad sidecar"
-    getTop name = case Map.lookup (LcIdent name) tops of
+    getTop name = case Map.lookup (Lc name) tops of
       Just top -> top
       _ -> panic "could not get top"
     getTopFun name = case getTop name of
@@ -186,8 +198,10 @@ evalAr tops = \case
       _ -> panic "bad getTopFun"
     sidePrep :: Label -> Fun
     sidePrep lab = \case
-      Rec r@(Map.lookup lab -> Just x) -> pure (Rec (Map.fromList [(LNam "eff", x), (LNam "pur", Rec (Map.delete lab r))]))
-      v -> panic $ "bad side prep: " <> render lab <> " - " <> render v
+      Rec r@(Map.lookup lab -> Just x) ->
+        pure (Rec (Map.fromList [(LNam "eff", x), (LNam "pur", Rec (Map.delete lab r))]))
+      v ->
+        panic $ "bad side prep: " <> render lab <> " - " <> render v
     sideUnprep :: Label -> Fun
     sideUnprep lab = \case
       Rec r | Just x <- Map.lookup (LNam "eff") r, Just (Rec rest) <- Map.lookup (LNam "pur") r -> pure (Rec (Map.insert lab x rest))
@@ -209,8 +223,33 @@ evalAr tops = \case
        in \case
             Tag l x -> case Map.lookup l ars of
               Just f -> f x
-              Nothing -> panic ("bad cocone: " <> render l <> " " <> render x)
-            v -> panic ("bad cocone: " <> render v)
+              Nothing -> panic ("bad cocone 1: " <> render l <> " " <> render x)
+            v -> panic ("bad cocone 2:\n\n" <> render (CoCone fs) <> "\n - \n" <> render v)
+
+evalEffCat :: Tops -> Category -> EffCat -> Expr -> Expr
+evalEffCat tops cate@Category {..} effcat@EffCat {..} = \case
+  CanonicalInj e -> canInj e
+  Top na -> case Map.lookup (Lc na) tops of
+    Just top -> case top of
+      TFreyd e -> evalEffCat tops cate effcat e
+      _ -> panic "effcat: bad top"
+    Nothing -> case Map.lookup (Uc (UcIdent (effCatName ^. #getUcIdent <> "." <> na ^. #getLcIdent))) tops of
+      Just (TExpr e) -> e
+      _ -> panic $ "effcat: badtop: " <> render na
+  Comp [] -> id
+  Comp [e] -> evalEffCat tops cate effcat e
+  Comp es -> foldr1 (curry comp) (evalEffCat tops cate effcat <$> es)
+  Side lab e ->
+    foldr1
+      (curry comp)
+      [ canInj (SidePrep (LNam lab)),
+        side (evalEffCat tops cate effcat e),
+        canInj (SideUnprep (LNam lab))
+      ]
+  CoCone es -> case sumUni of
+    Just su -> su (es & each . _2 %~ evalEffCat tops cate effcat)
+    Nothing -> panic "effcat: no sum"
+  e -> panic $ "effcat: " <> render e
 
 lkp :: Label -> Map Label a -> Maybe a
 lkp = Map.lookup
@@ -256,13 +295,17 @@ evalInterp tops iInj iHandlers iSum iSide =
       iSide = iSide
     }
 
-evalDecl :: Tops -> Decl -> [(LcIdent, Top)]
+evalDecl :: Tops -> Decl -> [(Ident, Top)]
 evalDecl tops = \case
-  DAr (OFree _ (Extension _ _)) name _ _ e -> [(name, TFreyd e)]
-  DAr _ name _ _ e -> [(name, TFun (evalAr tops e))]
-  DInterp name _sketchName iInj iHandlers iSum iSide -> [(name, TInterp (evalInterp tops iInj iHandlers iSum iSide))]
+  DAr (OFree _ _) name _ e -> [(Lc name, TFreyd e)]
+  DAr _ name _ e -> [(Lc name, TFun (evalAr tops e))]
+  DInterp name _sketchName iInj iHandlers iSum iSide -> [(Lc name, TInterp (evalInterp tops iInj iHandlers iSum iSide))]
   DOb {} -> []
   DSketch {} -> []
+  DCategory cate -> [(Uc (cate ^. #catName), TCat cate)]
+  DEffCat effCat -> [(Lc (effCat ^. #effCatStructName), TEffCat effCat)]
+  DEff {} -> []
+  DEffInterp EffInterp {..} -> [(Uc (UcIdent (interpIn ^. #getUcIdent <> "." <> name)), TExpr e) | (LcIdent name, e) <- handlers] -- TODO: total hack
 
 evalMain :: Val -> Decls -> IO Val
 evalMain v ds = eval v ds (Top (LcIdent "main"))
@@ -271,8 +314,8 @@ eval :: Val -> Decls -> Expr -> IO Val
 eval v ds expr =
   let tops =
         Map.fromList $
-          [ ("sumPreserver", TFun pure),
-            ("i", TFun pure)
+          [ (Lc "sumPreserver", TFun pure),
+            (Lc "i", TFun pure)
           ]
             ++ [bind | d <- ds, bind <- evalDecl tops d]
    in evalAr tops expr v
@@ -320,7 +363,7 @@ mkJS decls = do
   pure $ "console.log(" <> jsPriv (jsPrelude <> " " <> prelude) "tops" <> ".main({}));"
   where
     prelude = statements (mkDecl <$> decls)
-    mkDecl (DAr _ (LcIdent name) _ _ e) = addTop name (evalJS e)
+    mkDecl (DAr _ (LcIdent name) _ e) = addTop name (evalJS e)
     mkDecl DOb {} = ""
     mkDecl DSketch {} = ""
     mkDecl _ = ""

@@ -26,9 +26,9 @@ reserved name = lexeme $
     notFollowedBy (satisfy nonFirstIdentChar) <?> "end of " ++ toS name
 
 keywords :: Set Text
-keywords = Set.fromList ["ob", "ar", "interp", "const", "sketch", "over", "handling", "curry", "summing", "side", "if", "then", "else", "i"]
+keywords = Set.fromList ["ob", "ar", "interp", "const", "sketch", "over", "handling", "curry", "summing", "side", "if", "then", "else", "i", "cat", "effcat", "effect", "effInterp", "in", "sumUni"]
 
-kwOb, kwAr, kwInterp, kwConst, kwSketch, kwOver, kwHandling, kwCurry, kwSumming, kwSide, kwIf, kwThen, kwElse, kwI :: Parser ()
+kwOb, kwAr, kwInterp, kwConst, kwSketch, kwOver, kwHandling, kwCurry, kwSumming, kwSide, kwIf, kwThen, kwElse, kwI, kwCat, kwEffcat, kwEffect, kwEffInterp, kwIn, kwSumUni :: Parser ()
 kwOb = reserved "ob"
 kwAr = reserved "ar"
 kwInterp = reserved "interp"
@@ -43,6 +43,12 @@ kwIf = reserved "if"
 kwThen = reserved "then"
 kwElse = reserved "else"
 kwI = reserved "i"
+kwCat = reserved "cat"
+kwEffcat = reserved "effcat"
+kwEffect = reserved "effect"
+kwEffInterp = reserved "effInterp"
+kwIn = reserved "in"
+kwSumUni = reserved "sumUni"
 
 nonFirstIdentChar :: Char -> Bool
 nonFirstIdentChar c = Char.isAlphaNum c || c `elem` identSpecials
@@ -53,6 +59,9 @@ identParser firstCond = toS <$> ((:) <$> char0 <*> charRest)
     char0 = satisfy isFirst
     charRest = many (satisfy nonFirstIdentChar)
     isFirst c = (Char.isAlpha c && firstCond c) || c `elem` identSpecials
+
+data Ident = Lc LcIdent | Uc UcIdent
+  deriving stock (Eq, Ord)
 
 newtype LcIdent = LcIdent {getLcIdent :: Text}
   deriving stock (Show, Generic)
@@ -108,6 +117,12 @@ braced = wrapped '{' '}'
 pWrapSep :: Char -> Char -> Char -> Parser a -> Parser [a]
 pWrapSep s l r pItem = wrapped l r (sepBy1 (lexeme pItem) (lexChar s))
 
+pComma :: Parser ()
+pComma = lexChar ','
+
+pColon :: Parser ()
+pColon = lexChar ':'
+
 pCommaSep :: Char -> Char -> Parser a -> Parser [a]
 pCommaSep = pWrapSep ','
 
@@ -129,6 +144,17 @@ pBracedFields = pFields '{' '}'
 
 pBracketedFields :: (Parsed a, Parsed k) => Char -> Maybe (k -> a) -> Parser [(k, a)]
 pBracketedFields = pFields '[' ']'
+
+pBuiltin1 :: (Parsed b) => Text -> Parser b
+pBuiltin1 name = do
+  _ <- chunk name
+  wrapped '(' ')' parsed
+
+pBuiltin2 :: (Parsed b) => Text -> Parser (b, b)
+pBuiltin2 name = do
+  _ <- chunk name
+  (arg1, arg2) <- wrapped '(' ')' ((,) <$> (lexeme parsed <* symbol ",") <*> parsed)
+  pure (arg1, arg2)
 
 -- General util
 

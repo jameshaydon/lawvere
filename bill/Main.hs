@@ -116,7 +116,7 @@ repl filepath_ = do
       Nothing -> pure (Right (ReplState [] mempty))
     declNames :: Decl -> Set String
     declNames = \case
-      DAr _ name _ _ _ -> Set.singleton (lc name)
+      DAr _ name _ _ -> Set.singleton (lc name)
       DOb _ name _ -> Set.singleton (uc name)
       DSketch Sketch {name, obs, ars} ->
         Set.fromList $
@@ -124,6 +124,10 @@ repl filepath_ = do
             <> ((\SketchAr {name = n} -> lc n) <$> ars)
             <> (uc <$> obs)
       DInterp name _ _ _ _ _ -> Set.singleton (lc name)
+      DCategory Category {catName} -> Set.singleton (uc catName)
+      DEffCat EffCat {effCatStructName} -> Set.singleton (lc effCatStructName)
+      DEff _ -> mempty -- TODO
+      DEffInterp _ -> mempty
       where
         lc (LcIdent s) = toS s
         uc (UcIdent s) = toS s
@@ -217,11 +221,15 @@ main = do
             <> header "Lawvere - A categorical programming language"
         )
 
-dev :: IO ()
-dev = do
-  runFile Hask "examples/product.law"
+dev' :: IO ()
+dev' = do
+  --runFile Hask "examples/product.law"
   -- runFile Hask "examples/tutorial.law"
   -- runFile Hask "examples/io.law"
   -- runFile Hask "examples/basic.law"
   -- runFile Hask "examples/list.law"
-  runFile Hask "examples/freyd-state.law"
+  --runFile Hask "examples/freyd-state.law"
+  runFile Hask "examples/partial-state.law"
+
+dev :: IO ()
+dev = dev' `catch` (\(FatalError err) -> putStrLn err)

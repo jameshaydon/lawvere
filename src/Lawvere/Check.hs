@@ -27,7 +27,7 @@ prims decls =
             ("String", OPrim TString)
           ]
             ++ [(name, ob) | DOb _ name ob <- decls],
-      ars = Map.fromList [(name, (Scheme [] (a, b), e)) | DAr _ name a b e <- decls]
+      ars = Map.fromList [(name, (Scheme [] (Niche a b), e)) | DAr _ name (Niche a b) e <- decls]
     }
 
 primScheme :: Prim -> Scheme
@@ -41,7 +41,7 @@ primScheme = \case
     CompOp _ -> [va] .: (ta, tBool)
     NumOp _ -> [va] .: (OTuple [ta, ta], ta)
   where
-    vs .: (a, b) = Scheme vs (a, b)
+    vs .: (a, b) = Scheme vs (Niche a b)
     va = MkVar 0
     vb = MkVar 1
     ta = OVar va
@@ -142,14 +142,14 @@ fresh = do
 freshT :: Check Ob
 freshT = OVar <$> fresh
 
-data Scheme = Scheme (Set MetaVar) (Ob, Ob) deriving stock (Show)
+data Scheme = Scheme (Set MetaVar) (Niche Ob) deriving stock (Show)
 
 instance Disp Scheme where
-  disp (Scheme vars (source, target)) =
+  disp (Scheme vars (Niche source target)) =
     "forall" <+> parens (hsep (punctuate comma (map (disp . OVar) (Set.toList vars)))) <+> dot <+> disp source <+> "-->" <+> disp target
 
 refresh :: Scheme -> Check (Ob, Ob)
-refresh (Scheme vars (source, target)) = do
+refresh (Scheme vars (Niche source target)) = do
   subst <- Map.fromList <$> forM (Set.toList vars) (\var -> (var,) <$> fresh)
   let repl thing = thing & over freeVars (subst Map.!)
   pure (repl source, repl target)
@@ -181,11 +181,15 @@ getNamedOb name = do
     Nothing -> throwError (CeUndefinedOb name)
 
 checkDecl :: Decl -> Check ()
-checkDecl (DAr (OFree _ _) _ _ _ _) = warning "Freyd arrows are not checked yet."
-checkDecl (DAr _ _ a b body) = check (a, b) body
-checkDecl DInterp {} = warning "Interpretatoins are not checked yet." -- TODO
+checkDecl (DAr (OFree _ _) _ _ _) = warning "Freyd arrows are not checked yet."
+checkDecl (DAr _ _ (Niche a b) body) = check (a, b) body
+checkDecl DInterp {} = warning "Interpretatoins are not checked yet."
 checkDecl DOb {} = pure () -- TODO
 checkDecl DSketch {} = pure ()
+checkDecl DCategory {} = warning "Categories are not checked yet."
+checkDecl DEffCat {} = warning "Effect category structures are not checked yet."
+checkDecl DEff {} = pure () -- TODO
+checkDecl DEffInterp {} = warning "Effect interpretations are not checked yet."
 
 checkDecls :: Decls -> Check ()
 checkDecls = traverse_ checkDecl

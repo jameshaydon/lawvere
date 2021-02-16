@@ -57,7 +57,6 @@ in
       haskell-language-server
       haskellPackages.implicit-hie
       hlint
-      hpack
       niv
       ormolu
     ];

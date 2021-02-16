@@ -40,25 +40,44 @@
               "sketch"
               "over"
               "handling"
-              "freyd"
+              "curry"
               "summing"
-              "side"
               "if"
               "then"
-              "else")))
+              "else"
+              "category"
+              "effect_category"
+              "effect"
+              "interpret"
+              "in")))
 
 (setq lawvere-builtins
       (-map #'kw-alone
-            '("const"
-              "curry"
-              "i")))
+            '("identity"
+              "app"
+              "incr"
+              "abs"
+              "show"
+              "plus"
+              "minus"
+              "mult"
+              "equal"
+              "less_than"
+              "less_than_equal"
+              "greater_than"
+              "greater_than_equal"
+              "const"
+              "SumOb"
+              "sumInj"
+              "sumUni"
+              "side")))
 
 (defvar lawvere-font-lock
       `(("//.*$" . font-lock-comment-face)
         ("\"\\(\\(\\\\\"\\)\\|[^\"]\\)*\"" . font-lock-string-face)
         (,(s-join "\\|" lawvere-keywords) . font-lock-keyword-face)
         (,(s-join "\\|" lawvere-builtins) . font-lock-builtin-face)
-        ("\\<\\*?\\[?[A-Z][a-z]*\\]?\\>" . font-lock-type-face)
+        ("\\<\\*?\\[?[A-Z][A-Za-z]*\\]?\\>" . font-lock-type-face)
         ("\\w\\(#\\w+\\)" . (1 font-lock-builtin-face))))
 
 

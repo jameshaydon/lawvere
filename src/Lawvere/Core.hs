@@ -26,7 +26,7 @@ reserved name = lexeme $
     notFollowedBy (satisfy nonFirstIdentChar) <?> "end of " ++ toS name
 
 keywords :: Set Text
-keywords = Set.fromList ["ob", "ar", "interp", "const", "sketch", "over", "handling", "curry", "summing", "side", "if", "then", "else", "i", "cat", "effcat", "effect", "effInterp", "in", "sumUni"]
+keywords = Set.fromList ["ob", "ar", "interp", "const", "sketch", "over", "handling", "curry", "summing", "side", "if", "then", "else", "category", "effect_category", "effect", "interpret", "in", "sumUni"]
 
 kwOb, kwAr, kwInterp, kwConst, kwSketch, kwOver, kwHandling, kwCurry, kwSumming, kwSide, kwIf, kwThen, kwElse, kwI, kwCat, kwEffcat, kwEffect, kwEffInterp, kwIn, kwSumUni :: Parser ()
 kwOb = reserved "ob"
@@ -43,10 +43,10 @@ kwIf = reserved "if"
 kwThen = reserved "then"
 kwElse = reserved "else"
 kwI = reserved "i"
-kwCat = reserved "cat"
-kwEffcat = reserved "effcat"
+kwCat = reserved "category"
+kwEffcat = reserved "effect_category"
 kwEffect = reserved "effect"
-kwEffInterp = reserved "effInterp"
+kwEffInterp = reserved "interpret"
 kwIn = reserved "in"
 kwSumUni = reserved "sumUni"
 

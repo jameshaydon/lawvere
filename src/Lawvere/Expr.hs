@@ -185,7 +185,7 @@ pApp = do
 pSide :: Parser Expr
 pSide = do
   lab <- single '!' *> lexeme parsed
-  e <- wrapped '{' '}' parsed
+  e <- wrapped '(' ')' parsed
   pure (Side lab e)
 
 pInterpolated :: Parser Expr
@@ -247,6 +247,9 @@ pIfThenElse = do
           ]
       ]
 
+pCanInj :: Parser Expr
+pCanInj = CanonicalInj <$> (single '~' *> pAtom)
+
 pAtom :: Parser Expr
 pAtom =
   choice
@@ -260,7 +263,7 @@ pAtom =
       Proj <$> ("." *> parsed),
       try (Inj <$> (parsed <* ".")), -- we need to look ahead for the dot
       Top <$> parsed,
-      CanonicalInj <$> kwCall kwI,
+      pCanInj,
       SumUniCoconeVar <$> kwCall kwSumUni,
       pList,
       pTupledOrParensed,

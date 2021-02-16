@@ -377,8 +377,8 @@ _Idea:_
 - These can be interpreted in various ways.
 
 _Syntax:_
-- `i(..)`: canonical injection
-- `!label{..}`: Freyd "action" at a product component
+- `~`: canonical injection
+- `!label(..)`: Freyd "action" at a product component
 
 ## Example
 
@@ -390,9 +390,9 @@ ar Base[IO] ask : String --> String =
 
 ```lawvere
 ar Base[IO] hello : {} --> String =
-  i("What is your name?") putLine
+  ~"What is your name?" putLine
   getLine
-  i("Hello {}!") putLine
+  ~"Hello {}!" putLine
 
 ar InputOutput helloIO : {} --> {} =
   io(hello)
@@ -402,9 +402,9 @@ ar InputOutput helloIO : {} --> {} =
 
 ```lawvere
 ar Base[IO] twoQuestions : {} --> { name: String, hobby: String } =
-  i({ name = "What is your name?", hobby = "What's your hobby?" })
-  !name{ask}
-  !hobby{ask}
+  ~{ name = "What is your name?", hobby = "What's your hobby?" }
+  !name(ask)
+  !hobby(ask)
 ```
 
 Proposed sugar:
@@ -421,12 +421,12 @@ Proposed sugar:
 Desugars:
 
 ```
-i({ name  = "What is your name?",
-    hobby = "What's your hobby?" })
-!name{ask}
-i({ hobby, name = "Your name is: {.name}" })
-!hobby{ask}
-i({ name, hobby = "Your hobby is: {.hobby}" })
+~{ name  = "What is your name?",
+   hobby = "What's your hobby?" }
+!name(ask)
+~{ hobby, name = "Your name is: {.name}" }
+!hobby(ask)
+~{ name, hobby = "Your hobby is: {.hobby}" }
 ```
 
 ## State
@@ -434,15 +434,7 @@ i({ name, hobby = "Your hobby is: {.hobby}" })
 ```lawvere
 ar Base[IntState] next : {} --> Int =
   get
-  i({ current = , next = })
-  !next{ i(incr) put }
-  i(.current)
-```
-
-```
-get
-{ current = ,
-  next = ;
-  next =! i(incr) put }
-i(.current)
+  ~{ current = , next = }
+  !next(~incr put)
+  ~.current
 ```

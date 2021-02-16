@@ -153,10 +153,11 @@ pNewCat = do
     pComma
     a <- mkArr <$> (kwAr *> lexeme parsed <* pEq) <*> (kwAr *> parsed <* pColon) <*> parsed
     pComma
-    i <- symbol "id" *> pEq *> parsed
+    i <- symbol "identity" *> pEq *> parsed
     pComma
     c <- do
-      (f, g) <- lexeme $ pBuiltin2 "comp"
+      f <- lexeme parsed
+      g <- lexeme parsed
       pEq
       e <- parsed
       pure (mkComp f g e)
@@ -224,7 +225,7 @@ pEffCat = do
   kwOver
   overCat <- lexeme parsed
   (canInj, side) <- braced $ do
-    canInjVar <- lexeme $ pBuiltin1 "i"
+    canInjVar <- lexeme $ single '~' *> parsed
     pEq
     canInjExpr <- parsed
     pComma

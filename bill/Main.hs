@@ -33,6 +33,7 @@ data Target
 
 loadFile :: (MonadIO m) => Target -> FilePath -> ExceptT Text m [Decl]
 loadFile target filepath = do
+  sayi . toS $ "Loading " <> filepath <> ".."
   t <- liftIO (readFile filepath)
   source <-
     if ".md" `isSuffixOf` filepath
@@ -223,12 +224,12 @@ main = do
 
 dev' :: IO ()
 dev' = do
-  --runFile Hask "examples/product.law"
-  -- runFile Hask "examples/tutorial.law"
-  -- runFile Hask "examples/io.law"
-  -- runFile Hask "examples/basic.law"
-  -- runFile Hask "examples/list.law"
-  --runFile Hask "examples/freyd-state.law"
+  runFile Hask "examples/product.law"
+  runFile Hask "examples/tutorial.law"
+  runFile Hask "examples/io.law"
+  runFile Hask "examples/basic.law"
+  runFile Hask "examples/list.law"
+  -- runFile Hask "examples/freyd-state.law"
   runFile Hask "examples/partial-state.law"
 
 dev :: IO ()

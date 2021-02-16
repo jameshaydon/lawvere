@@ -1,33 +1,3 @@
-// Define a new category
-cat ErrIntState {
-  ob         = ob Base,
-  ar A --> B = ar Base : { state: Int, value: A } --> [ err: String, suc: { state: Int, value: B } ],
-  id         = suc.,
-  comp(f, g) = f [ err = err., suc = g ],
-  SumOb(idx) = SumOb(idx),
-  sumInj(label) = { state, value = .value sumInj(label) } suc.,
-  sumUni(cocone) = @value sumUni(cocone)
-}
-
-// Give `ErrIntState` the structure of an effect category over Base
-effcat pureErrIntState ErrIntState over Base {
-  i(f)    = { state, value = .value f } suc.,
-  side(f) =
-    { runeff = { state = .state,
-                   value = .value .eff
-                 } f,
-        tagalong = .value .pur
-    }
-    @runeff
-    [ err = .runeff err.,
-      suc = { state = .runeff .state,
-              value = { eff = .runeff .value,
-                        pur = .tagalong
-                      }
-            } suc.
-    ]
-}
-
 effect IntState over Base {
   get : {} --> Int,
   put : Int --> {}
@@ -37,41 +7,56 @@ effect Err over Base {
   err : String --> []
 }
 
-// ar (Base[Err] => Base[Err]) throw : String -> = err [] 
+ar Base[IntState] next : {} --> Int =
+  get ~{ current = , next = incr} !next(put) ~.current
 
-// Provide an interpretation of IntState:
-effInterp IntState in ErrIntState
+// Get the next one, but error if > 3:
+ar Base[IntState, Err] nextSub3 : {} --> Int =
+  next
+  ~( { sub3 = < 3, ok = } @sub3 )
+  [ true  = ~.ok,
+    false = ~"Was not under 3!" err [] ]
+
+// Map over a list:
+ar Base[IntState, Err] mapNextSub3 : list({}) --> list(Int) =
+    [ empty = ~empty.,
+      cons  = !head(nextSub3) !tail(mapNextSub3) ~cons. ]
+
+// We'll run this in a new category:
+category ErrIntState {
+  ob             = ob Base,
+  ar A --> B     = ar Base : { state: Int, value: A } --> [ err: String, suc: { state: Int, value: B } ],
+  identity       = suc.,
+  f g            = f [ err = err., suc = g ],
+  SumOb(idx)     = SumOb(idx),
+  sumInj(label)  = { state, value = .value sumInj(label) } suc.,
+  sumUni(cocone) = @value sumUni(cocone)
+}
+
+// Make this an effect category over `Base`:
+effect_category pureErrIntState ErrIntState over Base {
+  ~f      = { state, value = .value f } suc.,
+  side(f) =
+    { runeff = { state = .state,
+                 value = .value .eff } f,
+      onside = .value .pur }
+    @runeff
+    [ err = .runeff err.,
+      suc = { state = .runeff .state,
+              value = { eff = .runeff .value,
+                        pur = .onside } } suc. ]
+}
+
+// Provide interpretation for the `IntState` effect:
+interpret IntState in ErrIntState
   { get = { state = .state, value = .state} suc.,
     put = { state = .value, value = {}    } suc.
   }
 
-// An an interpretation of Err:
-effInterp Err in ErrIntState
+// Provide interpretaion for the `Err` effect:
+interpret Err in ErrIntState
   { err = .value err. }
 
-ar Base[IntState] next : {} --> Int =
-  get
-  i({ current= , next= })
-  !next{ i(incr) put }
-  i(.current)
-
-ar Base[IntState, Err] nextSub3 : {} --> Int =
-  next
-  i( { sub3 = < 3, ok = } @sub3 )
-  [ true = i(.ok),
-    false = i("Was not under 3!") err]
-
-// get
-  // i({ pos = > 0, current =})
-  // !pos{ [true = , false = err [] ] }
-  // i({ current, next = .current })
-  // !next{ i(incr) put }
-  // i(.current)
-
-ar Base[IntState] mapNextSub3 : list({}) --> list(Int) =
-    [ empty = i(empty.),
-      cons  = !head{ nextSub3 } !tail{ mapNextSub3 } i(cons.) ]
-
 ar ErrIntState main : {} --> Int =
-  { state = 0, value = #({}, {}, {}, {}) }
+  { state = 0, value = #({}, {}, {}) }
   pureErrIntState(mapNextSub3)

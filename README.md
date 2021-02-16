@@ -316,9 +316,9 @@ The `IO` effect is built-in. Here is an example of a morphism which performs I/O
 
 ``` lawvere
 ar Base[IO] hello : {} --> String =
-  i("What is your name?") putLine
+  ~"What is your name?" putLine
   getLine
-  i("Hello {}") putLine
+  ~"Hello {}" putLine
 ```
 
 To run this, one must use the `io` functor:
@@ -339,10 +339,10 @@ ar Base[IO] ask : String --> String =
 
 // Ask some questions and then print a greeting.
 ar Base[IO] greet : {} --> {} =
-  i({name = "What is your name?", hobby = "What is your favourite hobby?"})
-  !name{ask}
-  !hobby{ask}
-  i("Hello {.name}, I like {.hobby} too!") putLine
+  ~{name = "What is your name?", hobby = "What is your favourite hobby?"}
+  !name(ask)
+  !hobby(ask)
+  ~"Hello {.name}, I like {.hobby} too!" putLine
 
 ar InputOutput main : {} --> {} =
   io(greet)
@@ -350,91 +350,122 @@ ar InputOutput main : {} --> {} =
 
 Effectful programming will be explained more in the next section. In practice the main points are:
 - Cones (`{..}`) are not permitted.
-- Pure computations must be wrapped in `i(..)`.
-- To run an effect at a single component of a product, use `!label{..}` syntax.
+- Pure computations must be lifted with `~`.
+- To run an effect at a single component of a product, use `!label(..)` syntax.
 - To run effects you need to map to the `InputOutput` category with `io`.
 
 #### State
 
-As an example we define a new effect sketch for some integer state (see [here](/examples/freyd-state.law) for the full example).
+In this example we'll define two sorts of effects: integer state and throwing a string error. See [here](/examples/partial-state.law) 
 
 ``` lawvere
-sketch IntState over Base = {
-  ar get : {} --> Int,
-  ar put : Int --> {}
+effect IntState over Base {
+  get : {} --> Int,
+  put : Int --> {}
+}
+
+effect Err over Base {
+  err : String --> []
 }
 ```
 
-This defines a theory for extending the `Base` category with two distinguished morphisms `get` and `put`.
+This defines a theory `IntState` for extending the `Base` category with two distinguished morphisms for state manipulation: `get` and `put`. Similarly `Err` is a theory with a distinguished morphism `err : String -> []`. Note that `[]` is the empty sum, i.e. the initial object of `Base`. Therefore `err` can be used to map from `String` to _any_ object, by composing with `[]`, the empty cocone.
 
-We can then define morphisms in this abstract extension of `Base`. The following morphisms increments the state while returning the original value:
+We can then define morphisms in this abstract extension of `Base`. The following morphism increments the state while returning the original value:
 
 ``` lawvere
 ar Base[IntState] next : {} --> Int =
-  get i({ current = , next = }) !next{ i(incr) put } i(.current)
+  get ~{ current = , next = incr} !next(put) ~.current
 ```
 
 There are two new pieces of syntax:
-- `i` denotes the canonical injection into the Freyd category. So this can be used for lifting any pure morphism. This performs the same role as the [`arr`](https://hackage.haskell.org/package/base-4.14.1.0/docs/Control-Arrow.html#v:arr) method of the [`Arrow`](https://hackage.haskell.org/package/base-4.14.1.0/docs/Control-Arrow.html#t:Arrow) type class in Haskell.
-- `!label{...}` (where `label` can  be any component name). Effect categories do not (necessarily) have products, so using the cone syntax is prohibited. The sequencing of effects is specified by using the categorical composition. The Freyd category does have the same objects as the pure category it extends however, and an effectful morphisms can be performed at one component of a product of the base category. If `f : B --> B'` is effectful morphism and `{a : A, b : B, c : C}` is a product in the pure category, then `!b{f} : {a : A, b : B, c : C} --> {a : A, b : B', c : C}` is another effectful morphism. In other words, `!b{f}` means "perform effect `f` at component `b`". This performs the same role as [`first`](https://hackage.haskell.org/package/base-4.14.1.0/docs/Control-Arrow.html#v:first) in [`Arrow`](https://hackage.haskell.org/package/base-4.14.1.0/docs/Control-Arrow.html#t:Arrow) except for any component.
+- `~` denotes the canonical injection into the effect-category. So this can be used for lifting any pure morphism. This performs the same role as the [`arr`](https://hackage.haskell.org/package/base-4.14.1.0/docs/Control-Arrow.html#v:arr) method of the [`Arrow`](https://hackage.haskell.org/package/base-4.14.1.0/docs/Control-Arrow.html#t:Arrow) type class in Haskell.
+- `!label(..)` (where `label` can  be any component name). Effect categories do not (necessarily) have products, so using the cone syntax is prohibited. The sequencing of effects is specified by using the categorical composition. The effect-category has the same objects as the pure category it extends however, and an effectful morphisms can be performed at one component of a product of the base category. If `f : A --> B'` is an effectful morphism and `{a : A, b : B, c : C}` is a product in the pure category, then `!b(f) : {a : A, b : B, c : C} --> {a : A, b : B', c : C}` is another effectful morphism. In other words, `!b(f)` means "perform effect `f` at component `b`". This performs the same role as [`first`](https://hackage.haskell.org/package/base-4.14.1.0/docs/Control-Arrow.html#v:first) in [`Arrow`](https://hackage.haskell.org/package/base-4.14.1.0/docs/Control-Arrow.html#t:Arrow) except for any component.
 
 So `next` works as follows:
 - `get` the current state,
-- Fanout (duplicate) the current state using the pure morphism `{current = , next = }`. This is the cone which uses the identity morphism at both components.
-- On the `next` component, `incr` and `put`,
+- Create two versions of the current state (the one we want to return, and the one we want to `put`) using the pure morphism `{current = , next = incr}`,
+- Do a `put` on the `next` component,
 - Project out (purely) the `current` component.
+
+For testing the error effect, we'll make a version which throws an error if the next number is greater than 3:
+
+``` lawvere
+ar Base[IntState, Err] nextSub3 : {} --> Int =
+  next ~( { sub3 = < 3, ok = } @sub3 )
+  [ true  = ~.ok,
+    false = ~"Was not under 3!" err []]
+```
 
 Next we'll specify how to map this function over a list. We can't reuse the `list` functor because that doesn't specify how to sequence the effects: should the effect be performed first on the head or the tail of the list?
 
 ``` lawvere
-ar Base[IntState] mapNext : list({}) --> list(Int) =
-    [ empty = i(empty.),
-      cons  = !head{ next } !tail{ mapNext } i(cons.) ]
+ar Base[IntState, Err] mapNextSub3 : list({}) --> list(Int) =
+    [ empty = ~empty.,
+      cons  = !head(nextSub3) !tail(mapNextSub3) ~cons. ]
 ```
 
 We explicitly sequence the effects, using composition, on first the head and then the tail of the list.
 
-The Freyd category is still totally abstract, to actually use it we must define a functor to a category we know how to "execute":
+The effect-category is still abstract, to actually use the above we must define an effect-category over base and interpret the effects:
 
 ``` lawvere
-interp IntState pureState =
-  over
-    { state : Int, value : }
-  handling
-    { ar get  |->  {state = .state, value = .state},
-      ar put  |->  {state = .value, value = {}}
-    }
-  summing
-    @value
-  side
-    { eff = { state = .state,
-              value = .value .eff }
-            eff,
-      pur = .value
-    }
-    { state = .eff .state,
-      value = { pur = .pur .pur,
-                eff = .eff .value }
-    }
+category ErrIntState {
+  ob             = ob Base,
+  ar A --> B     = ar Base :
+                   { state: Int, value: A } -->
+                   [ err: String, suc: { state: Int, value: B } ],
+  identity       = suc.,
+  f g            = f [ err = err., suc = g ],
+  SumOb(idx)     = SumOb(idx),
+  sumInj(label)  = { state, value = .value sumInj(label) } suc.,
+  sumUni(cocone) = @value sumUni(cocone)
+}
 ```
 
-This defines an interpretation of the `IntState` sketch.
-
-- First one specifies how the interpretation acts on the pure morphisms: it maps them using the functor `{state: Int, value: }`, in other words what used to be an object `X` is now interpreted as `{state: Int, value: X}`, the same object but bundled with `Int`.
-- Next we specify how to handle the two generators `get` and `put`. `get` simply copies the state to the value component: `{state = .state, value = .state}`, while `put` copies the value component to the state one (while setting the state to unit): `{state = .value, value = {}}`.
-- The Freyd category does have sums, and the interpretation functor should preserve them, that's what `@value` does.
-- Finally we need to specify how effectful morphisms are lifted into products, in this case `!eff{...}`, lifting some effectful morphism `A --> B` into a product `{ pur: P, eff: A } --> { pur: P, eff: B }`.
-
-We can then execute this effect on an `exampleList`:
+This defines a new category with the same objects as `Base`, but with a different composition, identity and sum. Next we make this into an effect category over `Base`:
 
 ``` lawvere
-ar count : {} --> Int =
-  { state = 0, value = }               // set the initial state to 0
-  pureState(i(#( {}, {}, {})) mapNext) // use the freyd arrow `counting` interpreting it with `pureState` functor
-  .value                               // we are jut interesting in the result, not the accumulated state
+effect_category pureErrIntState ErrIntState over Base {
+  ~f      = { state, value = .value f } suc.,
+  side(f) =
+    { runeff = { state = .state,
+                 value = .value .eff } f,
+      onside = .value .pur }
+    @runeff
+    [ err = .runeff err.,
+      suc = { state = .runeff .state,
+              value = { eff = .runeff .value,
+                        pur = .onside } } suc. ]
+}
 ```
 
-Checkout the [full example](/examples/freyd-state.law).
+This is done by defining the canoncial injection `~` and `side`, the _action_ of the effect-category at product components. This is done by interpreting `!eff{..}`, lifting some effectful morphism `A --> B` into a product `{ pur: P, eff: A } --> { pur: P, eff: B }`.
+
+Then we provide interpretations for the effects we want to use:
+
+``` lawvere
+interpret IntState in ErrIntState
+  { get = { state = .state, value = .state} suc.,
+    put = { state = .value, value = {}    } suc.
+  }
+
+interpret Err in ErrIntState
+  { err = .value err. }
+```
+
+Finally, we can execute this effect:
+
+``` lawvere
+ar Base count : {} --> Int =
+  { state = 0,                 // initialise the state to 0
+    value = #({}, {}, {}) }    // we'll map over a list of size 3
+  pureErrIntState(mapNextSub3)
+```
+
+This returns the list `#(0, 1, 2)`, but if one increases the size of the length of the list to 4, then it will instead throw an error.
+
+Checkout the [full example](/examples/partial-state.law).
 
 ### The Categorical Abstract Machine
 

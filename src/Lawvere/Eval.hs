@@ -192,7 +192,7 @@ evalAr tops = \case
       _ -> panic "bad sidecar"
     getTop name = case Map.lookup (Lc name) tops of
       Just top -> top
-      _ -> panic "could not get top"
+      _ -> panic $ "could not get top: " <> render name
     getTopFun name = case getTop name of
       TFun f -> f
       _ -> panic "bad getTopFun"

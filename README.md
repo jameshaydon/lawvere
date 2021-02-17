@@ -64,7 +64,7 @@ The above code defines an arrow using the `ar` keyword. The arrow has source `{}
 
 When the REPL accepts an input, it actually executes it on the unit input. So for example inputting `incr` (which expects an `Int`) will result in an error.
 
-Lawvere also has support for basic arithmetic and comparisons. These are operations on arrows, for example `f + g` forms the pointwise addition of arrows `f` and `g`. Here are some examples:
+Lawvere also has support for basic arithmetic and comparisons. These are operations on arrows, for example `f + g` forms the pointwise addition of arrows `f` and `g`.
 
 ### Composition
 

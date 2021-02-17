@@ -1,0 +1,24 @@
+# Nixkell config
+
+[env]
+ghc = "8.10.4"
+packages = [
+  "cabal-install",
+  "cabal2nix",
+  "haskellPackages.haskell-language-server",
+  "haskellPackages.implicit-hie",
+  "hlint",
+  "niv",
+  "ormolu",
+]
+
+[ignore]
+files = [
+  "README.md",
+]
+paths = [
+  ".github",
+  "examples",
+  "notes",
+  "tools",
+]

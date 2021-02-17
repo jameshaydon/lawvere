@@ -1,17 +1,10 @@
 { pkgs }: with pkgs;
 let
-  srcDir = ../.;
+  util = import ./util.nix { inherit (pkgs) lib gitignoreFilter; };
 
-  # Don't rebuild when files in `filesIgnored`
-  # or files under paths in `pathsIgnored` change
-  filesIgnored = [
-    "README.md"
-  ];
-  pathsIgnored = [
-    "examples"
-    "notes"
-    "tools"
-  ];
+  scripts = import ./scripts.nix { inherit pkgs conf; };
+
+  conf = pkgs.lib.importTOML ../nixkell.toml;
 
   filteredSrc = with builtins; lib.cleanSourceWith {
     src = srcDir;
@@ -26,40 +19,37 @@ let
         && ! lib.any (d: lib.hasPrefix d (relToRoot path)) pathsIgnored;
   };
 
-  haskellPackages = haskell.packages.ghc8103.override {
+  # Add our package to haskellPackages
+  haskellPackages = pkgs.haskell.packages.${("ghc" + util.removeDot conf.env.ghc)}.override {
     overrides =
       let
-        generated = haskell.lib.packagesFromDirectory {
+        depsFromDir = pkgs.haskell.lib.packagesFromDirectory {
           directory = ./packages;
         };
         manual = _hfinal: hprev: {
-          lawvere = haskell.lib.overrideCabal hprev.lawvere (_drv: {
-            src = filteredSrc;
-          });
+          lawvere =
+            let
+              filteredSrc = util.filterSrc ../. {
+                ignoreFiles = conf.ignore.files;
+                ignorePaths = conf.ignore.paths;
+              };
+            in
+            hprev.callCabal2nix "lawvere" filteredSrc { };
         };
       in
-      lib.composeExtensions generated manual;
+      pkgs.lib.composeExtensions depsFromDir manual;
   };
 
+  # Include our package dependencies with ghc
   ghc = haskellPackages.ghc.withPackages (_ps:
-    haskell.lib.getHaskellBuildInputs haskellPackages.lawvere
+    pkgs.haskell.lib.getHaskellBuildInputs haskellPackages.lawvere
   );
 in
 {
-  exe = haskellPackages.lawvere;
+  bin = haskellPackages.lawvere;
 
   shell = buildEnv {
     name = "lawvere-env";
-    paths = [
-      cabal-install
-      cabal2nix
-      ghc
-      haskell-language-server
-      haskellPackages.implicit-hie
-      hlint
-      hpack
-      niv
-      ormolu
-    ];
+    paths = [ ghc ] ++ util.getFrom pkgs conf.env.packages ++ scripts;
   };
 }

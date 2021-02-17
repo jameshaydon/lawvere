@@ -150,7 +150,9 @@ repl warnings filepath_ = do
             loop
         Just inp -> do
           case Mega.parse (parsed <* Mega.eof) "input" (toS inp) of
-            Left err -> Repl . outputStrLn . toS . Mega.errorBundlePretty $ err
+            Left err -> do
+              Repl . outputStrLn . toS . Mega.errorBundlePretty $ err
+              loop
             Right expr -> do
               pr <- use #prog
               let exec = Right <$> eval (Rec mempty) pr expr

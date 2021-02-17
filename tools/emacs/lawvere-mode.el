@@ -29,7 +29,7 @@
   "Lawvere language keywords.")
 
 (defun kw-alone (name)
-  "A keyword eith name NAME, on its own."
+  "A keyword with name NAME, on its own."
   (concat "\\_<" name "\\_>"))
 
 (setq lawvere-keywords
@@ -72,15 +72,22 @@
               "sumUni"
               "side")))
 
+;;;###autoload
+(defface lawvere-constructor-face
+  '((t :inherit font-lock-constant-face
+       :slant   italic))
+  "Face used to highlight Lawvere injections/constructors."
+  :group 'lawvere-mode)
+
 (defvar lawvere-font-lock
       `(("//.*$" . font-lock-comment-face)
         ("\"\\(\\(\\\\\"\\)\\|[^\"]\\)*\"" . font-lock-string-face)
         (,(s-join "\\|" lawvere-keywords) . font-lock-keyword-face)
         (,(s-join "\\|" lawvere-builtins) . font-lock-builtin-face)
-        ("[a-z][A-Za-z0-9]*\\." . font-lock-constant-face)
+        ("[a-z][A-Za-z0-9]*\\." . 'lawvere-constructor-face)
+        ("[\\.@!]" . 'bold)
         ("\\<\\*?\\[?[A-Z][A-Za-z]*\\]?\\>" . font-lock-type-face)
         ("\\w\\(#\\w+\\)" . (1 font-lock-builtin-face))))
-
 
 ;;;###autoload
 (define-derived-mode lawvere-mode prog-mode "Lawvere"

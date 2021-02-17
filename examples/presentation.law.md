@@ -39,7 +39,7 @@ eval' = annoying
 
 `let x = v in e`    |-> `(λ x. e) v`
 
-`Let' (v, binding)` |-> `App (Lambda binding, v)` 
+`Let' (v, binding)` |-> `App (Lambda binding, v)`
 
 ```haskell
 desugar :: Expr' -> Expr
@@ -67,57 +67,59 @@ sketch Let extends Lam where
 
 ## Theories of sketches
 
-- `T(S)` the theory of the sketch `S`
+- `T(S)` := _theory_ of sketch `S`
+  `T(S) -> Set` ~ models of `S` in `Set`
 
-- `T(S) -> Set` ~ models of `S`
-
-- `Lam -> Let` |-> `i : T(Lam) -> T(Let)`
+- `Lam >-> Let` |-> `i : T(Lam) >-> T(Let)`
 
 - initial models:
   `I(Lam) : T(Lam) -> Set`
   `I(Let) : T(Let) -> Set`
-  `Expr  := I(Lam)(Expr)`
-  `Expr' := I(Let)(Expr)`
+  `Core := I(Lam)(Expr)`
+  `Rich := I(Let)(Expr)`
   
-- `I(Let) . i : T(Lam) -> T(Let) -> Set`
+- `I(Let) . i : T(Lam) >-> T(Let) -> Set`
   ∴ `I(Lam) -> I(Let) . i`
   ∴ `I(Lam)(Expr) -> I(Let)(i(Expr))`
-  ∴ `Expr -> Expr'`
-
-- We get the natural inclusion of the concrete expression types.
+  ∴ `Core -> Rich` in `Set`
 
 - Other way?
 
 ## Desugar
 
-Assume `d : T(Let) -> T(Lam)`, `d(Expr) = Expr`:
+Assume `d : T(Let) -> T(Lam)`,
+       `d(Expr) = Expr`
 
-`I(Lam) . d : T(Let) -> T(Lam) -> Set`
+∴ `I(Lam) . d : T(Let) -> T(Lam) -> Set`
 ∴ `I(Let) -> I(Lam) . d`
 ∴ `I(Let)(Expr) -> I(Lam)(d(Expr))`
-∴ `Expr' -> Expr` ✔
+∴ `Rich -> Core` ✔
 
 ## Cartesian retract
 
-*Goal:* `d : T(Let) -> T(Lam)`
+**Goal:** `d : T(Let) -> T(Lam)`
 
-- Retract of `i`  ~~> `d(Expr) = Expr` + 🗑
-  (recall: `i : T(Lam) -> T(Let)`)
-- Cartesian ~~>
+- Need only define on the sketch `Let`
 
-(recall: `Let : (Expr, Expr => Expr) -> Expr`)
+- _Retract_ of `i : T(Lam) >-> T(Let)`
+  * `d(Expr) = Expr`
+  * no 🗑
+  
+- _Cartesian_ ~~>
+
+Recall: `Let : (Expr, Expr => Expr) -> Expr` (last case)
 
 ```
-d(Let) :
-d( (Expr,    Expr  =>   Expr)) -> d(Expr)
- (d(Expr), d(Expr  =>   Expr)) ->   Expr
- (  Expr,  d(Expr) => d(Expr)) ->   Expr
- (  Expr,    Expr  =>   Expr ) ->   Expr
+  d( (Expr,    Expr  =>   Expr)) -> d(Expr)
+
+~> (  Expr,    Expr  =>   Expr ) ->   Expr
 ```
 
-`(v, bind) |-> App (Lambda bind, v)` _what we wanted to write_
+`Let |-> App . (Lambda . π_2, π_1)`
 
-> Syntax desugarings are cartesian retracts
+## Quote
+
+> Desugarings are cartesian retracts
 
 ## Dream
 
@@ -133,16 +135,13 @@ desugar : T(Let) --> T(Lam) =
 
 ## Other design considerations
 
-- A programming language is a text-format: `String`
-- Compilation is to a sequences of machine instructions: `[Instr]`.
+- Source code ~  `String = [Char]` monoid
+- Compilation ~> `[Instr]`         monoid
 
 - `denot : String --> Prog`
   `compi : Prog   --> [Instr]`
 
-- `String`  ~ free monoid on `Char`
-  `[Instr]` ~ free monoid on `Instr`
-
-- If `Prog` is a category, `denot`/`compi` should be functors
+- `Prog` a category ~> `denot`/`compi` functors
   * identity: `""`
   * composition `G . F` written: `"F G"`
 
@@ -152,9 +151,7 @@ desugar : T(Let) --> T(Lam) =
 
 ## No λ, but lots of names
 
-An experiment.
-
-data <-> code
+data <-(Church encoding)-> code
 
 > Bad programmers worry about the code. Good programmers worry about data structures and their relationships.
 Linus Torvalds
@@ -181,7 +178,7 @@ ar myName : {} --> String =
 
 ```lawvere
 ar plus2 : Int --> Int =
-   incr incr
+   incr
 
 ar plus4 : Int --> Int =
   plus2 plus2
@@ -196,9 +193,6 @@ All operations operate at the morphism level:
 
 ```lawvere
 ar inc : Int --> Int = + 1
-
-// Explained later
-ob Base Bool = [ true: {}, false: {}]
 
 ar foo : {} --> Bool =
   43 > 40 + 2
@@ -241,8 +235,7 @@ ar isPowerPlayer : User --> Bool =
 If your target category has sums:
 
 ```lawvere
-// Already defined above:
-//ob Base Bool = [ true: {}, false: {}]
+ob Base Bool = [ true: {}, false: {} ]
 
 ar worldIsFlat : {} --> Bool = false.
 
@@ -365,7 +358,14 @@ ar gameHeadline4 : { userA: User, userB: User } --> String =
 
 ## How to define if-then-else in the language?
 
-_draw some stuff_
+```
+   -->
+ A --> B  ~~>  A --> B
+ ↓ 
+Bool
+```
+
+Need more ideas to make it easy.
 
 ## Effects!
 
@@ -404,7 +404,8 @@ ar InputOutput helloIO : {} --> {} =
 
 ```lawvere
 ar Base[IO] twoQuestions : {} --> { name: String, hobby: String } =
-  ~{ name = "What is your name?", hobby = "What's your hobby?" }
+  ~{ name = "What is your name?",
+     hobby = "What's your hobby?" }
   !name(ask)
   !hobby(ask)
 ```
@@ -446,7 +447,7 @@ ar Base[IntState, Err] mapNextSub3 : list({}) --> list(Int) =
             ~cons. ]
 
 ar ErrIntState count : {} --> Int =
-  { state = 0, value = #({}, {}, {}) }
+  { state = 0, value = #({}, {}, {}, {}, {}) }
   pureErrIntState(mapNextSub3)
 ```
 
@@ -474,7 +475,7 @@ category ErrIntState {
 
 ```lawvere
 effect_category pureErrIntState ErrIntState over Base {
-  ~f      = { state, value = .value f } suc.,
+  ~f      = { state = .state, value = .value f } suc.,
   side(f) =
     { runeff = { state = .state,
                  value = .value .eff } f,
@@ -491,10 +492,10 @@ effect_category pureErrIntState ErrIntState over Base {
 
 ```lawvere
 interpret Err in ErrIntState
-  { err = .value err. }
+  { err = "state: {.state show}, ERROR: {.value}." err. }
 
 interpret IntState in ErrIntState
-  { get = { state, value = .state      } suc.,
-    put = { state = .value, value = {} } suc.
+  { get = { state = .state, value = .state } suc.,
+    put = { state = .value, value = {}     } suc.
   }
 ```

@@ -1,0 +1,23 @@
+name: build
+
+on: push
+
+jobs:
+  super-lint:
+    name: Build
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+      # Install nix on the runner
+    - uses: cachix/install-nix-action@v12
+      with:
+        extra_nix_config: |
+          sandbox = relaxed
+          log-lines = 1000
+    - uses: cachix/cachix-action@v8
+      with:
+        name: lawvere        
+    - name: Pull nix-build-uncached
+      run: nix-build nix -A nix-build-uncached
+    - name: Build release
+      run: result/bin/nix-build-uncached ./nix/release.nix

@@ -447,7 +447,7 @@ ar Base[IntState, Err] mapNextSub3 : list({}) --> list(Int) =
             ~cons. ]
 
 ar ErrIntState count : {} --> Int =
-  { state = 0, value = #({}, {}, {}, {}, {}) }
+  { state = 0, value = #({}, {}, {}) }
   pureErrIntState(mapNextSub3)
 ```
 

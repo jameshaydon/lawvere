@@ -27,14 +27,12 @@ let
           directory = ./packages;
         };
         manual = _hfinal: hprev: {
-          lawvere =
-            let
-              filteredSrc = util.filterSrc ../. {
-                ignoreFiles = conf.ignore.files;
-                ignorePaths = conf.ignore.paths;
-              };
-            in
-            hprev.callCabal2nix "lawvere" filteredSrc { };
+          lawvere = pkgs.haskell.lib.overrideCabal hprev.lawvere (_drv: {
+            src = util.filterSrc ../. {
+              ignoreFiles = conf.ignore.files;
+              ignorePaths = conf.ignore.paths;
+            };
+          });
         };
       in
       pkgs.lib.composeExtensions depsFromDir manual;

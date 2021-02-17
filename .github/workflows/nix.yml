@@ -35,10 +35,13 @@ jobs:
 
       - name: Build
         run: |
-          nix-build ./nix/release.nix
+          nix-build nix --attr nix-build-uncached
+          result/bin/nix-build-uncached ./nix/release.nix
+          nix-build nix/release.nix
 
-      - name: Ormolu
+      - name: Format check
         run: |
+          nix-shell --run "scripts/format-nix.sh"
           nix-shell --run "scripts/format-hs.sh"
           if [[ $(git diff --stat | wc -l) -gt 0 ]]; then
             git diff
@@ -47,4 +50,4 @@ jobs:
 
       # - name: HLint
       #   run: |
-      #     nix-shell --run "hlint"
+      #     nix-shell --run "hlint ."

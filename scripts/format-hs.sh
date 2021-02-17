@@ -2,7 +2,7 @@
 set -euo pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")/../"
 
-# Format Haskell code using Ormolu
+# Format Haskell using ormolu
 
 ormolu_opts=(
   --ghc-opt -XTypeApplications

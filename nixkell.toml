@@ -9,6 +9,7 @@ packages = [
   "haskellPackages.implicit-hie",
   "hlint",
   "niv",
+  "nixpkgs-fmt",
   "ormolu",
 ]
 

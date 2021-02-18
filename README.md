@@ -285,7 +285,7 @@ ar aFewPrimes : {} --> ListI =
   { head = 5, tail = } cons.
 ```
 
-Like Haskell, Lawvere has some syntactic sugar for list-building:
+Note that in `{ head = 2, tail = }`, the arrow being used at the `tail` component is the identity. This could also be written `{ head = 2, tail = identity}`. Another thing to note is that the `2` being used here doesn't have source `{}`, indeed all integer literals actually have type `forall a. a --> Int` (and similarly for other scalars). This saves one from having to write `{} 2`. Like Haskell, Lawvere has some syntactic sugar for list-building:
 
 ``` lawvere
 ar morePrimes : {} --> ListI =

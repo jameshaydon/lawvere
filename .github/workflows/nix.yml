@@ -31,7 +31,7 @@ jobs:
       - uses: cachix/cachix-action@v8
         with:
           name: lawvere
-          signingKey: "${{ secrets.CACHIX_SIGNING_KEY }}"
+          authToken: "${{ secrets.CACHIX_AUTH_TOKEN }}"
 
       - name: Build
         run: |

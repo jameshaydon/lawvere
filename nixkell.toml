@@ -1,11 +1,12 @@
 # Nixkell config
 
-[env]
 ghc = "8.10.4"
-packages = [
+
+[env]
+tools = [
   "cabal-install",
   "cabal2nix",
-  "haskellPackages.haskell-language-server",
+  "haskell-language-server",
   "haskellPackages.implicit-hie",
   "hlint",
   "niv",

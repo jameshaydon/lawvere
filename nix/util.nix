@@ -1,8 +1,6 @@
-{ haskell, lib, gitignoreFilter }:
+{ pkgs, lib, gitignoreFilter }:
 {
   removeDot = n: lib.replaceStrings [ "." ] [ "" ] n;
-
-  getFrom = set: ns: map (n: lib.getAttrFromPath (lib.splitString "." n) set) ns;
 
   filterSrc = path: { ignoreFiles ? [ ], ignorePaths ? [ ] }:
     lib.cleanSourceWith {
@@ -18,9 +16,20 @@
           && ! lib.any (d: lib.hasPrefix d (relToPath path)) ignorePaths;
     };
 
+  # Build with our haskell instead of the stock for selected packages
+  buildWith = ourHaskell: paths: names: map
+    (path:
+      let fNames = lib.filter (name: lib.hasSuffix name path) names;
+      in
+      if fNames != [ ]
+      then ourHaskell.${(builtins.head fNames)}
+      else lib.getAttrFromPath (lib.splitString "." path) pkgs
+    )
+    paths;
+
   leanPkg =
     let
-      hl = haskell.lib;
+      hl = pkgs.haskell.lib;
     in
     pkg: hl.dontHyperlinkSource (hl.disableLibraryProfiling (hl.dontCoverage (hl.dontHaddock pkg)));
 }

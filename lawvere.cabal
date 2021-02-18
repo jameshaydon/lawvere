@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 21cbf37987ba32c93d20683895378b216f59b2bf66b06f0a5b82d7097a46b16a
+-- hash: 2126c9868eba98ffe74334e6834507fef20b44cb71fd897e8b348f067ebfe4ea
 
 name:           lawvere
 version:        0.1.0.0
@@ -21,6 +21,26 @@ extra-source-files:
     README.md
 data-files:
     js/lawvere.js
+    examples/basic.js
+    examples/basic.law
+    examples/bool.law
+    examples/freyd-state.law.old
+    examples/greet.law
+    examples/hello.law
+    examples/if.law
+    examples/interpolation.law
+    examples/io.law
+    examples/list-old.law
+    examples/list-simple.law
+    examples/list.law
+    examples/partial-state.law
+    examples/partial-state.law.old
+    examples/points.law
+    examples/positional-product.law
+    examples/presentation.law.md
+    examples/product.law
+    examples/sum.law
+    examples/tutorial.law
 
 source-repository head
   type: git

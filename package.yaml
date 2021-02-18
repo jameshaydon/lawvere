@@ -67,6 +67,7 @@ tests:
       - -with-rtsopts=-N
     dependencies:
       - hspec
+      - hspec-expectations
       - lawvere
     verbatim:
       build-tool-depends: hspec-discover:hspec-discover == 2.*

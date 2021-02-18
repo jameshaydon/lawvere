@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: b3d3f6803b2a92995263454398f8ec077a12ea015da06bd6593aee41841b74c6
+-- hash: 21cbf37987ba32c93d20683895378b216f59b2bf66b06f0a5b82d7097a46b16a
 
 name:           lawvere
 version:        0.1.0.0
@@ -35,6 +35,7 @@ library
       Lawvere.Disp
       Lawvere.Eval
       Lawvere.Expr
+      Lawvere.File
       Lawvere.Instruction
       Lawvere.Literate
       Lawvere.Ob
@@ -178,6 +179,7 @@ test-suite lawvere-test
   type: exitcode-stdio-1.0
   main-is: Spec.hs
   other-modules:
+      LawvereSpec
       Paths_lawvere
   hs-source-dirs:
       test
@@ -230,6 +232,7 @@ test-suite lawvere-test
     , generic-lens
     , haskeline
     , hspec
+    , hspec-expectations
     , lawvere
     , lens
     , megaparsec

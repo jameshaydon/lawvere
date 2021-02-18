@@ -1,0 +1,53 @@
+name: CI
+
+on: [push]
+
+jobs:
+  nix:
+    name: ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-latest
+          - macOS-latest
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Set nix path
+        id: nix-path
+        run: |
+          echo ::set-output name=nixpkgs::$(jq -r .nixpkgs.url ./nix/sources.json)
+
+      - name: Install Nix
+        uses: cachix/install-nix-action@v12
+        with:
+          nix_path: nixpkgs=${{ steps.nix-path.outputs.nixpkgs }}
+          extra_nix_config: |
+            log-lines = 1000
+
+      # - uses: cachix/cachix-action@v8
+      #   with:
+      #     name: lawvere
+      #     signingKey: "${{ secrets.CACHIX_SIGNING_KEY }}"
+
+      - name: Build
+        run: |
+          nix-build nix --attr nix-build-uncached
+          result/bin/nix-build-uncached ./nix/release.nix
+          nix-build nix/release.nix
+
+      - name: Format check
+        run: |
+          nix-shell --run "scripts/format-nix.sh"
+          nix-shell --run "scripts/format-hs.sh"
+          if [[ $(git diff --stat | wc -l) -gt 0 ]]; then
+            git diff
+            exit 1
+          fi
+
+      # - name: HLint
+      #   run: |
+      #     nix-shell --run "hlint ."

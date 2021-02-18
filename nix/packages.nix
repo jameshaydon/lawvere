@@ -1,6 +1,6 @@
 { pkgs }: with pkgs;
 let
-  util = import ./util.nix { inherit (pkgs) lib gitignoreFilter; };
+  util = import ./util.nix { inherit (pkgs) haskell lib gitignoreFilter; };
 
   scripts = import ./scripts.nix { inherit pkgs conf; };
 
@@ -44,7 +44,7 @@ let
   );
 in
 {
-  bin = haskellPackages.lawvere;
+  bin = util.leanPkg haskellPackages.lawvere;
 
   shell = buildEnv {
     name = "lawvere-env";

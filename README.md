@@ -319,7 +319,7 @@ ar Base[IO] hello : {} --> String =
 To run this, one must use the `io` functor:
 
 ``` lawvere
-ar InputOutput main : {} --> {} =
+ar InputOutput helloIO : {} --> {} =
   io(hello)
 ```
 
@@ -339,7 +339,7 @@ ar Base[IO] greet : {} --> {} =
   !hobby(ask)
   ~"Hello {.name}, I like {.hobby} too!" putLine
 
-ar InputOutput main : {} --> {} =
+ar InputOutput greetIO : {} --> {} =
   io(greet)
 ```
 
@@ -452,7 +452,7 @@ interpret Err in ErrIntState
 Finally, we can execute this effect:
 
 ``` lawvere
-ar Base count : {} --> Int =
+ar Base main : {} --> Int =
   { state = 0,                 // initialise the state to 0
     value = #({}, {}, {}) }    // we'll map over a list of size 3
   pureErrIntState(mapNextSub3)

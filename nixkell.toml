@@ -15,11 +15,9 @@ packages = [
 
 [ignore]
 files = [
-  "README.md",
 ]
 paths = [
   ".github",
-  "examples",
   "notes",
   "tools",
 ]

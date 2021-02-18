@@ -8,6 +8,8 @@ copyright: "2020 James Henri Haydon"
 
 data-files:
   - js/lawvere.js
+  - examples/*
+  - README.md
 
 extra-source-files:
   - README.md
@@ -67,6 +69,7 @@ tests:
       - -with-rtsopts=-N
     dependencies:
       - hspec
+      - hspec-expectations
       - lawvere
     verbatim:
       build-tool-depends: hspec-discover:hspec-discover == 2.*

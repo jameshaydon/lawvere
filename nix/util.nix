@@ -1,4 +1,4 @@
-{ lib, gitignoreFilter }:
+{ haskell, lib, gitignoreFilter }:
 {
   removeDot = n: lib.replaceStrings [ "." ] [ "" ] n;
 
@@ -17,4 +17,10 @@
           && ! builtins.elem (baseNameOf path) ignoreFiles
           && ! lib.any (d: lib.hasPrefix d (relToPath path)) ignorePaths;
     };
+
+  leanPkg =
+    let
+      hl = haskell.lib;
+    in
+    pkg: hl.dontHyperlinkSource (hl.disableLibraryProfiling (hl.dontCoverage (hl.dontHaddock pkg)));
 }

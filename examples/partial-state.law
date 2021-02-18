@@ -58,5 +58,5 @@ interpret Err in ErrIntState
   { err = .value err. }
 
 ar ErrIntState main : {} --> Int =
-  { state = 0, value = #({}, {}, {}) }
+  { state = 0, value = #({}, {}) }
   pureErrIntState(mapNextSub3)

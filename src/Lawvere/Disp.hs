@@ -12,6 +12,9 @@ data Ann = AnStr | AnNum | AnCons
 class Disp a where
   disp :: a -> Doc Ann
 
+renderSimple :: (Disp a) => a -> Text
+renderSimple = renderStrict . layoutPretty (defaultLayoutOptions {layoutPageWidth = AvailablePerLine 80 1.0}) . disp
+
 render :: (Disp a) => a -> Text
 render x =
   renderStrict $

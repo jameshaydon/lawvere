@@ -2,15 +2,15 @@ module Main (main, dev) where
 
 import Control.Lens
 import Control.Monad.Trans.Except
-import Data.List (isSuffixOf, nub)
+import Data.List (nub)
 import qualified Data.Set as Set
 import Lawvere.Check
 import Lawvere.Core
 import Lawvere.Decl
 import Lawvere.Disp
 import Lawvere.Eval
+import Lawvere.File
 import qualified Lawvere.Instruction as Machine
-import Lawvere.Literate
 import Lawvere.Parse hiding (Parser)
 import Options.Applicative
 import Protolude hiding (empty, option)
@@ -34,14 +34,7 @@ data Target
 loadFile :: (MonadIO m) => Bool -> Target -> FilePath -> ExceptT Text m [Decl]
 loadFile warnings target filepath = do
   sayi . toS $ "Loading " <> filepath <> ".."
-  t <- liftIO (readFile filepath)
-  source <-
-    if ".md" `isSuffixOf` filepath
-      then case litSource filepath t of
-        Left err -> throwError err
-        Right s -> pure s
-      else pure t
-  prog :: [Decl] <- except (first (toS . Mega.errorBundlePretty) (Mega.parse (parsed <* Mega.eof) filepath source))
+  prog <- parseFile filepath
   sayi "Checking.."
   let (res, nub -> warns) = checkProg prog
   when warnings $ forM_ warns (sayi . ("WARN: " <>))

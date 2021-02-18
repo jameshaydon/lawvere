@@ -1,26 +1,14 @@
 { pkgs }: with pkgs;
 let
-  util = import ./util.nix { inherit (pkgs) haskell lib gitignoreFilter; };
-
-  scripts = import ./scripts.nix { inherit pkgs conf; };
+  util = import ./util.nix {
+    inherit pkgs;
+    inherit (pkgs) lib gitignoreFilter;
+  };
 
   conf = pkgs.lib.importTOML ../nixkell.toml;
 
-  filteredSrc = with builtins; lib.cleanSourceWith {
-    src = srcDir;
-    filter =
-      let
-        srcIgnored = gitignoreFilter srcDir; # in let binding to memoize
-        relToRoot = lib.removePrefix (toString srcDir + "/");
-      in
-      path: type:
-        srcIgnored path type
-        && ! elem (baseNameOf path) filesIgnored
-        && ! lib.any (d: lib.hasPrefix d (relToRoot path)) pathsIgnored;
-  };
-
-  # Add our package to haskellPackages
-  haskellPackages = pkgs.haskell.packages.${("ghc" + util.removeDot conf.env.ghc)}.override {
+  # Create our haskell from the choosen version of the default one
+  ourHaskell = pkgs.haskell.packages.${("ghc" + util.removeDot conf.ghc)}.override {
     overrides =
       let
         depsFromDir = pkgs.haskell.lib.packagesFromDirectory {
@@ -39,15 +27,20 @@ let
   };
 
   # Include our package dependencies with ghc
-  ghc = haskellPackages.ghc.withPackages (_ps:
-    pkgs.haskell.lib.getHaskellBuildInputs haskellPackages.lawvere
+  ghc = ourHaskell.ghc.withPackages (_ps:
+    pkgs.haskell.lib.getHaskellBuildInputs ourHaskell.lawvere
   );
+
+  tools = util.buildWith ourHaskell conf.env.tools [ "haskell-language-server" ];
+
+  scripts = import ./scripts.nix { inherit pkgs conf; };
+
 in
 {
-  bin = util.leanPkg haskellPackages.lawvere;
+  bin = util.leanPkg ourHaskell.lawvere;
 
   shell = buildEnv {
     name = "lawvere-env";
-    paths = [ ghc ] ++ util.getFrom pkgs conf.env.packages ++ scripts;
+    paths = [ ghc ] ++ tools ++ scripts;
   };
 }

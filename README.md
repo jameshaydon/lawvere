@@ -2,7 +2,7 @@
 
 # Lawvere
 
-A categorical programming language
+A categorical programming language with effects
 
 [Install](#buildinstallation) • [Tutorial](#tutorial) • [Editor support](#editor-support) • [Development](#development)
 
@@ -17,10 +17,10 @@ _Very work-in-progress_
 "Player {.leader} is winning by {.delta} points!"
 ```
 
-- Compile to any category. Target any category that has structures corresponding to the programming features you use ([cartesian closed](https://ncatlab.org/nlab/show/cartesian+closed+category), [distributive](https://ncatlab.org/nlab/show/distributive+category), etc.).
+- Compile to any category that has structures corresponding to the programming features you use ([cartesian closed](https://ncatlab.org/nlab/show/cartesian+closed+category), [distributive](https://ncatlab.org/nlab/show/distributive+category), etc.).
 - Comes with is an evaluator in Haskell, a [compiler to JavaScript](#compiling-to-javascript), and a "bytecode" compiler to a [categorical abstract machine](#the-categorical-abstract-machine).
-- Effect system based on freely generated effect categories.
-- Point free functional programming (no lambdas); a categorical take on concatenative programming.
+- Effect system based on free effect categories.
+- Point-free functional programming (no lambdas); a categorical take on concatenative programming.
 
 The Lawvere language (and the executable `bill`) is named after [William Lawvere](https://en.wikipedia.org/wiki/William_Lawvere).
 
@@ -43,7 +43,7 @@ Lawvere v0.0.0
 
 (Or `cabal run bill -- -i` or `stack exec bill -- -i` if `bill` isn't install.)
 
-`bill` can also be given a file: `bill -i example.law`. By omitting the `-i` flag, the `main` arrow is executed directly and the REPL is not started. In the REPL, `:r` will reload the loaded file, and `:q` will terminate the session. This README file is a literal Lawvere script, so you can load it and try out the examples:
+`bill` can also be given a file: `bill -i example.law`. By omitting the `-i` flag, the `main` arrow is executed directly and the REPL is not started. In the REPL, `:r` will reload the loaded file, and `:q` will terminate the session. This README file is a literate Lawvere script, so you can load it and try out the examples:
 
 ```
 $ bill -i README.md
@@ -54,7 +54,7 @@ Check OK!
 
 ### Basic types
 
-Values of basic types are written as in other programming languages, e.g. `42` and `"hello world"`. But in Lawvere, everything is an arrow (Lawvere's equivalent of a function), so that these actually denote the constant arrow. For example, `42` denotes the arrow which is constantly 42:
+Values of basic types are written as in other programming languages, e.g. `42` and `"hello world"`. But in Lawvere, everything is an arrow (Lawvere's equivalent of a function), so that these actually denote constant arrows. For example, `42` denotes the arrow which is constantly 42:
 
 ```lawvere
 ar answer : {} --> Int = 42
@@ -62,7 +62,7 @@ ar answer : {} --> Int = 42
 
 The above code defines an arrow using the `ar` keyword. The arrow has source `{}` (which is the syntax for the unit type) and target `Int`.
 
-When the REPL accepts an input, it actually executes it on the unit input. So for example inputting `incr` (which expects an `Int`) will result in an error.
+When the REPL accepts an input, it actually executes it (with the Haskell evaluator) on the unit input. So for example inputting `incr` (which expects an `Int`) will result in an error.
 
 Lawvere also has support for basic arithmetic and comparisons. These are operations on arrows, for example `f + g` forms the pointwise addition of arrows `f` and `g`.
 
@@ -72,24 +72,16 @@ The main way to build up larger programs from smaller ones is by using _composit
 
 (If you know Forth composition and literals as constant functions will feel familiar.)
 
-
-To illustrate this we can use the built-in morphism `incr`, which increments an integer:
+To illustrate this we can use the built-in arrow `incr`, which increments an integer:
 
 ``` lawvere
-ar fourtyFive : {} --> Int = 42 incr incr incr
+ar plus3 : Int --> Int = incr incr incr
+
+ar fourtyFive : {} --> Int = 42 plus3
 ```
 will output `45`.
 
-To run this, create a file with contents:
-
-```lawvere
-ar someNumber : {} --> Int = 42
-
-ar biggerNumber : {} --> Int =
-  someNumber incr incr incr
-```
-
-save this to a file, and use `bill`:
+To run this, create a file with the above contents and use `bill`:
 
 ```
 $ bill -i test.law
@@ -98,10 +90,10 @@ Lawvere v0.0.0
 --------------
 checking..
 Check OK!
-> biggerNumber
+> fourtyFive
 45
-> biggerNumber incr incr
-47
+> fourtyFive plus3 incr
+49
 ```
 
 _Note:_ The checker is a work-in-progress and is far from complete.
@@ -122,7 +114,7 @@ $ bill -i test.law
 
 ### Products
 
-Datatypes in `lawvere` are called _objects_ (since they correspond to objects in category theory -- as arrows, as you might have guessed, correspond to morphisms).  We define a new object `Point` with the keyword `ob`. If the object is a product type (or struct, or record), specify it using braces:
+Datatypes in `lawvere` are called _objects_ (since they correspond to objects in category theory -- as arrows, as you might have guessed, correspond to morphisms).  We define a new object `Point` with the keyword `ob`. If the object is a product type (or 'struct', or 'record'), specify it using braces:
 
 ``` lawvere
 ob Base Point = { x: Float, y: Float }
@@ -201,7 +193,7 @@ Using square brackets we define a sum type with two summands, `true` and `false`
 
 Sum types come equipped with constructors (injection). The constructor into the component with name `foo` is denoted `foo.`, simply mirroring the notation for projections.
 
-In order to define some simple boolean functions, we'll need to learn how to map _from_ sums. This is like pattern matching, specifying an arrow for each summand (and thus, in categorical language, a cocone). This is like constructing products, except using square brackets instead of braces. To illustrate this let's define the negation function:
+In order to define some simple boolean functions, we'll need to learn how to map _from_ sums. This is like pattern matching, specifying an arrow for each summand (and thus, in categorical language, a cocone). This is similar to cones, except using square brackets instead of braces. To illustrate this let's define the negation function:
 
 ``` lawvere
 ar not : Bool --> Bool

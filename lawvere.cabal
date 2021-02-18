@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 2126c9868eba98ffe74334e6834507fef20b44cb71fd897e8b348f067ebfe4ea
+-- hash: d9c22b1e14e5340eb87e2e1d86dfae492055b8c28080f0f6fe73f3530bd6222b
 
 name:           lawvere
 version:        0.1.0.0
@@ -41,6 +41,7 @@ data-files:
     examples/product.law
     examples/sum.law
     examples/tutorial.law
+    README.md
 
 source-repository head
   type: git

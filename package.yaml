@@ -8,6 +8,7 @@ copyright: "2020 James Henri Haydon"
 
 data-files:
   - js/lawvere.js
+  - examples/*
 
 extra-source-files:
   - README.md

@@ -4,6 +4,7 @@ import Lawvere.Check
 import Lawvere.Disp
 import Lawvere.Eval
 import Lawvere.File
+import Paths_lawvere
 import Protolude
 import Test.Hspec
 
@@ -57,7 +58,8 @@ spec = describe "Examples work" $ do
 
 runMain :: (MonadIO m, MonadError Text m) => FilePath -> m Text
 runMain filepath = do
-  prog <- parseFile filepath
+  fp <- liftIO $ getDataFileName filepath
+  prog <- parseFile fp
   let (res, _) = checkProg prog
   case res of
     Right _ -> do

@@ -1,6 +1,6 @@
 { mkDerivation, aeson, ansi-terminal, base, bytestring, commonmark
 , commonmark-pandoc, containers, generic-lens, haskeline, hpack
-, hspec, hspec-discover, lens, lib, megaparsec
+, hspec, hspec-discover, hspec-expectations, lens, lib, megaparsec
 , optparse-applicative, pandoc-types, parser-combinators
 , prettyprinter, prettyprinter-ansi-terminal, protolude
 , terminal-size, text, transformers
@@ -29,10 +29,10 @@ mkDerivation {
   ];
   testHaskellDepends = [
     aeson ansi-terminal base bytestring commonmark commonmark-pandoc
-    containers generic-lens haskeline hspec lens megaparsec
-    optparse-applicative pandoc-types parser-combinators prettyprinter
-    prettyprinter-ansi-terminal protolude terminal-size text
-    transformers
+    containers generic-lens haskeline hspec hspec-expectations lens
+    megaparsec optparse-applicative pandoc-types parser-combinators
+    prettyprinter prettyprinter-ansi-terminal protolude terminal-size
+    text transformers
   ];
   testToolDepends = [ hspec-discover ];
   prePatch = "hpack";

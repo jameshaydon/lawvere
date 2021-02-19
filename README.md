@@ -1,3 +1,4 @@
+[![CI](https://github.com/jameshaydon/lawvere/workflows/CI/badge.svg)](https://github.com/jameshaydon/lawvere/actions)
 <div align="center">
 
 # Lawvere

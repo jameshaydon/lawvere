@@ -1,0 +1,53 @@
+category JavaScript = {
+  ob  = ObBase
+  ar  = { src: ObBase, tgt: ObBase, fun: String }
+  src = .src
+  tgt = .tgt
+  identity = "identity",
+  comp = "comp({.f}, {.g})"
+}
+
+jsArrows =
+  { left: "{",
+    right: "}",
+    sep: ","
+    items: list("{.label labelName}: {.arrow}") }
+  wrapIntercalate
+
+category JavaScript sums = {
+  sumInj = labelName show "inj({})"
+  sumUni = jsArrows "cocone({})"
+}
+
+category JavsScript products = {
+  projProj = labelName show "proj({})"
+  prodUni = jsArrows "cone({})" 
+}
+
+category JavaScript closed = {
+  app = "app",
+  curry = labelName show "curry({})",
+  uncurry = labelName show "uncurry({})"
+}
+
+category Javascript distributive = labelName show "distr({})"
+
+category Javascript scalars = {
+  integers = show "mkConst({})",
+  floats   = show "mkConst({})",
+  strings  = show "mkConst({})",
+  primFns  = primFnName show "prim({})"
+}
+
+category JavaScript definitional = {
+  def = "tops[{.name show}] = {.def};"
+  ref = show "top({})"
+}
+
+ar Cat browser : Base --> JavaScript = initital
+
+ar foo : Int --> Int =
+  incr incr
+
+ar JavaScript : Int --> Int =
+  brower(foo)

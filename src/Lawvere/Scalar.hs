@@ -12,7 +12,7 @@ data Sca
   = Int Integer
   | Float Double
   | Str Text
-  deriving stock (Show, Generic)
+  deriving stock (Eq, Show, Generic)
 
 instance Disp Sca where
   disp = \case

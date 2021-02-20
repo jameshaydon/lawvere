@@ -33,8 +33,8 @@ renderTerm x = do
 style :: Ann -> RTerm.AnsiStyle
 style = \case
   AnStr -> RTerm.color RTerm.Green
-  AnNum -> RTerm.color RTerm.Yellow <> RTerm.bold
-  AnCons -> RTerm.color RTerm.Blue <> RTerm.italicized
+  AnNum -> RTerm.colorDull RTerm.Yellow
+  AnCons -> RTerm.color RTerm.Magenta <> RTerm.italicized
 
 wrapSep :: Char -> Char -> Char -> [Doc Ann] -> Doc Ann
 wrapSep s l r items =

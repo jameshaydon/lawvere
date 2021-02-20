@@ -3,6 +3,7 @@ module Lawvere.Expr where
 import Control.Lens
 import Control.Monad.Combinators.Expr
 import Data.Generics.Labels ()
+import Data.List (foldr1)
 import Lawvere.Core
 import Lawvere.Disp
 import Lawvere.Parse
@@ -13,19 +14,21 @@ import Text.Megaparsec
 import qualified Text.Megaparsec.Char as Char
 import qualified Text.Megaparsec.Char.Lexer as L
 
-data Prim = PrimIdentity | PrimApp | PrimIncr | PrimAbs | PrimShow | PrimOp BinOp
+data PrimFn = PrimIdentity | PrimApp | PrimIncr | PrimAbs | PrimShow | PrimConcat
+  deriving stock (Eq, Ord, Show, Bounded, Enum)
+
+instance Disp PrimFn where
+  disp = pretty . map toLower . drop 4 . show
+
+data Prim = Pfn PrimFn | PrimOp BinOp
   deriving stock (Eq, Ord, Show)
 
 instance Fin Prim where
-  enumerate = [PrimIdentity, PrimApp, PrimIncr, PrimAbs, PrimShow] ++ (PrimOp <$> enumerate)
+  enumerate = (Pfn <$> enumerate) ++ (PrimOp <$> enumerate)
 
 instance Disp Prim where
   disp = \case
-    PrimIdentity -> "identity"
-    PrimApp -> "app"
-    PrimIncr -> "incr"
-    PrimAbs -> "abs"
-    PrimShow -> "show"
+    Pfn p -> disp p
     PrimOp o -> case o of
       NumOp no -> case no of
         OpPlus -> "plus"
@@ -42,10 +45,13 @@ instance Parsed Prim where
   parsed = choice [p <$ try (chunk (render p) >> notFollowedBy (satisfy nonFirstIdentChar)) | p <- enumerate]
 
 data ComponentDecorator = Eff | Pure
-  deriving stock (Show)
+  deriving stock (Show, Eq)
 
 data ConeComponent = ConeComponent ComponentDecorator Label
-  deriving stock (Show)
+  deriving stock (Show, Eq)
+
+purPos :: Int -> ConeComponent
+purPos = ConeComponent Pure . LPos
 
 instance Parsed ConeComponent where
   parsed = do
@@ -60,7 +66,7 @@ componentLabel :: ConeComponent -> Label
 componentLabel (ConeComponent _ lab) = lab
 
 data ISPart = ISRaw Text | ISExpr Expr
-  deriving stock (Show, Generic)
+  deriving stock (Show, Eq, Generic)
 
 data NumOp = OpPlus | OpMinus | OpTimes
   deriving stock (Eq, Ord, Show, Bounded, Enum)
@@ -112,7 +118,9 @@ compa OpGt = (>)
 compa OpGte = (>=)
 
 data Expr
-  = Cone [(ConeComponent, Expr)]
+  = EId
+  | BinComp Expr Expr
+  | Cone [(ConeComponent, Expr)]
   | ELim [(Label, Expr)]
   | Tuple [Expr]
   | CoCone [(Label, Expr)]
@@ -136,9 +144,11 @@ data Expr
   | BinOp BinOp Expr Expr
   | SumInjLabelVar LcIdent
   | SumUniCoconeVar LcIdent
-  deriving stock (Show)
+  deriving stock (Show, Eq)
 
 instance Plated Expr where
+  plate _ EId = pure EId
+  plate f (BinComp a b) = BinComp <$> f a <*> f b
   plate f (Cone cone) = Cone <$> (each . _2) f cone
   plate f (ELim diag) = ELim <$> (each . _2) f diag
   plate f (Tuple as) = Tuple <$> each f as
@@ -301,8 +311,9 @@ pComposition :: Parser Expr
 pComposition = do
   xs <- many (lexeme pAtom)
   pure $ case xs of
-    [] -> Comp []
+    [] -> EId
     [x] -> x
+    [x, y] -> BinComp x y
     _ -> Comp xs
 
 instance Parsed Expr where
@@ -310,6 +321,8 @@ instance Parsed Expr where
 
 instance Disp Expr where
   disp = \case
+    EId -> ""
+    BinComp f g -> disp f <+> disp g
     Object o -> disp o
     CanonicalInj e -> "i" <> parens (disp e)
     EFunApp f e -> disp f <> parens (disp e)
@@ -334,3 +347,30 @@ instance Disp Expr where
         go (ISExpr e) = braces (disp e)
     BinOp o x y -> parens (disp x <+> disp o <+> disp y)
     _ -> "TODO"
+
+desugar :: Expr -> Expr
+desugar = \case
+  Comp [] -> EId
+  Comp [x] -> x
+  Comp [x, y] -> BinComp x y
+  Comp xs -> foldr1 BinComp xs
+  Tuple fs -> tupleToCone fs
+  BinOp o f g -> binPrim (PrimOp o) f g
+  InterpolatedString ps -> foldr go (Lit (Str "")) ps
+    where
+      go :: ISPart -> Expr -> Expr
+      go part e =
+        binPrim
+          (Pfn PrimConcat)
+          ( case part of
+              ISRaw t -> Lit (Str t)
+              ISExpr f -> f
+          )
+          e
+  e -> e
+
+binPrim :: Prim -> Expr -> Expr -> Expr
+binPrim = binApp . EPrim
+
+binApp :: Expr -> Expr -> Expr -> Expr
+binApp f x y = Comp [Cone [(purPos 1, x), (purPos 2, y)], f]

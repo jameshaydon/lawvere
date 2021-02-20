@@ -57,6 +57,8 @@ type Tops = Map Ident Top
 
 evalAr :: Tops -> Expr -> Fun
 evalAr tops = \case
+  EId -> pure
+  BinComp f g -> evalAr tops f >=> evalAr tops g
   EPrim prim -> evalPrim prim
   ELim limOfFunctors -> functor
     where
@@ -94,15 +96,6 @@ evalAr tops = \case
     Just (TFun f) -> f v
     Just (TFreyd e) -> evalAr tops e v
     _ -> panic $ "undefined: " <> render i
-  InterpolatedString ps -> \v -> do
-    let go (ISRaw t) = pure t
-        go (ISExpr e) = do
-          s_ <- evalAr tops e v
-          case s_ of
-            Sca (Str s) -> pure s
-            _ -> panic "bad string interpolation"
-    ss <- traverse go ps
-    pure (Sca (Str (mconcat ss)))
   Lit x -> const (pure (Sca x))
   Inj i -> pure . Tag i
   Distr l -> \case
@@ -117,10 +110,6 @@ evalAr tops = \case
       Just y -> pure y
       Nothing -> panic ("bad record projection, no key: " <> render l <> " in " <> render v)
     v -> panic ("bad record projection, not record: " <> render l <> "-\n-" <> render v)
-  Comp fs -> foldr' comp pure fs
-    where
-      comp e cur = evalAr tops e >=> cur
-  Tuple fs -> evalAr tops (tupleToCone fs)
   Cone fs -> mkCone fs
   CoCone fs -> evalAr tops (Top (LcIdent "sumPreserver")) >=> mkCoCone fs
   EFunApp "io" e ->
@@ -160,16 +149,15 @@ evalAr tops = \case
   Object _ -> const (pure (VFun pure))
   CanonicalInj e -> evalAr tops (EFunApp (LcIdent "i") e)
   Side lab e -> tr ("before sidecar: " <> render lab) >=> applyInj (sidePrep (LNam lab)) >=> tr "after prep" >=> sidecar e >=> tr "after side" >=> applyInj (sideUnprep (LNam lab))
-  BinOp o f g -> \v -> do
-    x <- evalAr tops f v
-    y <- evalAr tops g v
-    case (x, y) of
-      (Sca a, Sca b) -> pure (binOp Sca toValBool o a b)
-      _ -> panic "bad binop"
   SumInjLabelVar _ -> panic "label var remains"
   SumUniCoconeVar _ -> panic "cocone var remains"
   SidePrep lab -> sidePrep lab
   SideUnprep lab -> sideUnprep lab
+  e ->
+    let e' = desugar e
+     in if e == e'
+          then panic $ "Unhandled case: " <> render e
+          else evalAr tops (desugar e)
   where
     lawPutLine = \case
       Sca (Str s) -> do
@@ -258,33 +246,44 @@ toValBool :: Bool -> Val
 toValBool True = Tag (LNam "true") (Rec mempty)
 toValBool False = Tag (LNam "false") (Rec mempty)
 
+binFn :: Applicative f => (Val -> Val -> a) -> Val -> f a
+binFn f = \case
+  Rec r
+    | Just x <- lkp (LPos 1) r,
+      Just y <- lkp (LPos 2) r ->
+      pure (f x y)
+  _ -> panic "bad bin fn"
+
+scaBinFn :: Applicative f => (Sca -> Sca -> a) -> Val -> f a
+scaBinFn f = binFn $ \x y -> case (x, y) of
+  (Sca a, Sca b) -> f a b
+  _ -> panic "bad scalar bin fn"
+
 evalPrim :: Prim -> Fun
 evalPrim = \case
-  PrimOp o ->
-    \case
-      Rec r
-        | Just (Sca a) <- lkp (LPos 1) r,
-          Just (Sca b) <- lkp (LPos 2) r ->
-          pure (binOp Sca toValBool o a b)
-      _ -> panic "bad plus"
-  PrimIdentity -> pure
-  PrimIncr ->
-    \case
-      Sca (Int x) -> pure (Sca (Int (x + 1)))
-      _ -> panic "bad incr"
-  PrimAbs ->
-    \case
-      Sca (Int x) -> pure (Sca (Int (abs x)))
-      Sca (Float x) -> pure (Sca (Float (abs x)))
-      _ -> panic "bad abs"
-  PrimShow -> (pure . Sca . Str . render)
-  PrimApp ->
-    \case
-      Rec r
-        | Just (VFun ff) <- lkp (LPos 1) r,
-          Just aa <- lkp (LPos 2) r ->
-          ff aa
-      v -> panic ("bad app: " <> render v)
+  PrimOp o -> scaBinFn (binOp Sca toValBool o)
+  Pfn pfn -> case pfn of
+    PrimIdentity -> pure
+    PrimIncr ->
+      \case
+        Sca (Int x) -> pure (Sca (Int (x + 1)))
+        _ -> panic "bad incr"
+    PrimAbs ->
+      \case
+        Sca (Int x) -> pure (Sca (Int (abs x)))
+        Sca (Float x) -> pure (Sca (Float (abs x)))
+        _ -> panic "bad abs"
+    PrimShow -> pure . Sca . Str . render
+    PrimConcat -> scaBinFn $ \x y -> case (x, y) of
+      (Str a, Str b) -> Sca (Str (a <> b))
+      _ -> panic "bad concat"
+    PrimApp ->
+      \case
+        Rec r
+          | Just (VFun ff) <- lkp (LPos 1) r,
+            Just aa <- lkp (LPos 2) r ->
+            ff aa
+        v -> panic ("bad app: " <> render v)
 
 evalInterp :: Tops -> Expr -> SketchInterp -> Expr -> Expr -> Interp
 evalInterp tops iInj iHandlers iSum iSide =
@@ -338,21 +337,22 @@ jsLabel (LNam l) = show (render l)
 
 evalJS :: Expr -> Text
 evalJS = \case
+  EId -> "identity"
+  BinComp f g -> jsCall2 "comp" (evalJS f) (evalJS g)
   Lit x -> jsCall1 "mkConst" (render x)
-  Tuple xs -> evalJS (tupleToCone xs)
   EConst x -> jsCall1 "mkConst" (evalJS x)
   Proj p -> labCombi "proj" p
   Inj p -> labCombi "inj" p
   Top t -> labCombi "top" (LNam t)
   Distr p -> labCombi "distr" p
-  Comp xs -> foldl' go "identity" xs
-    where
-      go x e = jsCall2 "comp" x (evalJS e)
   Cone xs -> jsCall1 "cone" $ jsCone [(componentLabel label, evalJS e) | (label, e) <- xs]
   CoCone xs -> jsCall1 "cocone" $ jsCone [(label, evalJS e) | (label, e) <- xs]
-  BinOp o f g -> jsCall "binOp" [show (render (PrimOp o)), evalJS f, evalJS g]
   EPrim prim -> jsCall1 "prim" (show (render prim))
-  _ -> panic "JS TODO"
+  e ->
+    let e' = desugar e
+     in if e == e'
+          then panic $ "JS TODO: " <> render e
+          else evalJS e'
   where
     labCombi f p = jsCall1 f (jsLabel p)
 

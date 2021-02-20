@@ -32,11 +32,13 @@ prims decls =
 
 primScheme :: Prim -> Scheme
 primScheme = \case
-  PrimIdentity -> [va] .: (ta, ta)
-  PrimApp -> [va, vb] .: (OTuple [ta :=> tb, ta], tb)
-  PrimIncr -> [] .: (OPrim TInt, OPrim TInt)
-  PrimAbs -> [va] .: (ta, ta)
-  PrimShow -> [va] .: (ta, OPrim TString)
+  Pfn fn -> case fn of
+    PrimIdentity -> [va] .: (ta, ta)
+    PrimApp -> [va, vb] .: (OTuple [ta :=> tb, ta], tb)
+    PrimIncr -> [] .: (OPrim TInt, OPrim TInt)
+    PrimAbs -> [va] .: (ta, ta)
+    PrimShow -> [va] .: (ta, OPrim TString)
+    PrimConcat -> [] .: (OTuple [OPrim TString, OPrim TString], OPrim TString)
   PrimOp o -> case o of
     CompOp _ -> [va] .: (ta, tBool)
     NumOp _ -> [va] .: (OTuple [ta, ta], ta)
@@ -93,7 +95,7 @@ instance Disp Err where
     CeDistrWasNotColimInSource label source ->
       sep ["Distr was not a colim in source", disp label, disp source]
     CeCantApplyFunctor e o ->
-      sep ["Can't apply functor", disp e, "to", disp o]
+      sep ["Can't apply functor", pretty (show e :: Text), "to", disp o]
     err -> pretty (show err :: Text) -- TODO
 
 newtype Check a = Check
@@ -217,8 +219,7 @@ resolveOb (TFunApp f o) = do
 resolveOb t = pure t
 
 applyFunctor :: Expr -> Ob -> Check Ob
-applyFunctor (Comp []) o = pure o
-applyFunctor (Comp [f]) o = applyFunctor f o
+applyFunctor EId o = pure o
 applyFunctor (ELim fs) o = do
   os <- (traverse . _2) (`applyFunctor` o) fs
   pure (Lim os)
@@ -246,6 +247,12 @@ tBool :: Ob
 tBool = CoLim [(LNam "true", Lim []), (LNam "false", Lim [])]
 
 inferTarget :: Ob -> Expr -> Check Ob
+inferTarget source EId = pure source
+inferTarget a (BinComp f g) = do
+  b <- inferTarget a f
+  inferTarget b g
+inferTarget source (Tuple fs) =
+  inferTarget source (tupleToCone fs)
 inferTarget a (EPrim p) = do
   (a', b') <- inferPrim p
   unify a a'
@@ -283,12 +290,6 @@ inferTarget (ONamed name) f = do
   source <- getNamedOb name
   inferTarget source f
 inferTarget _ (Lit s) = pure (scalarTyp s)
-inferTarget source (Comp []) = pure source
-inferTarget a (Comp (f : fs)) = do
-  b <- inferTarget a f
-  inferTarget b (Comp fs)
-inferTarget source (Tuple fs) =
-  inferTarget source (tupleToCone fs)
 inferTarget _ (Cone []) =
   pure (Lim [])
 inferTarget source (Cone fs) = do
@@ -319,9 +320,15 @@ inferTarget _ (EConst f) = do
 inferTarget _ (EFunApp _ _) = do
   warning "Functor applications are not checked yet."
   freshT
-inferTarget source f = throwError (CeCantInferTarget source f)
+inferTarget source f =
+  let f' = desugar f
+   in if f == f' then throwError (CeCantInferTarget source f) else inferTarget source f'
 
 inferSource :: Ob -> Expr -> Check Ob
+inferSource target EId = pure target
+inferSource target (BinComp f g) = do
+  b <- inferSource target g
+  inferSource b f
 inferSource target (Lit s) = do
   unify target (scalarTyp s)
   freshT
@@ -340,10 +347,6 @@ inferSource (TFunApp name o) f = do
 inferSource (ONamed name) f = do
   target <- getNamedOb name
   inferSource target f
-inferSource target (Comp []) = pure target
-inferSource target (Comp (f : fs)) = do
-  b <- inferSource target (Comp fs)
-  inferSource b f
 inferSource (OTuple as) f = inferSource (prodToLim as) f
 inferSource target (Tuple fs) = inferSource target (tupleToCone fs)
 inferSource target (Cone []) = do
@@ -373,7 +376,9 @@ inferSource _ (Proj _) = do
 inferSource _ (Distr _) = do
   warning "Not checking source of distributor."
   freshT
-inferSource target f = throwError (CeCantInferSource target f)
+inferSource target f =
+  let f' = desugar f
+   in if f == f' then throwError (CeCantInferSource target f) else inferSource target f'
 
 inferDistrTarget :: Label -> Ob -> Check Ob
 inferDistrTarget label (Lim theLim) = do
@@ -384,6 +389,10 @@ inferDistrTarget label (Lim theLim) = do
 inferDistrTarget label source = throwError (CeDistrSourceNotLim label source)
 
 check :: (Ob, Ob) -> Expr -> Check ()
+check (a, b) EId = unify a b
+check (a, c) (BinComp f g) = do
+  b <- inferTarget a f
+  check (b, c) g
 check (a, b) (EPrim p) = do
   (a', b') <- inferPrim p
   unify a a'
@@ -435,11 +444,6 @@ check (a, b) (Inj lab) = do
   b' <- resolveOb b
   check (a, b') (Inj lab)
 check niche (Tuple fs) = check niche (tupleToCone fs)
-check (a, b) (Comp []) = unify a b
-check (a, b) (Comp [f]) = check (a, b) f
-check (a, c) (Comp (f : fs)) = do
-  b <- inferTarget a f
-  check (b, c) (Comp fs)
 check (a, Lim bs) (Cone fs) = do
   fs' <- noEffects fs
   case pairwise bs fs' of
@@ -461,7 +465,11 @@ check (a@(TFunApp _ _), b) f = do
   a' <- resolveOb a
   check (a', b) f
 check _ (EFunApp _ _) = warning "Functor applications are not checked yet."
-check (a, b) f = throwError (CeCantCheck a b f)
+check (a, b) f =
+  let f' = desugar f
+   in if f == f'
+        then throwError (CeCantCheck a b f)
+        else check (a, b) f'
 
 unify :: Ob -> Ob -> Check ()
 unify (ONamed name) (ONamed name') | name == name' = pure ()

@@ -215,36 +215,33 @@ exec instr = case instr of
     #current .= x
   IPrim p ->
     case p of
-      PrimIdentity -> pure ()
-      PrimApp -> do
-        x <- use #current
-        case x of
-          MRec r
-            | Just (MFun ff) <- lkp (LPos 1) r,
-              Just aa <- lkp (LPos 2) r -> do
-              #current .= aa
-              call ff
-          v -> panic ("bad app: " <> show v)
-      PrimIncr -> do
-        x <- use #current
-        case x of
-          MSca (Int x') -> #current .= MSca (Int (x' + 1))
-          _ -> panic "bad incr"
-      PrimAbs -> do
-        x <- use #current
-        case x of
-          MSca (Int x') -> #current .= MSca (Int (abs x'))
-          MSca (Float x') -> #current .= MSca (Float (abs x'))
-          _ -> panic "bad abs"
-      PrimShow -> #current %= MSca . Str . render
-      PrimOp o -> do
-        x <- use #current
-        case x of
-          MRec r
-            | Just (MSca a) <- lkp (LPos 1) r,
-              Just (MSca b) <- lkp (LPos 2) r ->
-              #current .= binOp MSca boolToVal o a b
-          _ -> panic "bad binop"
+      Pfn pfn -> case pfn of
+        PrimIdentity -> pure ()
+        PrimApp -> do
+          x <- use #current
+          case x of
+            MRec r
+              | Just (MFun ff) <- lkp (LPos 1) r,
+                Just aa <- lkp (LPos 2) r -> do
+                #current .= aa
+                call ff
+            v -> panic ("bad app: " <> show v)
+        PrimConcat -> scaBinFn $ \x y -> case (x, y) of
+          (Str s, Str t) -> MSca (Str (s <> t))
+          _ -> panic "bad concat"
+        PrimIncr -> do
+          x <- use #current
+          case x of
+            MSca (Int x') -> #current .= MSca (Int (x' + 1))
+            _ -> panic "bad incr"
+        PrimAbs -> do
+          x <- use #current
+          case x of
+            MSca (Int x') -> #current .= MSca (Int (abs x'))
+            MSca (Float x') -> #current .= MSca (Float (abs x'))
+            _ -> panic "bad abs"
+        PrimShow -> #current %= MSca . Str . render
+      PrimOp o -> scaBinFn (binOp MSca boolToVal o)
   where
     boolToVal True = MTag (LNam "true") (MRec mempty)
     boolToVal False = MTag (LNam "false") (MRec mempty)
@@ -270,6 +267,18 @@ exec instr = case instr of
     popConeStack = popSomeStack "cone" #coneStack
 
     lkp = Map.lookup
+
+    binFn f = do
+      x <- use #current
+      case x of
+        MRec r
+          | Just a <- lkp (LPos 1) r,
+            Just b <- lkp (LPos 2) r -> do
+            #current .= f a b
+        v -> panic ("bad app: " <> show v)
+    scaBinFn f = binFn $ \x y -> case (x, y) of
+      (MSca a, MSca b) -> f a b
+      _ -> panic "bad sca bin fn"
 
 step :: Mach ()
 step = do

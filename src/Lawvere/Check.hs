@@ -320,6 +320,9 @@ inferTarget _ (EConst f) = do
 inferTarget _ (EFunApp _ _) = do
   warning "Functor applications are not checked yet."
   freshT
+inferTarget _ (InitInterp _ _) = do
+  warning "Initital interpretations are not checked yet."
+  freshT
 inferTarget source f =
   let f' = desugar f
    in if f == f' then throwError (CeCantInferTarget source f) else inferTarget source f'
@@ -465,6 +468,8 @@ check (a@(TFunApp _ _), b) f = do
   a' <- resolveOb a
   check (a', b) f
 check _ (EFunApp _ _) = warning "Functor applications are not checked yet."
+check _ (InitInterp _ _) = warning "Initial interpretations are not checked yet."
+check _ (ESketchInterp _) = warning "Sketch interpretations are not checked yet."
 check (a, b) f =
   let f' = desugar f
    in if f == f'

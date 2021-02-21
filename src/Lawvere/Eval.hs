@@ -14,7 +14,7 @@ import Lawvere.Ob
 import Lawvere.Scalar
 import Paths_lawvere
 import Prettyprinter
-import Protolude
+import Protolude hiding (to)
 
 data FreydDict = FreydDict
   { inj :: Fun,
@@ -52,6 +52,7 @@ data Top
   | TEffInterp EffInterp
   | TEffCat EffCat
   | TCat Category
+  | TSketch Sketch
 
 type Tops = Map Ident Top
 
@@ -112,6 +113,10 @@ evalAr tops = \case
     v -> panic ("bad record projection, not record: " <> render l <> "-\n-" <> render v)
   Cone fs -> mkCone fs
   CoCone fs -> evalAr tops (Top (LcIdent "sumPreserver")) >=> mkCoCone fs
+  InitInterp sketchName e -> case Map.lookup (Uc sketchName) tops of
+    Just (TSketch Sketch {..}) ->
+      evalAr (Map.fromList [(Lc (ar ^. #name), TFun (pure . Tag (LNam (LcIdent (getUcIdent name <> "." <> ar ^. #name . to getLcIdent))))) | ar <- ars] <> tops) e
+    _ -> panic "bad init interp"
   EFunApp "io" e ->
     evalAr
       ( Map.fromList
@@ -120,8 +125,8 @@ evalAr tops = \case
             ( Lc "side",
               TExpr
                 ( Cone
-                    [ (ConeComponent Pure (LNam (LcIdent "pur")), Proj (LNam (LcIdent "pur"))),
-                      (ConeComponent Pure (LNam (LcIdent "eff")), Comp [Proj (LNam (LcIdent "eff")), Top "eff"])
+                    [ (purNam "pur", Proj (LNam (LcIdent "pur"))),
+                      (purNam "eff", Comp [Proj (LNam (LcIdent "eff")), Top "eff"])
                     ]
                 )
             )
@@ -129,6 +134,21 @@ evalAr tops = \case
           <> tops
       )
       e
+  EFunApp "from_init" (Top name) -> case Map.lookup (Lc name) tops of
+    Just (TExpr e) -> evalAr tops (EFunApp "from_init" e)
+    _ -> panic "bad efun app"
+  EFunApp "from_init" (ESketchInterp sketchInterp) ->
+    let skName = getUcIdent (sketchInterp ^. #sketchName)
+        interpAs = [(LcIdent (skName <> "." <> getLcIdent arName), evalAr tops arExpr) | (arName, arExpr) <- sketchInterp ^. #ars]
+        interp = \case
+          Tag (LNam i) v
+            | Just combi <-
+                lookup i interpAs -> do
+              v' <- interp v
+              combi v'
+          Rec r -> Rec <$> traverse interp r
+          v -> pure v
+     in interp
   EFunApp name e ->
     case Map.lookup (Lc name) tops of
       Just (TFun ff) -> \x -> do
@@ -144,7 +164,12 @@ evalAr tops = \case
           let e' = evalEffCat tops c effcat e
            in evalAr tops e'
         _ -> panic $ "bad efunapp"
-      _ -> panic $ "bad efunapp: " <> render name
+      Just (TExpr e') -> case e' of
+        ESketchInterp sketchInterp ->
+          let interpAs = [(Lc arName, TFun (evalAr tops arExpr)) | (arName, arExpr) <- sketchInterp ^. #ars]
+           in evalAr (Map.fromList interpAs <> tops) e
+        _ -> panic "bad efunapp"
+      _ -> panic $ "bad efunapp: " <> render name <> " - " <> render e
   -- Curry _ _ -> panic "curry"
   Object _ -> const (pure (VFun pure))
   CanonicalInj e -> evalAr tops (EFunApp (LcIdent "i") e)
@@ -156,7 +181,7 @@ evalAr tops = \case
   e ->
     let e' = desugar e
      in if e == e'
-          then panic $ "Unhandled case: " <> render e
+          then panic $ "Unhandled case: " <> show e
           else evalAr tops (desugar e)
   where
     lawPutLine = \case
@@ -297,10 +322,11 @@ evalInterp tops iInj iHandlers iSum iSide =
 evalDecl :: Tops -> Decl -> [(Ident, Top)]
 evalDecl tops = \case
   DAr (OFree _ _) name _ e -> [(Lc name, TFreyd e)]
+  DAr (ONamed "Cart") name _ e -> [(Lc name, TExpr e)]
   DAr _ name _ e -> [(Lc name, TFun (evalAr tops e))]
   DInterp name _sketchName iInj iHandlers iSum iSide -> [(Lc name, TInterp (evalInterp tops iInj iHandlers iSum iSide))]
   DOb {} -> []
-  DSketch {} -> []
+  DSketch sk -> [(Uc (sk ^. #name), TSketch sk)]
   DCategory cate -> [(Uc (cate ^. #catName), TCat cate)]
   DEffCat effCat -> [(Lc (effCat ^. #effCatStructName), TEffCat effCat)]
   DEff {} -> []

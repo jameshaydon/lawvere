@@ -9,3 +9,4 @@
 --restart=examples/freyd-state.law
 --restart=examples/product.law
 --restart=examples/io.law
+--restart=examples/list-sketch.law

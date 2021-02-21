@@ -230,13 +230,14 @@ main = do
 
 dev' :: IO ()
 dev' = do
-  runFile False Hask "examples/product.law"
-  runFile False Hask "examples/tutorial.law"
-  runFile False Hask "examples/io.law"
-  runFile False Hask "examples/basic.law"
-  runFile False Hask "examples/list.law"
+  --runFile False Hask "examples/product.law"
+  --runFile False Hask "examples/tutorial.law"
+  --runFile False Hask "examples/io.law"
+  --runFile False Hask "examples/basic.law"
+  --runFile False Hask "examples/list.law"
   -- runFile Hask "examples/freyd-state.law"
-  runFile False Hask "examples/partial-state.law"
+  --runFile False Hask "examples/partial-state.law"
+  runFile False Hask "examples/list-sketch.law"
 
 dev :: IO ()
 dev = dev' `catch` (\(FatalError err) -> putStrLn err)

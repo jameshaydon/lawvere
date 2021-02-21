@@ -15,6 +15,7 @@ data SketchAr = SketchAr
     source :: Ob,
     target :: Ob
   }
+  deriving stock (Generic)
 
 instance Disp SketchAr where
   disp SketchAr {..} =
@@ -35,6 +36,7 @@ data Sketch = Sketch
     obs :: [UcIdent],
     ars :: [SketchAr]
   }
+  deriving stock (Generic)
 
 instance Disp Sketch where
   disp Sketch {..} =
@@ -55,30 +57,6 @@ instance Parsed Sketch where
     where
       pOb = Left <$> (kwOb *> parsed)
       pAr = Right <$> (kwAr *> parsed)
-
-data SketchInterp = SketchInterp
-  { obs :: [(UcIdent, Expr)],
-    ars :: [(LcIdent, Expr)]
-  }
-  deriving stock (Show, Generic)
-
-instance Disp SketchInterp where
-  disp SketchInterp {..} =
-    braces . vsep . punctuate comma $
-      (("ob" <+>) . dispMapping <$> obs)
-        ++ (("ar" <+>) . dispMapping <$> ars)
-    where
-      dispMapping (x, e) = disp x <+> "|->" <+> disp e
-
-instance Parsed SketchInterp where
-  parsed = do
-    mappings <- pCommaSep '{' '}' pMapping
-    let (obs, ars) = partitionEithers mappings
-    pure SketchInterp {..}
-    where
-      pMapping = (Left <$> (kwOb *> pMapsto)) <|> (Right <$> (kwAr *> pMapsto))
-      pMapsto :: (Parsed a, Parsed b) => Parser (a, b)
-      pMapsto = (,) <$> lexeme parsed <*> (symbol "|->" *> parsed)
 
 data Decl
   = DAr Ob LcIdent (Niche Ob) Expr

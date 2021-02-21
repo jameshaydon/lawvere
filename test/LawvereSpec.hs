@@ -53,6 +53,7 @@ spec = describe "Examples work" $ do
        \  { state = 2,\n\
        \    value =\n\
        \      (cons. { head = 0, tail = (cons. { head = 1, tail = (empty. {=}) }) }) })"
+  "list-sketch" ~> "6"
   where
     fp ~> res = mainWorksSpec ("examples/" <> fp <> ".law") res
 

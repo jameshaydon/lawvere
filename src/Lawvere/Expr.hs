@@ -53,6 +53,9 @@ data ConeComponent = ConeComponent ComponentDecorator Label
 purPos :: Int -> ConeComponent
 purPos = ConeComponent Pure . LPos
 
+purNam :: LcIdent -> ConeComponent
+purNam = ConeComponent Pure . LNam
+
 instance Parsed ConeComponent where
   parsed = do
     eff_ <- optional (single '!')
@@ -144,7 +147,36 @@ data Expr
   | BinOp BinOp Expr Expr
   | SumInjLabelVar LcIdent
   | SumUniCoconeVar LcIdent
+  | ESketchInterp SketchInterp
+  | InitInterp UcIdent Expr
   deriving stock (Show, Eq)
+
+data SketchInterp = SketchInterp
+  { sketchName :: UcIdent,
+    obs :: [(UcIdent, Expr)],
+    ars :: [(LcIdent, Expr)]
+  }
+  deriving stock (Eq, Show, Generic)
+
+instance Disp SketchInterp where
+  disp SketchInterp {..} =
+    braces . vsep . punctuate comma $
+      (("ob" <+>) . dispMapping <$> obs)
+        ++ (("ar" <+>) . dispMapping <$> ars)
+    where
+      dispMapping (x, e) = disp x <+> "|->" <+> disp e
+
+instance Parsed SketchInterp where
+  parsed = do
+    kwSketchInterp
+    sketchName <- lexeme parsed
+    mappings <- pCommaSep '{' '}' pMapping
+    let (obs, ars) = partitionEithers mappings
+    pure SketchInterp {..}
+    where
+      pMapping = (Left <$> (kwOb *> pMapsto)) <|> (Right <$> (kwAr *> pMapsto))
+      pMapsto :: (Parsed a, Parsed b) => Parser (a, b)
+      pMapsto = (,) <$> lexeme parsed <*> (symbol "|->" *> parsed)
 
 instance Plated Expr where
   plate _ EId = pure EId
@@ -172,6 +204,8 @@ instance Plated Expr where
   plate _ cv@(SumUniCoconeVar _) = pure cv
   plate _ sp@(SidePrep _) = pure sp
   plate _ su@(SideUnprep _) = pure su
+  plate f (ESketchInterp (SketchInterp name obs ars)) = ESketchInterp <$> (SketchInterp name <$> (each . _2) f obs <*> (each . _2) f ars)
+  plate f (InitInterp sk e) = InitInterp sk <$> f e
 
 -- Tuples are just shorthand for records.
 tupleToCone :: [Expr] -> Expr
@@ -266,6 +300,7 @@ pAtom =
     [ pSide,
       -- pCurry,
       pIfThenElse,
+      InitInterp <$> kwCall kwInitInterp <*> wrapped '(' ')' parsed,
       try pApp,
       pInterpolated,
       EPrim <$> parsed,
@@ -287,7 +322,8 @@ pAtom =
       ECoLim <$> pBracketedFields ':' Nothing,
       Distr <$> (single '@' *> parsed),
       EConst <$> kwCall kwConst,
-      Object <$> parsed
+      Object <$> parsed,
+      ESketchInterp <$> parsed
     ]
   where
     conePunner :: Maybe (ConeComponent -> Expr)

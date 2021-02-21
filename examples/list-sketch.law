@@ -1,0 +1,22 @@
+sketch ListSk over Base = {
+  ob List,
+  ar empty : {} --> List,
+  ar cons  : { head: Int, tail: List} --> {}
+}
+
+ar Base[ListSk] list123 : {} --> List =
+  empty
+  { head = ~3, tail = } cons
+  { head = ~2, tail = } cons
+  { head = ~1, tail = } cons
+
+ar Cart sum : Base[ListSk] --> Base =
+  sketch_interp ListSk {
+    ob List  |-> Int,
+    ar empty |-> 0,
+    ar cons  |-> .head + .tail
+  }
+
+ar Base six : {} --> Int = sum(list123)
+
+ar Base main : {} --> Int = init_interp(ListSk)(list123) from_init(sum)

@@ -41,6 +41,8 @@
               "over"
               "handling"
               "curry"
+              "uncurry"
+              "fix"
               "summing"
               "if"
               "then"

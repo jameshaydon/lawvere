@@ -1,6 +1,8 @@
 module Lawvere.Eval where
 
+--import Control.Arrow (Kleisli (..), loop)
 import Control.Lens
+import Control.Monad.Fix
 import Data.Bifunctor
 import Data.Generics.Labels ()
 import Data.List (foldr1, lookup)
@@ -93,6 +95,20 @@ evalAr tops = \case
             Nothing -> panic "bad EColim"
           g _ = panic "bad EColim"
   EConst e -> const (pure (VFun (evalAr tops e)))
+  Curry lbl e ->
+    let f = evalAr tops e
+     in \case
+          Rec r -> pure . VFun $ \v -> f (Rec (Map.insert lbl v r))
+          _ -> panic "bad curry"
+  UnCurry lbl e ->
+    let f = evalAr tops e
+     in \case
+          Rec r | Just v <- lkp lbl r -> do
+            res <- f (Rec (Map.delete lbl r))
+            case res of
+              VFun ff -> ff v
+              _ -> panic "bad uncurry"
+          _ -> panic "bad uncurry"
   Top i -> \v -> case Map.lookup (Lc i) tops of
     Just (TFun f) -> f v
     Just (TFreyd e) -> evalAr tops e v
@@ -155,7 +171,6 @@ evalAr tops = \case
            in evalAr (Map.fromList interpAs <> tops) e
         _ -> panic "bad efunapp"
       _ -> panic $ "bad efunapp: " <> render name <> " - " <> render e
-  -- Curry _ _ -> panic "curry"
   Object _ -> const (pure (VFun pure))
   CanonicalInj e -> evalAr tops (EFunApp (LcIdent "i") e)
   Side lab e -> tr ("before sidecar: " <> render lab) >=> applyInj (sidePrep (LNam lab)) >=> tr "after prep" >=> sidecar e >=> tr "after side" >=> applyInj (sideUnprep (LNam lab))
@@ -177,6 +192,11 @@ evalAr tops = \case
             v -> pure v
        in interp
     _ -> panic "bad from_init"
+  Fix lbl e ->
+    let recmkr = evalAr tops e
+     in \case
+          Rec r -> mfix $ \recVal -> recmkr (Rec (Map.insert lbl recVal r))
+          _ -> panic "bad fix"
   e ->
     let e' = desugar e
      in if e == e'
@@ -396,3 +416,6 @@ mkJS decls = do
     statements xs = Text.intercalate "\n" ((<> ";") <$> xs)
     jsPriv :: Text -> Text -> Text
     jsPriv x r = "(function(){\n" <> x <> " return " <> r <> ";})()"
+
+foo :: [Int] -> Int
+foo = fix (\f xs -> case xs of [] -> 0; _ : tail -> 1 + f tail)

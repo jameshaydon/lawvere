@@ -26,9 +26,9 @@ reserved name = lexeme $
     notFollowedBy (satisfy nonFirstIdentChar) <?> "end of " ++ toS name
 
 keywords :: Set Text
-keywords = Set.fromList ["ob", "ar", "interp", "const", "sketch", "over", "handling", "curry", "summing", "side", "if", "then", "else", "category", "effect_category", "effect", "interpret", "in", "sumUni", "sketch_interp", "init_interp"]
+keywords = Set.fromList ["ob", "ar", "interp", "const", "sketch", "over", "handling", "curry", "uncurry", "summing", "side", "if", "then", "else", "category", "effect_category", "effect", "interpret", "in", "sumUni", "sketch_interp", "init_interp", "fix"]
 
-kwOb, kwAr, kwInterp, kwConst, kwSketch, kwOver, kwHandling, kwCurry, kwSumming, kwSide, kwIf, kwThen, kwElse, kwI, kwCat, kwEffcat, kwEffect, kwEffInterp, kwIn, kwSumUni, kwSketchInterp, kwInitInterp, kwFromInit :: Parser ()
+kwOb, kwAr, kwInterp, kwConst, kwSketch, kwOver, kwHandling, kwCurry, kwUncurry, kwSumming, kwSide, kwIf, kwThen, kwElse, kwI, kwCat, kwEffcat, kwEffect, kwEffInterp, kwIn, kwSumUni, kwSketchInterp, kwInitInterp, kwFromInit, kwFix :: Parser ()
 kwOb = reserved "ob"
 kwAr = reserved "ar"
 kwInterp = reserved "interp"
@@ -52,6 +52,8 @@ kwSumUni = reserved "sumUni"
 kwSketchInterp = reserved "sketch_interp"
 kwInitInterp = reserved "init_interp"
 kwFromInit = reserved "from_init"
+kwFix = reserved "fix"
+kwUncurry = reserved "uncurry"
 
 nonFirstIdentChar :: Char -> Bool
 nonFirstIdentChar c = Char.isAlphaNum c || c `elem` identSpecials

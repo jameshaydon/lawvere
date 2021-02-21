@@ -1,0 +1,12 @@
+ob Base ListI = [ empty: {}, cons: { head: Int, tail: ListI }]
+
+ar length : ListI --> Int =
+  {xs = }
+  uncurry.xs(
+    fix.f(
+      curry.xs(
+        @xs
+        [ empty = 0,
+          cons  = 1 + (.f $ .xs .tail) ])))
+
+ar main : {} --> Int = #(1, 2, 3) length

@@ -237,7 +237,7 @@ dev' = do
   --runFile False Hask "examples/list.law"
   -- runFile Hask "examples/freyd-state.law"
   --runFile False Hask "examples/partial-state.law"
-  runFile False Hask "examples/list-sketch.law"
+  runFile False Hask "examples/list-trace.law"
 
 dev :: IO ()
 dev = dev' `catch` (\(FatalError err) -> putStrLn err)

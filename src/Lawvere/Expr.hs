@@ -150,6 +150,10 @@ data Expr
   | ESketchInterp SketchInterp
   | InitInterp UcIdent Expr
   | FromInit LcIdent UcIdent
+  | Curry Label Expr
+  | UnCurry Label Expr
+  | Fix Label Expr
+  | EApp Expr Expr
   deriving stock (Show, Eq)
 
 data SketchInterp = SketchInterp
@@ -208,6 +212,10 @@ instance Plated Expr where
   plate f (ESketchInterp (SketchInterp name obs ars)) = ESketchInterp <$> (SketchInterp name <$> (each . _2) f obs <*> (each . _2) f ars)
   plate f (InitInterp sk e) = InitInterp sk <$> f e
   plate _ fi@FromInit {} = pure fi
+  plate f (Curry lbl e) = Curry lbl <$> f e
+  plate f (UnCurry lbl e) = UnCurry lbl <$> f e
+  plate f (Fix lbl e) = Fix lbl <$> f e
+  plate f (EApp g e) = EApp <$> f g <*> f e
 
 -- Tuples are just shorthand for records.
 tupleToCone :: [Expr] -> Expr
@@ -296,11 +304,21 @@ pIfThenElse = do
 pCanInj :: Parser Expr
 pCanInj = CanonicalInj <$> (single '~' *> pAtom)
 
+pProdOp :: Parser () -> (Label -> Expr -> Expr) -> Parser Expr
+pProdOp kw combo = do
+  kw
+  _ <- single '.'
+  lbl <- parsed
+  e <- wrapped '(' ')' parsed
+  pure (combo lbl e)
+
 pAtom :: Parser Expr
 pAtom =
   choice
     [ pSide,
-      -- pCurry,
+      pProdOp kwCurry Curry,
+      pProdOp kwUncurry UnCurry,
+      pProdOp kwFix Fix,
       pIfThenElse,
       InitInterp <$> kwCall kwInitInterp <*> wrapped '(' ')' parsed,
       FromInit <$> kwCall kwFromInit <*> wrapped '(' ')' parsed,
@@ -339,7 +357,8 @@ operatorTable :: [[Operator Parser Expr]]
 operatorTable =
   [ [numOp OpTimes "*"],
     [numOp OpMinus "-", numOp OpPlus "+"],
-    [compOp OpEq "==", compOp OpLte "<=", compOp OpLt "<", compOp OpGte ">=", compOp OpGt ">"]
+    [compOp OpEq "==", compOp OpLte "<=", compOp OpLt "<", compOp OpGte ">=", compOp OpGt ">"],
+    [InfixR (EApp <$ lexChar '$')]
   ]
   where
     infixR o t = InfixR (BinOp o <$ symbol t)
@@ -406,6 +425,7 @@ desugar = \case
               ISExpr f -> f
           )
           e
+  EApp e e' -> binPrim (Pfn PrimApp) e e'
   e -> e
 
 binPrim :: Prim -> Expr -> Expr -> Expr

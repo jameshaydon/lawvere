@@ -10,3 +10,4 @@
 --restart=examples/product.law
 --restart=examples/io.law
 --restart=examples/list-sketch.law
+--restart=examples/list-trace.law

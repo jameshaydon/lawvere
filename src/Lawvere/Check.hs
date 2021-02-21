@@ -469,6 +469,7 @@ check (a@(TFunApp _ _), b) f = do
   check (a', b) f
 check _ (EFunApp _ _) = warning "Functor applications are not checked yet."
 check _ (InitInterp _ _) = warning "Initial interpretations are not checked yet."
+check _ (FromInit _ _) = warning "Initial interpretations are not checked yet."
 check _ (ESketchInterp _) = warning "Sketch interpretations are not checked yet."
 check (a, b) f =
   let f' = desugar f

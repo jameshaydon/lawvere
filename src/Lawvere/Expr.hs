@@ -149,6 +149,7 @@ data Expr
   | SumUniCoconeVar LcIdent
   | ESketchInterp SketchInterp
   | InitInterp UcIdent Expr
+  | FromInit LcIdent UcIdent
   deriving stock (Show, Eq)
 
 data SketchInterp = SketchInterp
@@ -206,6 +207,7 @@ instance Plated Expr where
   plate _ su@(SideUnprep _) = pure su
   plate f (ESketchInterp (SketchInterp name obs ars)) = ESketchInterp <$> (SketchInterp name <$> (each . _2) f obs <*> (each . _2) f ars)
   plate f (InitInterp sk e) = InitInterp sk <$> f e
+  plate _ fi@FromInit {} = pure fi
 
 -- Tuples are just shorthand for records.
 tupleToCone :: [Expr] -> Expr
@@ -301,6 +303,7 @@ pAtom =
       -- pCurry,
       pIfThenElse,
       InitInterp <$> kwCall kwInitInterp <*> wrapped '(' ')' parsed,
+      FromInit <$> kwCall kwFromInit <*> wrapped '(' ')' parsed,
       try pApp,
       pInterpolated,
       EPrim <$> parsed,

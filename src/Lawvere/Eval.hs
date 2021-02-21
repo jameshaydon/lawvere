@@ -134,21 +134,6 @@ evalAr tops = \case
           <> tops
       )
       e
-  EFunApp "from_init" (Top name) -> case Map.lookup (Lc name) tops of
-    Just (TExpr e) -> evalAr tops (EFunApp "from_init" e)
-    _ -> panic "bad efun app"
-  EFunApp "from_init" (ESketchInterp sketchInterp) ->
-    let skName = getUcIdent (sketchInterp ^. #sketchName)
-        interpAs = [(LcIdent (skName <> "." <> getLcIdent arName), evalAr tops arExpr) | (arName, arExpr) <- sketchInterp ^. #ars]
-        interp = \case
-          Tag (LNam i) v
-            | Just combi <-
-                lookup i interpAs -> do
-              v' <- interp v
-              combi v'
-          Rec r -> Rec <$> traverse interp r
-          v -> pure v
-     in interp
   EFunApp name e ->
     case Map.lookup (Lc name) tops of
       Just (TFun ff) -> \x -> do
@@ -178,6 +163,20 @@ evalAr tops = \case
   SumUniCoconeVar _ -> panic "cocone var remains"
   SidePrep lab -> sidePrep lab
   SideUnprep lab -> sideUnprep lab
+  FromInit name _ob -> case Map.lookup (Lc name) tops of
+    Just (TExpr (ESketchInterp sketchInterp)) ->
+      let skName = getUcIdent (sketchInterp ^. #sketchName)
+          interpAs = [(LcIdent (skName <> "." <> getLcIdent arName), evalAr tops arExpr) | (arName, arExpr) <- sketchInterp ^. #ars]
+          interp = \case
+            Tag (LNam i) v
+              | Just combi <-
+                  lookup i interpAs -> do
+                v' <- interp v
+                combi v'
+            Rec r -> Rec <$> traverse interp r
+            v -> pure v
+       in interp
+    _ -> panic "bad from_init"
   e ->
     let e' = desugar e
      in if e == e'

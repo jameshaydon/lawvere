@@ -19,4 +19,4 @@ ar Cart sum : Base[ListSk] --> Base =
 
 ar Base six : {} --> Int = sum(list123)
 
-ar Base main : {} --> Int = init_interp(ListSk)(list123) from_init(sum)
+ar Base main : {} --> Int = init_interp(ListSk)(list123) from_init(sum)(List)

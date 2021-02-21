@@ -28,7 +28,7 @@ reserved name = lexeme $
 keywords :: Set Text
 keywords = Set.fromList ["ob", "ar", "interp", "const", "sketch", "over", "handling", "curry", "summing", "side", "if", "then", "else", "category", "effect_category", "effect", "interpret", "in", "sumUni", "sketch_interp", "init_interp"]
 
-kwOb, kwAr, kwInterp, kwConst, kwSketch, kwOver, kwHandling, kwCurry, kwSumming, kwSide, kwIf, kwThen, kwElse, kwI, kwCat, kwEffcat, kwEffect, kwEffInterp, kwIn, kwSumUni, kwSketchInterp, kwInitInterp :: Parser ()
+kwOb, kwAr, kwInterp, kwConst, kwSketch, kwOver, kwHandling, kwCurry, kwSumming, kwSide, kwIf, kwThen, kwElse, kwI, kwCat, kwEffcat, kwEffect, kwEffInterp, kwIn, kwSumUni, kwSketchInterp, kwInitInterp, kwFromInit :: Parser ()
 kwOb = reserved "ob"
 kwAr = reserved "ar"
 kwInterp = reserved "interp"
@@ -51,6 +51,7 @@ kwIn = reserved "in"
 kwSumUni = reserved "sumUni"
 kwSketchInterp = reserved "sketch_interp"
 kwInitInterp = reserved "init_interp"
+kwFromInit = reserved "from_init"
 
 nonFirstIdentChar :: Char -> Bool
 nonFirstIdentChar c = Char.isAlphaNum c || c `elem` identSpecials

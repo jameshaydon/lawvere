@@ -308,8 +308,8 @@ pProdOp :: Parser () -> (Label -> Expr -> Expr) -> Parser Expr
 pProdOp kw combo = do
   kw
   _ <- single '.'
-  lbl <- parsed
-  e <- wrapped '(' ')' parsed
+  lbl <- lexeme parsed
+  e <- wrapped '{' '}' parsed
   pure (combo lbl e)
 
 pAtom :: Parser Expr
@@ -397,13 +397,15 @@ instance Disp Expr where
     CoCone ps -> commaBracket '=' ps
     ECoLim ps -> commaBracket ':' ps
     Tuple ps -> dispTup ps
-    -- Curry lab f -> "curry" <+> disp lab <+> disp f
     Side lab f -> "!" <> disp lab <> braces (disp f)
     InterpolatedString ps -> dquotes (foldMap go ps)
       where
         go (ISRaw t) = pretty t
         go (ISExpr e) = braces (disp e)
     BinOp o x y -> parens (disp x <+> disp o <+> disp y)
+    Curry lbl e -> "curry." <> disp lbl <> parens (disp e)
+    UnCurry lbl e -> "uncurry." <> disp lbl <> parens (disp e)
+    Fix lbl e -> "fix." <> disp lbl <> parens (disp e)
     _ -> "TODO"
 
 desugar :: Expr -> Expr

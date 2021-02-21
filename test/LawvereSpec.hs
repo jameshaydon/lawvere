@@ -54,6 +54,7 @@ spec = describe "Examples work" $ do
        \    value =\n\
        \      (cons. { head = 0, tail = (cons. { head = 1, tail = (empty. {=}) }) }) })"
   "list-sketch" ~> "6"
+  "list-trace" ~> "3"
   where
     fp ~> res = mainWorksSpec ("examples/" <> fp <> ".law") res
 

@@ -78,6 +78,7 @@ data Err
   | CeCantCheck Ob Ob Expr
   | CeCantApplyFunctor Expr Ob
   | CeEff
+  | CeUnCurryMissing Label [(Label, Ob)]
   deriving stock (Show)
 
 instance Disp Err where
@@ -471,6 +472,11 @@ check _ (EFunApp _ _) = warning "Functor applications are not checked yet."
 check _ (InitInterp _ _) = warning "Initial interpretations are not checked yet."
 check _ (FromInit _ _) = warning "Initial interpretations are not checked yet."
 check _ (ESketchInterp _) = warning "Sketch interpretations are not checked yet."
+check (Lim diag, b) (UnCurry lbl f) = case lookup lbl diag of
+  Just a -> check (Lim (filter ((== lbl) . fst) diag), a :=> b) f
+  _ -> throwError (CeUnCurryMissing lbl diag)
+check (Lim diag, a :=> b) (Curry lbl f) = check (Lim ((lbl, a) : diag), b) f
+check (Lim diag, b) (Fix lbl f) = check (Lim ((lbl, b) : diag), b) f
 check (a, b) f =
   let f' = desugar f
    in if f == f'

@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: d9c22b1e14e5340eb87e2e1d86dfae492055b8c28080f0f6fe73f3530bd6222b
+-- hash: 199325d2d1bf9d299f99a020e796eae10d55e883ffc0736bd7705a7f160127d0
 
 name:           lawvere
 version:        0.1.0.0
@@ -30,9 +30,13 @@ data-files:
     examples/if.law
     examples/interpolation.law
     examples/io.law
+    examples/javascript.law
     examples/list-old.law
     examples/list-simple.law
+    examples/list-sketch.law
+    examples/list-trace.law
     examples/list.law
+    examples/naturals.law
     examples/partial-state.law
     examples/partial-state.law.old
     examples/points.law

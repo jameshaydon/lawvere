@@ -1,0 +1,12 @@
+ob Base Nat = [ zero: {}, succ: Nat ]
+
+ar natPlus : { x: Nat, y: Nat } --> Nat =
+  @x [ zero = .y,
+       succ = { x = .x, y = .y } natPlus succ. ]
+
+ar two : {} --> Nat = zero. succ. succ.
+
+ar three : {} --> Nat = zero. succ. succ. succ.
+
+ar main : {} --> Nat = { x = two, y = three } natPlus
+  

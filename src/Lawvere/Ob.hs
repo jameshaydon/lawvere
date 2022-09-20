@@ -18,8 +18,8 @@ instance Disp MetaVar where
 
 type DiscDiag = [(Label, Ob)]
 
-data OPrim = TInt | TFloat | TString | TBase
-  deriving stock (Eq, Show, Generic)
+data OPrim = TInt | TFloat | TString | TBase | TLine | TTime | TMicro
+  deriving stock (Eq, Ord, Show, Generic)
 
 instance Disp OPrim where
   disp p = pretty $ drop 1 (show p :: [Char])

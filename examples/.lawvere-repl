@@ -1,0 +1,100 @@
+:q
+count
+:r
+count
+:r
+count
+:r
+count
+:r
+count
+:r
+count
+:r
+count
+:r
+count
+:q
+count
+:q
+count
+:q
+count
+:q
+count
+:q
+count
+:q
+count
+:q
+count
+:q
+count
+:q
+count
+:q
+count
+:q
+count
+:q
+:q
+count
+:q
+count
+:q
+count
+:q
+count
+:q
+:q
+count
+:q
+:Q
+count
+:r
+:r
+io(twoQuestions)
+:r
+io(twoQuestions)
+:r
+io(twoQuestions)
+twoQuestions 
+helloIO
+io(hello)
+:r
+io(hello)
+:r
+:r
+#(1, 2, 3) sum
+:r
+worldIsFlat not not not
+worldIsFlat not not
+worldIsFlat not
+true.
+false.
+:r
+"James" newPlayer score score score isPowerPlayer 
+"James" newPlayer score score isPowerPlayer 
+"James" newPlayer isPowerPlayer 
+"James" newPlayer
+2 bar
+0 bar
+:r
+100 (+ 1 < - 1)
+100 + 1 < 100 - 1
+100 - 1
+100 + 1
+99 ( + 1 < - 1)
+10 < 20
+0 (incr + incr)
+0 incr incr
+"james haydon"
+23 + 34
+42
+:q
+:q
+:q
+:q
+:q
+:q
+:q

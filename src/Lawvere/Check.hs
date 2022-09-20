@@ -24,6 +24,9 @@ prims decls =
           [ ("Base", OPrim TBase),
             ("Int", OPrim TInt),
             ("Float", OPrim TFloat),
+            ("Line", OPrim TLine),
+            ("Micro", OPrim TMicro),
+            ("Time", OPrim TTime),
             ("String", OPrim TString)
           ]
             ++ [(name, ob) | DOb _ name ob <- decls],
@@ -37,11 +40,13 @@ primScheme = \case
     PrimApp -> [va, vb] .: (OTuple [ta :=> tb, ta], tb)
     PrimIncr -> [] .: (OPrim TInt, OPrim TInt)
     PrimAbs -> [va] .: (ta, ta)
+    PrimCos -> [va] .: (ta, ta)
     PrimShow -> [va] .: (ta, OPrim TString)
     PrimConcat -> [] .: (OTuple [OPrim TString, OPrim TString], OPrim TString)
   PrimOp o -> case o of
     CompOp _ -> [va] .: (ta, tBool)
     NumOp _ -> [va] .: (OTuple [ta, ta], ta)
+    OpDiv -> [va] .: (OTuple [ta, ta], ta)
   where
     vs .: (a, b) = Scheme vs (Niche a b)
     va = MkVar 0
@@ -492,8 +497,12 @@ unify a (ONamed name) = do
   t <- getNamedOb name
   unify t a
 unify a@(OPrim p) b@(OPrim p')
-  | p == p' = pure ()
+  | p == p' || (ofLineType p && ofLineType p') = pure () -- TEMPORARY: SDG experiment.
   | otherwise = throwError (CeCantUnify a b)
+  where
+    ofLineType = (`elem` lineTypes)
+    lineTypes :: [OPrim]
+    lineTypes = [TLine, TTime, TMicro, TFloat]
 unify (OVar u) (OVar v) = do
   u' <- readMetaObVar u
   v' <- readMetaObVar v

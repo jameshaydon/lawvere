@@ -1,0 +1,100 @@
+:q
+main
+:r
+main
+:r
+main
+:q
+main
+:q
+:q
+:q
+main
+:r
+main
+six
+siz
+:q
+:q
+true.
+:q
+:q
+fourtyFive plus3 incr
+fourtyFive
+:r
+fourtyFive plus3
+fourtyFive 
+:r
+fourtyFive 
+:q
+:r
+:r
+main
+:r
+main
+:r
+#()
+main
+:r
+main
+:q
+2 < 5
+2 + 2
+2 + 2
+count
+:r
+count
+count
+{ x = false., y = false. } @x [ true = .y, false = {} false. ]
+{ x = false., y = false. } @x [ true = .y, false =  ]
+{ x = true., y = false. } @x [ true = .y, false =  ]
+{ x = true., y = false. } @x [ true = , false =  ]
+{ x = true., y = false. } @x [ true = "?1", false = "?2" ]
+{ x = true., y = false. } @x
+{ x = true., y = false. }
+2 (*****)
+2 (****)
+:q
+2 (*****)
+2 (*)
+2 (+)
+{ x = 2, y = 3 } baz
+:r
+:r
+:r
+count
+:r
+count
+:r
+count
+io(twoQuestions )
+:r
+io(hello)
+:r
+#(1, 2, 3) sum
+#(1, 2, 3, 4)
+exampleList
+{ x = true., y = false. } @x [ true = .y, false = .y not ]
+{ x = true., y = false. } @x
+{ x = true., y = false. } .x
+{ x = true., y = false. } .x [ true = 42, false = 100 ]
+{ x = true., y = false. } .x
+{ x = true., y = false. }
+{ x : true., y : false. }
+true. not not not
+true. not
+true.
+{ name = "james", points = 22 } .points
+{ name = "james", points = 22 } .name
+{ name = "james", points = 22 }
+10 ( + )
+10 (incr + incr)
+56 (identity + identity)
+identity
+23 34 56
+23 34
+23 incr incr incr
+23 incr
+23
+:q
+:q

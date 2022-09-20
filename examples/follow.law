@@ -1,0 +1,88 @@
+// We imagine the scenario of a car called `ego` following a car called `front`.
+// The road is just the affine line `R`.
+
+// - (1) `front` is assumed to always have non-negative velocity.
+// - (2) `front` starts from position 20.
+// - (3) `ego` starts from position 0.
+
+// Front car is travelling at a constant speed of 13 metres per second (~ 47
+// km/h). (Can change this, this is just to run the example. Anything that
+// doesn't violate assumption (1) is okay.)
+ar front : Time --> Line = * 13.0 + 20.0
+
+// We want to start stopping at this point.
+ar startStopping : {} --> Line = 100.0
+
+// We want to stop at this point.
+ar endStopping : {} --> Line = 110.0
+
+ar pi : {} --> Line = 3.141592653589793
+
+// This is the easing helper we will use. This is a function `R -> R` which has
+// the properties:
+// - on `[-∞, 0]` it takes value 0
+// - on `[1, ∞]` it takes value 1
+// - it "eases in and out" on `[0,1]`, that is,
+//   * it takes values between 0 and 1,
+//   * at 0 it is 0
+//   * at 1 it is 1
+//   * the derivative at 0 and 1 is 0
+// We take a particular one but anything with the above properties would do.
+ar ease : Line --> Line =
+  0.0 - ((* {} pi) cos - 1.0) / 2.0
+
+// Scale the easing function in various ways.
+// TODO: likely got this wrong.
+ar easeFromTo : { start: Line,
+                  end: Line,
+                  from: Line,
+                  to: Line,
+                  on: Line } --> Line =
+  (.on * (.end - .start) - .start) ease * (.to - .from) + .from
+
+// Control of our car.
+//
+// Given current position (of ego) and velocity of front car, what velocity
+// should take right now.
+//
+// Basically we do:
+// - match front car's velocity before `startStopping`,
+// - then slowly transition from front cars velocity to velocity 0,
+// - until we reach `endStopping`.
+ar ctrl : { currentPosition: Line, frontVelocity: Line } --> Line =
+  { start = {} startStopping,
+    end = {} endStopping,
+    from = .frontVelocity,
+    to = 0.0,
+    on = .currentPosition
+  } easeFromTo
+
+// The trajectory of ego:
+ar ego : Time --> Line =
+  integrate(0.0, { currentPosition = ego, frontVelocity = deriv(front) } ctrl)
+
+// The trajectory of ego, v2.
+
+// The idea here is that you can abstractly declare things and equalities about them.
+
+ar ego : Time --> Line
+
+ar plusRightMicro : (Time, Micro) --> (Time, Time) --> Time =
+  (.1 , micro) plusTime
+
+ax egoStartsAtZero : Eq( {} --> Line ) :
+  zeroTime ego
+  =
+  zeroLine
+
+ax egoDiff : Eq( (Time, Micro) -> Line ) :
+  plusRightMicro ego
+  =
+  (.1 ego, (.2, {currentPosition = .1 ego, frontVelocity = .1 fV} ctrl) multLine) plusLine
+
+thm : 
+
+ar main : Time --> Line = ego
+
+
+<=pair

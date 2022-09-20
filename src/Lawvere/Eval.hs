@@ -197,6 +197,7 @@ evalAr tops = \case
      in \case
           Rec r -> mfix $ \recVal -> recmkr (Rec (Map.insert lbl recVal r))
           _ -> panic "bad fix"
+  EIntegrate _ _ -> panic "eval: no integrate"
   e ->
     let e' = desugar e
      in if e == e'
@@ -317,6 +318,10 @@ evalPrim = \case
         Sca (Int x) -> pure (Sca (Int (abs x)))
         Sca (Float x) -> pure (Sca (Float (abs x)))
         _ -> panic "bad abs"
+    PrimCos ->
+      \case
+        Sca (Float x) -> pure (Sca (Float (cos x)))
+        _ -> panic "bad cos"
     PrimShow -> pure . Sca . Str . render
     PrimConcat -> scaBinFn $ \x y -> case (x, y) of
       (Str a, Str b) -> Sca (Str (a <> b))

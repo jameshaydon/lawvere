@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 199325d2d1bf9d299f99a020e796eae10d55e883ffc0736bd7705a7f160127d0
+-- hash: 37d1f317d39154ffe316ef8c6c06d28c80532b848e24532da3544a67f64f7504
 
 name:           lawvere
 version:        0.1.0.0
@@ -24,6 +24,7 @@ data-files:
     examples/basic.js
     examples/basic.law
     examples/bool.law
+    examples/follow.law
     examples/freyd-state.law.old
     examples/greet.law
     examples/hello.law
@@ -61,11 +62,13 @@ library
       Lawvere.Eval
       Lawvere.Expr
       Lawvere.File
+      Lawvere.FRP
       Lawvere.Instruction
       Lawvere.Literate
       Lawvere.Ob
       Lawvere.Parse
       Lawvere.Scalar
+      Lawvere.SDG
       Lawvere.Sketch
   other-modules:
       Paths_lawvere
@@ -113,10 +116,12 @@ library
       aeson
     , ansi-terminal
     , base >=4.7 && <5
+    , bearriver
     , bytestring
     , commonmark
     , commonmark-pandoc
     , containers
+    , dunai
     , generic-lens
     , haskeline
     , lens
@@ -127,6 +132,7 @@ library
     , prettyprinter
     , prettyprinter-ansi-terminal
     , protolude
+    , sdl2
     , terminal-size
     , text
     , transformers
@@ -180,10 +186,12 @@ executable bill
       aeson
     , ansi-terminal
     , base >=4.7 && <5
+    , bearriver
     , bytestring
     , commonmark
     , commonmark-pandoc
     , containers
+    , dunai
     , generic-lens
     , haskeline
     , lawvere
@@ -195,6 +203,7 @@ executable bill
     , prettyprinter
     , prettyprinter-ansi-terminal
     , protolude
+    , sdl2
     , terminal-size
     , text
     , transformers
@@ -250,10 +259,12 @@ test-suite lawvere-test
       aeson
     , ansi-terminal
     , base >=4.7 && <5
+    , bearriver
     , bytestring
     , commonmark
     , commonmark-pandoc
     , containers
+    , dunai
     , generic-lens
     , haskeline
     , hspec
@@ -267,6 +278,7 @@ test-suite lawvere-test
     , prettyprinter
     , prettyprinter-ansi-terminal
     , protolude
+    , sdl2
     , terminal-size
     , text
     , transformers

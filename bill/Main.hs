@@ -1,4 +1,4 @@
-module Main (main, dev) where
+module Main where
 
 import Control.Lens
 import Control.Monad.Trans.Except
@@ -9,9 +9,11 @@ import Lawvere.Core
 import Lawvere.Decl
 import Lawvere.Disp
 import Lawvere.Eval
+import qualified Lawvere.FRP as FRP
 import Lawvere.File
 import qualified Lawvere.Instruction as Machine
 import Lawvere.Parse hiding (Parser)
+import qualified Lawvere.SDG as SDG
 import Options.Applicative
 import Protolude hiding (empty, option)
 import System.Console.Haskeline
@@ -29,6 +31,7 @@ data Target
   | Hask
   | VmCode
   | Vm
+  | SDG
   deriving stock (Eq, Show)
 
 loadFile :: (MonadIO m) => Bool -> Target -> FilePath -> ExceptT Text m [Decl]
@@ -54,10 +57,9 @@ sayHask target t = when (target `elem` [Hask, Vm]) (say t)
 runFile :: Bool -> Target -> FilePath -> IO ()
 runFile warnings target filepath = handleErr $ do
   prog <- loadFile warnings target filepath
-  let inp = Rec mempty
   case target of
     Hask -> do
-      v <- liftIO $ evalMain inp prog
+      v <- liftIO $ evalMain (Rec mempty) prog
       say ""
       liftIO (renderTerm v) >>= say
     JS -> liftIO (mkJS prog) >>= say
@@ -65,6 +67,10 @@ runFile warnings target filepath = handleErr $ do
     Vm -> do
       say "Running on categorical machine.."
       say $ "Result: " <> render (Machine.runProg (Machine.MRec mempty) prog)
+    SDG -> do
+      say "Running in SDG.."
+      let res = take 10 (SDG.evalProg prog)
+      say (show (render <$> res))
   where
     handleErr m =
       runExceptT m >>= \case
@@ -208,7 +214,10 @@ optsParser =
       _ -> Nothing
 
 main :: IO ()
-main = do
+main = FRP.main
+
+mainold :: IO ()
+mainold = do
   Opts {..} <- execParser opts
   sayHask target $
     "--------------\n"
@@ -237,7 +246,8 @@ dev' = do
   --runFile False Hask "examples/list.law"
   -- runFile Hask "examples/freyd-state.law"
   --runFile False Hask "examples/partial-state.law"
-  runFile False Hask "examples/list-trace.law"
+  --runFile False Hask "examples/list-trace.law"
+  runFile False SDG "examples/follow.law"
 
 dev :: IO ()
 dev = dev' `catch` (\(FatalError err) -> putStrLn err)

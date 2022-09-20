@@ -14,7 +14,7 @@ import Text.Megaparsec
 import qualified Text.Megaparsec.Char as Char
 import qualified Text.Megaparsec.Char.Lexer as L
 
-data PrimFn = PrimIdentity | PrimApp | PrimIncr | PrimAbs | PrimShow | PrimConcat
+data PrimFn = PrimIdentity | PrimApp | PrimIncr | PrimAbs | PrimShow | PrimConcat | PrimCos 
   deriving stock (Eq, Ord, Show, Bounded, Enum)
 
 instance Disp PrimFn where
@@ -30,6 +30,7 @@ instance Disp Prim where
   disp = \case
     Pfn p -> disp p
     PrimOp o -> case o of
+      OpDiv -> "/"
       NumOp no -> case no of
         OpPlus -> "plus"
         OpMinus -> "minus"
@@ -79,7 +80,7 @@ instance Disp NumOp where
     OpPlus -> "+"
     OpMinus -> "-"
     OpTimes -> "*"
-
+    
 evNumOp :: (Num a) => NumOp -> a -> a -> a
 evNumOp OpPlus = (+)
 evNumOp OpMinus = (-)
@@ -96,7 +97,7 @@ instance Disp CompOp where
     OpGt -> ">"
     OpGte -> ">="
 
-data BinOp = NumOp NumOp | CompOp CompOp
+data BinOp = NumOp NumOp | CompOp CompOp | OpDiv
   deriving stock (Eq, Ord, Show)
 
 instance Fin BinOp where
@@ -105,8 +106,10 @@ instance Fin BinOp where
 instance Disp BinOp where
   disp (NumOp o) = disp o
   disp (CompOp o) = disp o
+  disp OpDiv = "/"
 
 binOp :: (Sca -> p) -> (Bool -> p) -> BinOp -> Sca -> Sca -> p
+binOp sca _ OpDiv (Float x) (Float y) = sca (Float (x / y))
 binOp sca _ (NumOp o) (Int x) (Int y) = sca (Int (evNumOp o x y))
 binOp sca _ (NumOp o) (Float x) (Float y) = sca (Float (evNumOp o x y))
 binOp _ tf (CompOp o) (Int x) (Int y) = tf $ compa o x y
@@ -154,6 +157,8 @@ data Expr
   | UnCurry Label Expr
   | Fix Label Expr
   | EApp Expr Expr
+  -- SDG
+  | EIntegrate Expr Expr
   deriving stock (Show, Eq)
 
 data SketchInterp = SketchInterp
@@ -216,6 +221,7 @@ instance Plated Expr where
   plate f (UnCurry lbl e) = UnCurry lbl <$> f e
   plate f (Fix lbl e) = Fix lbl <$> f e
   plate f (EApp g e) = EApp <$> f g <*> f e
+  plate f (EIntegrate a b) = EIntegrate <$> f a <*> f b
 
 -- Tuples are just shorthand for records.
 tupleToCone :: [Expr] -> Expr
@@ -320,6 +326,7 @@ pAtom =
       pProdOp kwUncurry UnCurry,
       pProdOp kwFix Fix,
       pIfThenElse,
+      uncurry EIntegrate <$> (chunk "integrate" *> wrapped '(' ')' ((,) <$> (parsed <* symbol ",") <*> parsed)),
       InitInterp <$> kwCall kwInitInterp <*> wrapped '(' ')' parsed,
       FromInit <$> kwCall kwFromInit <*> wrapped '(' ')' parsed,
       try pApp,
@@ -355,7 +362,7 @@ pAtom =
 
 operatorTable :: [[Operator Parser Expr]]
 operatorTable =
-  [ [numOp OpTimes "*"],
+  [ [numOp OpTimes "*", infixR OpDiv "/"],
     [numOp OpMinus "-", numOp OpPlus "+"],
     [compOp OpEq "==", compOp OpLte "<=", compOp OpLt "<", compOp OpGte ">=", compOp OpGt ">"],
     [InfixR (EApp <$ lexChar '$')]
@@ -406,7 +413,8 @@ instance Disp Expr where
     Curry lbl e -> "curry." <> disp lbl <> parens (disp e)
     UnCurry lbl e -> "uncurry." <> disp lbl <> parens (disp e)
     Fix lbl e -> "fix." <> disp lbl <> parens (disp e)
-    _ -> "TODO"
+    EIntegrate a b -> "integrate" <> parens (disp a <> comma <+> disp b)
+    e -> "disp TODO: " <> pretty (show e :: Text)
 
 desugar :: Expr -> Expr
 desugar = \case

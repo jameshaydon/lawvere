@@ -240,6 +240,11 @@ exec instr = case instr of
             MSca (Int x') -> #current .= MSca (Int (abs x'))
             MSca (Float x') -> #current .= MSca (Float (abs x'))
             _ -> panic "bad abs"
+        PrimCos -> do
+          x <- use #current
+          case x of
+            MSca (Float x') -> #current .= MSca (Float (cos x'))
+            _ -> panic "bad cos"
         PrimShow -> #current %= MSca . Str . render
       PrimOp o -> scaBinFn (binOp MSca boolToVal o)
   where

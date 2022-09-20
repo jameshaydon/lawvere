@@ -34,3 +34,6 @@ sketching and adequacy https://arxiv.org/pdf/2012.10783.pdf
 - In Search of Effectful Dependent Types https://arxiv.org/pdf/1706.07997.pdf
 
 - Cartesian effect categories are Freyd-categories https://hal.archives-ouvertes.fr/hal-00369328v3/document
+
+
+- some categorical langs with lambdas http://www.kurims.kyoto-u.ac.jp/~hassei/papers/ctcs95.pdf

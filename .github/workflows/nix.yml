@@ -28,7 +28,7 @@ jobs:
           extra_nix_config: |
             log-lines = 1000
 
-      - uses: cachix/cachix-action@v8
+      - uses: cachix/cachix-action@v12
         with:
           name: lawvere
           authToken: "${{ secrets.CACHIX_AUTH_TOKEN }}"

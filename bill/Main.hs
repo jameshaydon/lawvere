@@ -13,7 +13,7 @@ import Lawvere.File
 import qualified Lawvere.Instruction as Machine
 import Lawvere.Parse hiding (Parser)
 import Options.Applicative
-import Protolude hiding (empty, option)
+import Protolude hiding (empty)
 import System.Console.Haskeline
 import qualified Text.Megaparsec as Mega
 import Prelude (String)

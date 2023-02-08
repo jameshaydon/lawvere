@@ -1,6 +1,5 @@
 module Lawvere.File where
 
-import Data.List (isSuffixOf)
 import Lawvere.Decl
 import Lawvere.Literate
 import Lawvere.Parse

@@ -108,7 +108,7 @@ library
       TypeApplications
       TypeOperators
       ViewPatterns
-  ghc-options: -Weverything -Werror -Wno-missing-exported-signatures -Wno-missing-import-lists -Wno-missed-specialisations -Wno-all-missed-specialisations -Wno-unsafe -Wno-safe -Wno-missing-local-signatures -Wno-monomorphism-restriction -Wno-missing-export-lists -Wno-missing-safe-haskell-mode -Wno-prepositive-qualified-module -Wno-unused-packages
+  ghc-options: -Weverything -Werror -Wno-missing-exported-signatures -Wno-missing-kind-signatures -Wno-missing-import-lists -Wno-missed-specialisations -Wno-all-missed-specialisations -Wno-unsafe -Wno-safe -Wno-missing-local-signatures -Wno-monomorphism-restriction -Wno-missing-export-lists -Wno-missing-safe-haskell-mode -Wno-prepositive-qualified-module -Wno-unused-packages
   build-depends:
       aeson
     , ansi-terminal
@@ -175,7 +175,7 @@ executable bill
       TypeApplications
       TypeOperators
       ViewPatterns
-  ghc-options: -Weverything -Werror -Wno-missing-exported-signatures -Wno-missing-import-lists -Wno-missed-specialisations -Wno-all-missed-specialisations -Wno-unsafe -Wno-safe -Wno-missing-local-signatures -Wno-monomorphism-restriction -Wno-missing-export-lists -Wno-missing-safe-haskell-mode -Wno-prepositive-qualified-module -Wno-unused-packages -threaded -rtsopts -with-rtsopts=-N
+  ghc-options: -Weverything -Werror -Wno-missing-exported-signatures -Wno-missing-kind-signatures -Wno-missing-import-lists -Wno-missed-specialisations -Wno-all-missed-specialisations -Wno-unsafe -Wno-safe -Wno-missing-local-signatures -Wno-monomorphism-restriction -Wno-missing-export-lists -Wno-missing-safe-haskell-mode -Wno-prepositive-qualified-module -Wno-unused-packages
   build-depends:
       aeson
     , ansi-terminal
@@ -245,7 +245,7 @@ test-suite lawvere-test
       TypeApplications
       TypeOperators
       ViewPatterns
-  ghc-options: -Weverything -Werror -Wno-missing-exported-signatures -Wno-missing-import-lists -Wno-missed-specialisations -Wno-all-missed-specialisations -Wno-unsafe -Wno-safe -Wno-missing-local-signatures -Wno-monomorphism-restriction -Wno-missing-export-lists -Wno-missing-safe-haskell-mode -Wno-prepositive-qualified-module -Wno-unused-packages -threaded -rtsopts -with-rtsopts=-N
+  ghc-options: -Weverything -Werror -Wno-missing-exported-signatures -Wno-missing-kind-signatures -Wno-missing-import-lists -Wno-missed-specialisations -Wno-all-missed-specialisations -Wno-unsafe -Wno-safe -Wno-missing-local-signatures -Wno-monomorphism-restriction -Wno-missing-export-lists -Wno-missing-safe-haskell-mode -Wno-prepositive-qualified-module -Wno-unused-packages
   build-depends:
       aeson
     , ansi-terminal

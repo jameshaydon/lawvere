@@ -128,3 +128,7 @@ ghc-options:
   - -Wno-missing-safe-haskell-mode
   - -Wno-prepositive-qualified-module
   - -Wno-unused-packages
+
+when:
+  - condition: impl(ghc >= 9.8)
+    ghc-options: -Wno-missing-role-annotations

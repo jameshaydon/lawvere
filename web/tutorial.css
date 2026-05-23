@@ -1,0 +1,168 @@
+:root {
+  --bg:        #faf6ec;
+  --bg-panel:  #fffdf5;
+  --ink:       #2b2118;
+  --ink-soft:  #4a3c2f;
+  --muted:     #6b5d4d;
+  --rule:      #c9b88a;
+  --accent:    #8a1c1c;
+  --accent-soft: #b54848;
+  --quote-bg:  #f3ecd4;
+  --code-bg:   rgba(120, 80, 40, 0.07);
+}
+
+* { box-sizing: border-box; }
+
+html, body { margin: 0; padding: 0; }
+
+body {
+  padding: 2rem 1.25rem 4rem;
+  font-family: "EB Garamond", "Iowan Old Style", Georgia, serif;
+  font-size: 19px;
+  line-height: 1.65;
+  color: var(--ink);
+  background: var(--bg);
+  background-image:
+    radial-gradient(ellipse at 18% 8%, rgba(170,130,80,0.06), transparent 55%),
+    radial-gradient(ellipse at 82% 92%, rgba(170,130,80,0.06), transparent 55%);
+}
+
+#top-banner {
+  max-width: 820px;
+  margin: 0 auto 1.5rem;
+  text-align: center;
+  padding-bottom: 0.6rem;
+  border-bottom: 1px double var(--rule);
+}
+#top-banner h1 {
+  margin: 0;
+  font-weight: 500;
+  font-size: 2.2rem;
+  font-variant: small-caps;
+  letter-spacing: 0.08em;
+  color: var(--accent);
+}
+#top-banner p { margin: 0.2rem 0 0; color: var(--muted); font-style: italic; }
+#top-banner a { color: var(--accent); }
+#top-banner .ornament {
+  color: var(--rule);
+  letter-spacing: 0.4em;
+  margin-top: 0.4rem;
+}
+
+body > h1, body > h2, body > h3, body > h4, body > h5,
+body > p, body > ul, body > ol, body > blockquote, body > pre,
+body > div, body > nav, body > section, body > table, body > hr,
+header.title-block-header {
+  max-width: 820px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+h1, h2, h3, h4 {
+  font-weight: 500;
+  color: var(--accent);
+  letter-spacing: 0.02em;
+}
+h1 { font-variant: small-caps; }
+h2 {
+  margin-top: 2.2rem;
+  padding-bottom: 0.2rem;
+  border-bottom: 1px solid var(--rule);
+}
+h3 { margin-top: 1.6rem; }
+
+a {
+  color: var(--accent);
+  text-decoration: none;
+  border-bottom: 1px dotted var(--accent-soft);
+}
+a:hover { color: var(--accent-soft); border-bottom-style: solid; }
+
+p, li { font-feature-settings: "liga", "kern"; }
+
+code, pre, kbd, samp {
+  font-family: "JetBrains Mono", "Iosevka", Menlo, monospace;
+  font-size: 0.88em;
+}
+
+code {
+  background: var(--code-bg);
+  padding: 0.08em 0.35em;
+  border-radius: 2px;
+}
+
+pre {
+  background: var(--bg-panel);
+  border: 1px solid var(--rule);
+  border-left: 3px solid var(--accent-soft);
+  border-radius: 0 3px 3px 0;
+  padding: 0.9rem 1.1rem;
+  overflow-x: auto;
+  box-shadow: inset 0 0 22px rgba(120, 80, 40, 0.05);
+  font-size: 0.92em;
+  line-height: 1.45;
+}
+pre code {
+  background: none;
+  padding: 0;
+  border-radius: 0;
+  color: var(--ink);
+}
+
+blockquote {
+  border-left: 3px solid var(--accent-soft);
+  background: var(--quote-bg);
+  margin: 1rem 0;
+  padding: 0.5rem 1rem;
+  color: var(--ink-soft);
+  font-style: italic;
+}
+
+hr {
+  border: 0;
+  border-top: 1px double var(--rule);
+  margin: 2rem 0;
+}
+
+table {
+  border-collapse: collapse;
+  margin: 1rem 0;
+}
+th, td {
+  border: 1px solid var(--rule);
+  padding: 0.35rem 0.8rem;
+}
+th { background: var(--quote-bg); }
+
+/* pandoc TOC */
+#TOC, nav#TOC {
+  background: var(--bg-panel);
+  border: 1px solid var(--rule);
+  padding: 0.8rem 1.2rem 0.8rem 2.4rem;
+  margin: 1.2rem auto;
+  border-radius: 3px;
+  font-size: 0.95em;
+}
+#TOC ul { margin: 0.25rem 0; padding-left: 1.3rem; }
+#TOC li { margin: 0.1rem 0; }
+
+/* pandoc title block */
+header.title-block-header { text-align: center; margin-bottom: 1.5rem; }
+header.title-block-header h1.title {
+  font-size: 2.4rem;
+  margin: 0;
+  color: var(--accent);
+  font-variant: small-caps;
+  letter-spacing: 0.06em;
+}
+
+img {
+  max-width: 100%;
+  height: auto;
+}
+
+/* lawvere code fences via pandoc */
+pre.lawvere, pre[data-lang="lawvere"] {
+  border-left-color: var(--accent);
+}

@@ -23,6 +23,16 @@ extra-source-files:
 # common to point users to the README.md file.
 description: Please see the README on GitHub at <https://github.com/jameshaydon/lawvere#readme>
 
+flags:
+  Web:
+    description: >
+      Build for the browser via the GHC WebAssembly backend. Selects the
+      bill-web executable (JSFFI REPL) instead of the native bill CLI, and
+      drops terminal-only deps (haskeline, ansi-terminal, terminal-size,
+      optparse-applicative) from the library.
+    default: false
+    manual: true
+
 dependencies:
   - base >= 4.7 && < 5
   - protolude
@@ -40,29 +50,57 @@ dependencies:
   - pandoc-types
   - commonmark
   - commonmark-pandoc
-  - optparse-applicative
-  - haskeline
-  - terminal-size
-  - ansi-terminal
 
 library:
   source-dirs: src
+  when:
+    - condition: flag(Web)
+      then:
+        cpp-options: -DUSE_WEB_BACKEND
+      else:
+        dependencies:
+          - terminal-size
+          - ansi-terminal
 
 executables:
   bill:
     main: Main.hs
     source-dirs: bill
+    when:
+      - condition: flag(Web)
+        buildable: false
     ghc-options:
       - -threaded
       - -rtsopts
       - -with-rtsopts=-N
     dependencies:
       - lawvere
+      - optparse-applicative
+      - haskeline
+
+  bill-web:
+    main: Main.hs
+    source-dirs: bill-web
+    when:
+      - condition: "!flag(Web)"
+        buildable: false
+    cpp-options: -DUSE_WEB_BACKEND
+    ghc-options:
+      - -no-hs-main
+      - -optl-mexec-model=reactor
+      - "-optl-Wl,--export=hs_init"
+      - "-optl-Wl,--export=hs_start"
+    dependencies:
+      - lawvere
+      - ghc-experimental
 
 tests:
   lawvere-test:
     main: Spec.hs
     source-dirs: test
+    when:
+      - condition: flag(Web)
+        buildable: false
     ghc-options:
       - -threaded
       - -rtsopts

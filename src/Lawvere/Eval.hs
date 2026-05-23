@@ -1,3 +1,5 @@
+{-# LANGUAGE CPP #-}
+
 module Lawvere.Eval where
 
 --import Control.Arrow (Kleisli (..), loop)
@@ -14,7 +16,9 @@ import Lawvere.Disp
 import Lawvere.Expr
 import Lawvere.Ob
 import Lawvere.Scalar
+#if !defined(USE_WEB_BACKEND)
 import Paths_lawvere
+#endif
 import Prettyprinter
 import Protolude hiding (to)
 
@@ -402,6 +406,9 @@ evalJS = \case
     labCombi f p = jsCall1 f (jsLabel p)
 
 mkJS :: Decls -> IO Text
+#if defined(USE_WEB_BACKEND)
+mkJS _ = pure "console.error('--target js is not available in the WebAssembly build');"
+#else
 mkJS decls = do
   jsPreludePath <- getDataFileName "js/lawvere.js"
   jsPrelude <- readFile jsPreludePath
@@ -416,6 +423,7 @@ mkJS decls = do
     statements xs = Text.intercalate "\n" ((<> ";") <$> xs)
     jsPriv :: Text -> Text -> Text
     jsPriv x r = "(function(){\n" <> x <> " return " <> r <> ";})()"
+#endif
 
 foo :: [Int] -> Int
 foo = fix (\f xs -> case xs of [] -> 0; _ : tail -> 1 + f tail)

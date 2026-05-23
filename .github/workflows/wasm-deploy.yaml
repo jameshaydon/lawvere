@@ -1,0 +1,81 @@
+name: WASM build and deploy
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  build-wasm:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup GHC WebAssembly toolchain
+        run: |
+          curl https://gitlab.haskell.org/haskell-wasm/ghc-wasm-meta/-/raw/master/bootstrap.sh | sh
+          source ${HOME}/.ghc-wasm/env
+          ${HOME}/.ghc-wasm/add_to_github_path.sh
+          wasm32-wasi-ghc --version
+          wasm32-wasi-cabal --version
+
+      - name: Cache Cabal packages
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.ghc-wasm/.cabal/packages
+            ~/.ghc-wasm/.cabal/store
+            dist-newstyle
+          key: ${{ runner.os }}-wasm-cabal-${{ hashFiles('**/*.cabal', '**/cabal.project') }}
+          restore-keys: |
+            ${{ runner.os }}-wasm-cabal-
+
+      - name: Build WebAssembly binary
+        run: |
+          wasm32-wasi-cabal update
+          scripts/build-wasm.sh
+
+      - name: Install Pandoc
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y pandoc
+          pandoc --version
+
+      - name: Build tutorial page
+        run: scripts/build-tutorial.sh
+
+      - name: Show deployment artifacts
+        run: |
+          echo "Artifacts in _site/:"
+          ls -lh _site/
+          echo ""
+          echo "wasm binary size: $(du -h _site/lawvere.wasm | cut -f1)"
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  deploy:
+    needs: build-wasm
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

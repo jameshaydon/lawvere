@@ -1,1 +1,23 @@
 packages: *.cabal
+
+-- Relax upper bounds on stable boot libraries so we can build against the
+-- GHC 9.14.1 wasm32-wasi toolchain (which ships base-4.22, etc.). This is
+-- intentionally broad; the native stack build uses lts-24.41 and is not
+-- affected by cabal.project.
+allow-newer:
+  *:base,
+  *:bytestring,
+  *:text,
+  *:containers,
+  *:template-haskell,
+  *:ghc-prim,
+  *:transformers,
+  *:mtl,
+  *:array,
+  *:deepseq,
+  *:time,
+  *:directory,
+  *:filepath,
+  *:process,
+  *:unix,
+  *:Win32

@@ -9,13 +9,16 @@ import qualified Text.Megaparsec as Mega
 parseFile :: (MonadIO m, MonadError Text m) => FilePath -> m [Decl]
 parseFile filepath = do
   t <- liftIO (readFile filepath)
+  parseSource filepath t
+
+parseSource :: (MonadError Text m) => FilePath -> Text -> m [Decl]
+parseSource filepath t = do
   source <-
     if ".md" `isSuffixOf` filepath
       then case litSource filepath t of
         Left err -> throwError err
         Right s -> pure s
       else pure t
-  let parseRes = Mega.parse (parsed <* Mega.eof) filepath source
-  case parseRes of
+  case Mega.parse (parsed <* Mega.eof) filepath source of
     Left err -> throwError . toS . Mega.errorBundlePretty $ err
     Right decls -> pure decls

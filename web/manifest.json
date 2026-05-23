@@ -1,0 +1,21 @@
+{
+  "name": "Lawvere — A categorical programming language",
+  "short_name": "Lawvere",
+  "description": "Browser-based interpreter for the Lawvere programming language, powered by WebAssembly.",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "theme_color": "#8a1c1c",
+  "background_color": "#faf6ec",
+  "icons": [
+    {
+      "src": "icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

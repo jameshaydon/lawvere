@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lawvere — A categorical programming language</title>
+  <link rel="icon" type="image/x-icon" href="favicon.ico">
+  <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#8a1c1c">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Lawvere — A categorical programming language">
+  <meta property="og:description" content="Browser-based interpreter for the Lawvere programming language, powered by WebAssembly.">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/xterm@5.3.0/css/xterm.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;0,700;1,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg:        #faf6ec;   /* parchment */
+      --bg-panel:  #fffdf5;   /* leaf */
+      --ink:       #2b2118;   /* iron-gall ink */
+      --ink-soft:  #4a3c2f;
+      --muted:     #6b5d4d;
+      --rule:      #c9b88a;   /* aged border */
+      --accent:    #8a1c1c;   /* vermillion */
+      --accent-soft: #b54848;
+      --quote-bg:  #f3ecd4;
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body { margin: 0; padding: 0; }
+
+    body {
+      padding: 2.5rem 1.5rem 1.5rem;
+      font-family: "EB Garamond", "Iowan Old Style", Georgia, serif;
+      font-size: 18px;
+      background: var(--bg);
+      color: var(--ink);
+      line-height: 1.55;
+      background-image:
+        radial-gradient(ellipse at 18% 8%, rgba(170,130,80,0.06), transparent 55%),
+        radial-gradient(ellipse at 82% 92%, rgba(170,130,80,0.06), transparent 55%);
+    }
+
+    .container {
+      max-width: 960px;
+      margin: 0 auto;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 1.75rem;
+      padding-bottom: 1rem;
+      border-bottom: 1px double var(--rule);
+    }
+
+    h1 {
+      margin: 0 0 0.2rem 0;
+      font-weight: 500;
+      font-size: 2.6rem;
+      font-variant: small-caps;
+      letter-spacing: 0.08em;
+      color: var(--accent);
+    }
+
+    .subtitle {
+      font-style: italic;
+      color: var(--muted);
+      margin: 0;
+    }
+
+    .ornament {
+      text-align: center;
+      color: var(--rule);
+      font-size: 1.2rem;
+      letter-spacing: 0.4em;
+      margin: 0.5rem 0 0;
+      user-select: none;
+    }
+
+    a {
+      color: var(--accent);
+      text-decoration: none;
+      border-bottom: 1px dotted var(--accent-soft);
+    }
+    a:hover { color: var(--accent-soft); border-bottom-style: solid; }
+
+    #loading {
+      text-align: center;
+      padding: 2rem;
+      font-style: italic;
+      color: var(--muted);
+    }
+    #loading.hidden { display: none; }
+
+    .quill {
+      display: inline-block;
+      width: 14px;
+      height: 14px;
+      border: 2px solid var(--rule);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 1.1s linear infinite;
+      margin-right: 0.6rem;
+      vertical-align: -2px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    #terminal-container {
+      background: var(--bg-panel);
+      border: 1px solid var(--rule);
+      border-radius: 3px;
+      padding: 0.75rem 0.85rem;
+      box-shadow:
+        inset 0 0 28px rgba(120, 80, 40, 0.06),
+        0 1px 0 rgba(0, 0, 0, 0.04);
+    }
+    #terminal {
+      height: 540px;
+    }
+    /* xterm canvas already uses our theme; just ensure mono font matches */
+    .xterm, .xterm-helper-textarea {
+      font-family: "JetBrains Mono", "Iosevka", "Menlo", monospace !important;
+    }
+
+    .error {
+      background: #f6e0e0;
+      border: 1px solid var(--accent);
+      color: var(--accent);
+      padding: 0.9rem 1rem;
+      border-radius: 3px;
+      margin-top: 1rem;
+    }
+    .error-title { font-weight: 700; margin-bottom: 0.35rem; }
+
+    .info {
+      margin-top: 1.5rem;
+      background: var(--quote-bg);
+      border-left: 3px solid var(--accent-soft);
+      padding: 0.9rem 1.2rem;
+      border-radius: 0 3px 3px 0;
+      font-size: 0.96rem;
+    }
+    .info h3 {
+      margin: 0 0 0.4rem 0;
+      font-weight: 500;
+      font-variant: small-caps;
+      letter-spacing: 0.06em;
+      color: var(--accent);
+    }
+    .info ul { margin: 0.3rem 0 0.6rem 1.4rem; padding: 0; }
+    .info li { margin-bottom: 0.15rem; }
+    .info code {
+      font-family: "JetBrains Mono", monospace;
+      font-size: 0.88em;
+      background: rgba(138, 28, 28, 0.07);
+      padding: 0.1rem 0.35rem;
+      border-radius: 2px;
+      color: var(--ink);
+    }
+    .info-cta {
+      margin: 0.8rem 0 0;
+      text-align: center;
+    }
+
+    footer {
+      text-align: center;
+      margin-top: 2rem;
+      padding-top: 0.8rem;
+      border-top: 1px double var(--rule);
+      color: var(--muted);
+      font-size: 0.9rem;
+      font-style: italic;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>Lawvere</h1>
+      <p class="subtitle">A categorical programming language &middot; WebAssembly edition</p>
+      <p class="ornament">❦  ·  ❧  ·  ❦</p>
+    </header>
+
+    <div id="loading">
+      <span class="quill"></span>Loading the Lawvere interpreter&hellip;
+    </div>
+
+    <div id="terminal-container" style="display: none;">
+      <div id="terminal"></div>
+    </div>
+
+    <aside class="info">
+      <h3>Quick start</h3>
+      <ul>
+        <li>Type an expression: <code>40 + 2</code> or <code>"hello"</code>.</li>
+        <li><code>:l examples/tutorial.law</code> &mdash; load a bundled example.</li>
+        <li><code>:l README.md</code> &mdash; the README is itself a runnable literate Lawvere file.</li>
+        <li><code>:l</code> (no argument) &mdash; open a local <code>.law</code> from your machine.</li>
+        <li><code>:r</code> reloads the current file. <code>:q</code> quits.</li>
+      </ul>
+      <p class="info-cta">
+        ✒ <strong>New to Lawvere?</strong> Read the
+        <a href="tutorial.html">tutorial</a> (rendered from the README).
+      </p>
+    </aside>
+
+    <footer>
+      <p>
+        Lawvere by James Haydon &middot;
+        <a href="https://github.com/jameshaydon/lawvere" target="_blank" rel="noopener">GitHub</a>
+      </p>
+    </footer>
+  </div>
+
+  <script type="module" src="lawvere-terminal.js"></script>
+</body>
+</html>

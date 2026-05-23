@@ -1,11 +1,15 @@
+{-# LANGUAGE CPP #-}
+
 module Lawvere.Disp where
 
 import Prettyprinter
 import qualified Prettyprinter.Render.Terminal as RTerm
 import Prettyprinter.Render.Text as Text
 import Protolude
+#if !defined(USE_WEB_BACKEND)
 import qualified System.Console.ANSI as Term
 import qualified System.Console.Terminal.Size as Term
+#endif
 
 data Ann = AnStr | AnNum | AnCons
 
@@ -21,6 +25,12 @@ render x =
     layoutSmart (LayoutOptions {layoutPageWidth = AvailablePerLine 62 1.0}) (disp x)
 
 renderTerm :: Disp a => a -> IO Text
+#if defined(USE_WEB_BACKEND)
+renderTerm x =
+  let opts = LayoutOptions {layoutPageWidth = AvailablePerLine 80 1.0}
+      docStream = layoutSmart opts (disp x)
+   in pure (RTerm.renderStrict (reAnnotateS style docStream))
+#else
 renderTerm x = do
   hasAnsi <- Term.hSupportsANSI stdout
   w_ <- Term.size
@@ -29,6 +39,7 @@ renderTerm x = do
       docStream = layoutSmart opts (disp x)
       rdr = if hasAnsi then RTerm.renderStrict else Text.renderStrict
   pure (rdr (reAnnotateS style docStream))
+#endif
 
 style :: Ann -> RTerm.AnsiStyle
 style = \case

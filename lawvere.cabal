@@ -131,6 +131,8 @@ library
     , text
     , transformers
   default-language: Haskell2010
+  if impl(ghc >= 9.8)
+    ghc-options: -Wno-missing-role-annotations
 
 executable bill
   main-is: Main.hs
@@ -199,6 +201,8 @@ executable bill
     , text
     , transformers
   default-language: Haskell2010
+  if impl(ghc >= 9.8)
+    ghc-options: -Wno-missing-role-annotations
 
 test-suite lawvere-test
   type: exitcode-stdio-1.0
@@ -271,4 +275,6 @@ test-suite lawvere-test
     , text
     , transformers
   default-language: Haskell2010
+  if impl(ghc >= 9.8)
+    ghc-options: -Wno-missing-role-annotations
   build-tool-depends: hspec-discover:hspec-discover == 2.*

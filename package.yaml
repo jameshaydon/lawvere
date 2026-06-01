@@ -116,6 +116,7 @@ ghc-options:
   - -Weverything
   - -Werror
   - -Wno-missing-exported-signatures # missing-exported-signatures turns off the more strict -Wmissing-signatures.
+  - -Wno-missing-kind-signatures
   - -Wno-missing-import-lists # Requires explicit imports of _every_ function (e.g. ‘$’); too strict
   - -Wno-missed-specialisations # When GHC can’t specialize a polymorphic function.
   - -Wno-all-missed-specialisations # See missed-specialisations
@@ -127,3 +128,7 @@ ghc-options:
   - -Wno-missing-safe-haskell-mode
   - -Wno-prepositive-qualified-module
   - -Wno-unused-packages
+
+when:
+  - condition: impl(ghc >= 9.8)
+    ghc-options: -Wno-missing-role-annotations

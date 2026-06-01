@@ -148,12 +148,10 @@ repl warnings filepath_ = do
               loop
             Right expr -> do
               pr <- use #prog
-              let exec = Right <$> eval (Rec mempty) pr expr
+              let exec = Right <$> (evaluate =<< renderTerm =<< eval (Rec mempty) pr expr)
               res <- liftIO $ catch exec $ \(FatalError err) -> pure (Left ("ERROR: " <> err))
               case res of
-                Right v -> do
-                  out <- liftIO (renderTerm v)
-                  Repl $ outputStrLn (toS out)
+                Right out -> Repl $ outputStrLn (toS out)
                 Left err -> Repl $ outputStrLn (toS err)
               loop
 

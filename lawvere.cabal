@@ -51,6 +51,12 @@ source-repository head
   type: git
   location: https://github.com/jameshaydon/lawvere
 
+flag Web
+  description: Build for the browser via the GHC WebAssembly backend. Selects the bill-web executable (JSFFI REPL) instead of the native bill CLI, and drops terminal-only deps (haskeline, ansi-terminal, terminal-size, optparse-applicative) from the library.
+
+  manual: True
+  default: False
+
 library
   exposed-modules:
       Lawvere
@@ -111,28 +117,30 @@ library
   ghc-options: -Weverything -Werror -Wno-missing-exported-signatures -Wno-missing-kind-signatures -Wno-missing-import-lists -Wno-missed-specialisations -Wno-all-missed-specialisations -Wno-unsafe -Wno-safe -Wno-missing-local-signatures -Wno-monomorphism-restriction -Wno-missing-export-lists -Wno-missing-safe-haskell-mode -Wno-prepositive-qualified-module -Wno-unused-packages
   build-depends:
       aeson
-    , ansi-terminal
     , base >=4.7 && <5
     , bytestring
     , commonmark
     , commonmark-pandoc
     , containers
     , generic-lens
-    , haskeline
     , lens
     , megaparsec
-    , optparse-applicative
     , pandoc-types
     , parser-combinators
     , prettyprinter
     , prettyprinter-ansi-terminal
     , protolude
-    , terminal-size
     , text
     , transformers
   default-language: Haskell2010
   if impl(ghc >= 9.8)
     ghc-options: -Wno-missing-role-annotations
+  if flag(Web)
+    cpp-options: -DUSE_WEB_BACKEND
+  else
+    build-depends:
+        ansi-terminal
+      , terminal-size
 
 executable bill
   main-is: Main.hs
@@ -180,7 +188,6 @@ executable bill
   ghc-options: -Weverything -Werror -Wno-missing-exported-signatures -Wno-missing-kind-signatures -Wno-missing-import-lists -Wno-missed-specialisations -Wno-all-missed-specialisations -Wno-unsafe -Wno-safe -Wno-missing-local-signatures -Wno-monomorphism-restriction -Wno-missing-export-lists -Wno-missing-safe-haskell-mode -Wno-prepositive-qualified-module -Wno-unused-packages
   build-depends:
       aeson
-    , ansi-terminal
     , base >=4.7 && <5
     , bytestring
     , commonmark
@@ -197,12 +204,83 @@ executable bill
     , prettyprinter
     , prettyprinter-ansi-terminal
     , protolude
-    , terminal-size
     , text
     , transformers
   default-language: Haskell2010
   if impl(ghc >= 9.8)
     ghc-options: -Wno-missing-role-annotations
+  if flag(Web)
+    buildable: False
+
+executable bill-web
+  main-is: Main.hs
+  other-modules:
+      Paths_lawvere
+  hs-source-dirs:
+      bill-web
+  default-extensions:
+      BangPatterns
+      ConstraintKinds
+      DataKinds
+      DefaultSignatures
+      DeriveAnyClass
+      DeriveDataTypeable
+      DeriveFoldable
+      DeriveFunctor
+      DeriveGeneric
+      DeriveTraversable
+      DerivingStrategies
+      DerivingVia
+      DuplicateRecordFields
+      EmptyCase
+      FlexibleContexts
+      FlexibleInstances
+      FunctionalDependencies
+      GeneralizedNewtypeDeriving
+      InstanceSigs
+      MultiParamTypeClasses
+      MultiWayIf
+      NamedFieldPuns
+      NoImplicitPrelude
+      LambdaCase
+      OverloadedLabels
+      OverloadedStrings
+      PatternSynonyms
+      PolyKinds
+      RankNTypes
+      RecordWildCards
+      ScopedTypeVariables
+      StandaloneDeriving
+      TupleSections
+      TypeApplications
+      TypeOperators
+      ViewPatterns
+  ghc-options: -Weverything -Werror -Wno-missing-exported-signatures -Wno-missing-kind-signatures -Wno-missing-import-lists -Wno-missed-specialisations -Wno-all-missed-specialisations -Wno-unsafe -Wno-safe -Wno-missing-local-signatures -Wno-monomorphism-restriction -Wno-missing-export-lists -Wno-missing-safe-haskell-mode -Wno-prepositive-qualified-module -Wno-unused-packages -no-hs-main -optl-mexec-model=reactor -optl-Wl,--export=hs_init -optl-Wl,--export=hs_start
+  cpp-options: -DUSE_WEB_BACKEND
+  build-depends:
+      aeson
+    , base >=4.7 && <5
+    , bytestring
+    , commonmark
+    , commonmark-pandoc
+    , containers
+    , generic-lens
+    , ghc-experimental
+    , lawvere
+    , lens
+    , megaparsec
+    , pandoc-types
+    , parser-combinators
+    , prettyprinter
+    , prettyprinter-ansi-terminal
+    , protolude
+    , text
+    , transformers
+  default-language: Haskell2010
+  if impl(ghc >= 9.8)
+    ghc-options: -Wno-missing-role-annotations
+  if !flag(Web)
+    buildable: False
 
 test-suite lawvere-test
   type: exitcode-stdio-1.0
@@ -252,29 +330,27 @@ test-suite lawvere-test
   ghc-options: -Weverything -Werror -Wno-missing-exported-signatures -Wno-missing-kind-signatures -Wno-missing-import-lists -Wno-missed-specialisations -Wno-all-missed-specialisations -Wno-unsafe -Wno-safe -Wno-missing-local-signatures -Wno-monomorphism-restriction -Wno-missing-export-lists -Wno-missing-safe-haskell-mode -Wno-prepositive-qualified-module -Wno-unused-packages
   build-depends:
       aeson
-    , ansi-terminal
     , base >=4.7 && <5
     , bytestring
     , commonmark
     , commonmark-pandoc
     , containers
     , generic-lens
-    , haskeline
     , hspec
     , hspec-expectations
     , lawvere
     , lens
     , megaparsec
-    , optparse-applicative
     , pandoc-types
     , parser-combinators
     , prettyprinter
     , prettyprinter-ansi-terminal
     , protolude
-    , terminal-size
     , text
     , transformers
   default-language: Haskell2010
   if impl(ghc >= 9.8)
     ghc-options: -Wno-missing-role-annotations
+  if flag(Web)
+    buildable: False
   build-tool-depends: hspec-discover:hspec-discover == 2.*

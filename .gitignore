@@ -4,3 +4,7 @@ dist-newstyle
 **/cabal.project.local
 **/result*
 *~
+
+# WebAssembly build artifacts
+_site/
+web/samples.js

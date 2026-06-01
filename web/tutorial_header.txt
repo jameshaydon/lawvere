@@ -1,0 +1,5 @@
+<div id="top-banner">
+  <h1>Lawvere</h1>
+  <p>A categorical programming language &middot; <a href="index.html">try it in the browser</a></p>
+  <p class="ornament">❦  ·  ❧  ·  ❦</p>
+</div>
